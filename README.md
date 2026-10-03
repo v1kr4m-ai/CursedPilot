@@ -1,20 +1,70 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Cursed Pilot
 
-# Run and deploy your AI Studio app
+*Long ND made Short.* A records app for ship handlers: keep each vessel's particulars, turning data and calibration records in one place, and run a few quick navigation calculations. Built as a React web app and wrapped for Android with Capacitor. It works fully offline.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1pjeypnhypDv1Q2ojlPDrHlB-l3Hgty3X
+- **Fleet inventory** – add, search, filter (Destroyer, Frigate, Corvette, OPV, Carrier, LST, Tanker, Submarine and more) and remove vessels.
+- **Ship particulars** – length and breadth overall, displacement, and stem-to-standard / bridge / RAS point / fueling point distances.
+- **Turning data** – one sheet per speed, wheel angle and turn side (Port or Starboard), prefilled with turn amounts from 0° to 345°. Records bearing of MOB, angle, range, transfer, advance, distance to new course, time and speed.
+- **Other records** – acceleration/deceleration, fishtails, EM log calibration and compass swing.
+- **Navigator's Tools** – bearing reciprocal, radian rule (θ = d/R) and speed rule (S = D/T).
+- **Print** – the vessel details view has a print button (uses the system print dialog).
+- **AI particulars (optional)** – fill a vessel's particulars with Gemini-generated estimates. Needs a network connection and an API key; everything else works without either.
+- **Persistence** – data is saved in the browser's `localStorage` (key `cursedpilot.ships.v1`) and survives restarts. It is local to the device and is not synced anywhere.
 
-## Run Locally
+## Run on the web
 
-**Prerequisites:**  Node.js
+Requires Node.js 22 or newer.
 
+```bash
+npm install
+npm run dev
+```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+The dev server listens on port 3000.
+
+To enable the AI particulars button, create `.env.local`:
+
+```
+GEMINI_API_KEY=your-key
+```
+
+The key is injected at build time, so it ends up in the built bundle. Don't ship a build with a key you wouldn't want exposed.
+
+## Build the Android app
+
+Requires JDK 21 and the Android SDK (Android Studio installs both).
+
+```bash
+npm run android        # build the web app and sync it into android/
+npm run android:open   # open the project in Android Studio
+```
+
+To build a debug APK from the command line, point `JAVA_HOME` at JDK 21 first (Gradle 8 does not run on JDK 25):
+
+```bash
+cd android
+./gradlew assembleDebug
+```
+
+The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. The app ID is `com.cursedpilot.app`.
+
+## Stack
+
+React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capacitor 8, `@google/genai`.
+
+## Layout
+
+| Path | Purpose |
+| --- | --- |
+| `App.tsx` | All views and state |
+| `types.ts` | Ship, particulars and record types |
+| `constants.tsx` | Seed vessels |
+| `services/geminiService.ts` | Gemini call for particulars |
+| `android/` | Capacitor Android project |
+
+## Known limits
+
+- Data lives only in on-device storage: clearing app data or uninstalling erases it, and there is no file export or backup yet.
+- Records are for reference. Always verify against your ship's own trials and standing orders.
