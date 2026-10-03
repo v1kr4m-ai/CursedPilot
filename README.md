@@ -8,8 +8,7 @@
 - **Fleet inventory** – add, search, filter (Destroyer, Frigate, Corvette, OPV, Carrier, LST, Tanker, Submarine and more) and remove vessels.
 - **Ship particulars** – length and breadth overall, displacement, and stem-to-standard / bridge / RAS point / fueling point distances.
 - **Turning data** – one sheet per speed, wheel angle and turn side (Port or Starboard), prefilled with turn amounts from 0° to 345°. Records bearing of MOB, angle, range, transfer, advance, distance to new course, time and speed.
-- **Fishtails** – record a fishtail manoeuvre (date, speed, rudder, overshoot, cycle time, remarks) from the home screen or the vessel's Fishtails card, and delete records you entered by mistake.
-- **Other records** – acceleration/deceleration, EM log calibration and compass swing are shown on the vessel details screen (seed data and restored backups only; no entry form yet).
+- **Records** – entry forms for fishtails (speed, rudder, overshoot, cycle time), acceleration/deceleration runs (from/to speed, time, distance), EM log calibration (true speed vs log reading, error worked out for you) and compass swing (compass, residual deviation), each with date and remarks. Open a form from the **+** on the vessel's card (fishtails also from the home screen). Records can be deleted.
 - **Navigator's Tools** – bearing reciprocal, radian rule (θ = d/R) and speed rule (S = D/T).
 - **Print** – the Turning Data Entry screen has a print button (uses the system print dialog).
 - **AI particulars (optional)** – fill a vessel's particulars with Gemini-generated estimates. Needs a network connection and an API key; everything else works without either.

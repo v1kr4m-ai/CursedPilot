@@ -50,4 +50,4 @@ export interface Ship {
   compassSwing: SimpleRecord[];
 }
 
-export type AppView = 'home' | 'select' | 'add' | 'details' | 'particulars_form' | 'turning_data_form' | 'fishtail_form';
+export type AppView = 'home' | 'select' | 'add' | 'details' | 'particulars_form' | 'turning_data_form' | 'record_form';

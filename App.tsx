@@ -112,6 +112,61 @@ const SpeedRule = () => {
   );
 };
 
+type RecordKind = 'fishtails' | 'accelDecelData' | 'emLogCalibration' | 'compassSwing';
+type RecordValues = Record<string, string>;
+interface FieldDef { key: string; label: string; type: 'number' | 'select'; options?: string[]; required?: boolean; signed?: boolean; initial?: string }
+
+const num = (v: string) => parseFloat(v);
+const signed = (n: number, digits = 1) => `${n > 0 ? '+' : ''}${n.toFixed(digits)}`;
+
+// One entry form is generated from each definition; every record is stored as a SimpleRecord.
+const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string; fields: FieldDef[]; summarize: (v: RecordValues) => string }> = {
+  fishtails: {
+    formTitle: 'Record Fishtail',
+    defaultNote: 'Fishtail manoeuvre',
+    fields: [
+      { key: 'speed', label: 'Speed (kn)', type: 'number', required: true },
+      { key: 'rudder', label: 'Rudder (deg)', type: 'number', initial: '15' },
+      { key: 'overshoot', label: 'Overshoot (deg)', type: 'number' },
+      { key: 'cycle', label: 'Cycle time (s)', type: 'number' },
+    ],
+    summarize: v => [`${v.speed} kn`, v.rudder && `${v.rudder}\u00B0 rudder`, v.overshoot && `overshoot ${v.overshoot}\u00B0`, v.cycle && `cycle ${v.cycle} s`].filter(Boolean).join(' \u00B7 '),
+  },
+  accelDecelData: {
+    formTitle: 'Record Accel / Decel Run',
+    defaultNote: 'Acceleration/deceleration run',
+    fields: [
+      { key: 'type', label: 'Run type', type: 'select', options: ['Acceleration', 'Deceleration'], initial: 'Acceleration' },
+      { key: 'from', label: 'From (kn)', type: 'number', required: true },
+      { key: 'to', label: 'To (kn)', type: 'number', required: true },
+      { key: 'time', label: 'Time (s)', type: 'number', required: true },
+      { key: 'distance', label: 'Distance run (m)', type: 'number' },
+    ],
+    summarize: v => [`${v.type} ${v.from} to ${v.to} kn in ${v.time} s`, v.distance && `${v.distance} m run`].filter(Boolean).join(' \u00B7 '),
+  },
+  emLogCalibration: {
+    formTitle: 'Record EM Log Calibration',
+    defaultNote: 'EM log calibration',
+    fields: [
+      { key: 'ref', label: 'True speed (kn)', type: 'number', required: true },
+      { key: 'log', label: 'Log reading (kn)', type: 'number', required: true },
+    ],
+    summarize: v => `True ${v.ref} kn, log ${v.log} kn (error ${signed(num(v.log) - num(v.ref))} kn)`,
+  },
+  compassSwing: {
+    formTitle: 'Record Compass Swing',
+    defaultNote: 'Compass swing',
+    fields: [
+      { key: 'compass', label: 'Compass', type: 'select', options: ['Standard', 'Steering', 'Gyro'], initial: 'Standard' },
+      { key: 'deviation', label: 'Residual deviation (deg, + E / - W)', type: 'number', required: true, signed: true },
+    ],
+    summarize: v => `${v.compass} compass \u00B7 residual deviation ${signed(num(v.deviation))}\u00B0`,
+  },
+};
+
+const initialValues = (kind: RecordKind): RecordValues =>
+  Object.fromEntries(RECORD_KINDS[kind].fields.map(f => [f.key, f.initial ?? '']));
+
 const STORAGE_KEY = 'cursedpilot.ships.v1';
 
 const loadShips = (): Ship[] => {
@@ -158,14 +213,12 @@ const App: React.FC = () => {
   const [initialHead, setInitialHead] = useState<number>(180);
   const [localTurningData, setLocalTurningData] = useState<TurningDataRow[]>([]);
 
-  // Fishtail Entry Form States
+  // Record Entry Form States (fishtails, accel/decel, EM log, compass swing)
   const todayISO = () => new Date().toISOString().slice(0, 10);
-  const [fishDate, setFishDate] = useState(todayISO());
-  const [fishSpeed, setFishSpeed] = useState('');
-  const [fishRudder, setFishRudder] = useState('15');
-  const [fishOvershoot, setFishOvershoot] = useState('');
-  const [fishCycle, setFishCycle] = useState('');
-  const [fishRemarks, setFishRemarks] = useState('');
+  const [recordKind, setRecordKind] = useState<RecordKind>('fishtails');
+  const [recordDate, setRecordDate] = useState(todayISO());
+  const [recordValues, setRecordValues] = useState<RecordValues>({});
+  const [recordRemarks, setRecordRemarks] = useState('');
 
   // Tools State
   const [isToolsOpen, setIsToolsOpen] = useState(false);
@@ -618,62 +671,66 @@ const App: React.FC = () => {
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} />
-            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={openFishtailForm} onDelete={(id) => deleteFishtail(selectedShip.id, id)} />
-            <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} />
-            <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} />
+            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onDelete={(id) => deleteRecord(selectedShip.id, 'accelDecelData', id)} />
+            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={() => openRecordForm('fishtails')} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
+            <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onDelete={(id) => deleteRecord(selectedShip.id, 'emLogCalibration', id)} />
+            <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} onAdd={() => openRecordForm('compassSwing')} onDelete={(id) => deleteRecord(selectedShip.id, 'compassSwing', id)} />
           </div>
         </div>
       </div>
     );
   };
 
-  const openFishtailForm = () => {
+  const openRecordForm = (kind: RecordKind) => {
     if (!selectedShipId) { setView('select'); return; }
-    setFishDate(todayISO()); setFishSpeed(''); setFishRudder('15'); setFishOvershoot(''); setFishCycle(''); setFishRemarks('');
-    setView('fishtail_form');
+    setRecordKind(kind); setRecordDate(todayISO()); setRecordValues(initialValues(kind)); setRecordRemarks('');
+    setView('record_form');
   };
 
-  const saveFishtail = (e: React.FormEvent) => {
+  const saveRecord = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedShip || !fishDate || !fishSpeed) return;
-    const parts = [
-      `${fishSpeed} kn`,
-      fishRudder && `${fishRudder}\u00B0 rudder`,
-      fishOvershoot && `overshoot ${fishOvershoot}\u00B0`,
-      fishCycle && `cycle ${fishCycle} s`,
-    ].filter(Boolean);
-    const record: SimpleRecord = { id: Math.random().toString(36).slice(2, 11), date: fishDate, description: fishRemarks.trim() || 'Fishtail manoeuvre', value: parts.join(' \u00B7 ') };
-    setShips(prev => prev.map(s => s.id === selectedShip.id ? { ...s, fishtails: [...s.fishtails, record] } : s));
+    const def = RECORD_KINDS[recordKind];
+    if (!selectedShip || !recordDate || def.fields.some(f => f.required && !recordValues[f.key])) return;
+    const record: SimpleRecord = { id: Math.random().toString(36).slice(2, 11), date: recordDate, description: recordRemarks.trim() || def.defaultNote, value: def.summarize(recordValues) };
+    setShips(prev => prev.map(s => s.id === selectedShip.id ? { ...s, [recordKind]: [...s[recordKind], record] } : s));
     setView('details');
   };
 
-  const deleteFishtail = (shipId: string, recordId: string) => {
-    if (!confirm('Delete this fishtail record?')) return;
-    setShips(prev => prev.map(s => s.id === shipId ? { ...s, fishtails: s.fishtails.filter(r => r.id !== recordId) } : s));
+  const deleteRecord = (shipId: string, kind: RecordKind, recordId: string) => {
+    if (!confirm('Delete this record?')) return;
+    setShips(prev => prev.map(s => s.id === shipId ? { ...s, [kind]: s[kind].filter(r => r.id !== recordId) } : s));
   };
 
-  const renderFishtailForm = () => {
+  const renderRecordForm = () => {
     if (!selectedShip) return null;
+    const def = RECORD_KINDS[recordKind];
     const input = 'w-full p-4 rounded-2xl bg-white border border-slate-200 outline-none font-bold text-slate-950 focus:border-blue-400 focus:ring-2 focus:ring-blue-50';
     const label = 'text-xs font-bold text-slate-500 ml-1 uppercase';
     return (
       <div className="p-6 pb-24 max-w-xl mx-auto">
         <header className="flex items-center gap-4 mb-8">
           <button onClick={() => setView('details')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
-          <h1 className="text-2xl font-bold text-slate-800">Record Fishtail</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{def.formTitle}</h1>
           <p className="text-sm text-slate-500 font-bold ml-auto">{selectedShip.name}</p>
         </header>
-        <form onSubmit={saveFishtail} className="space-y-4">
-          <div className="space-y-1"><label className={label}>Date</label><input type="date" required value={fishDate} onChange={e => setFishDate(e.target.value)} className={input} /></div>
+        <form onSubmit={saveRecord} className="space-y-4">
+          <div className="space-y-1"><label className={label}>Date</label><input type="date" required value={recordDate} onChange={e => setRecordDate(e.target.value)} className={input} /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1"><label className={label}>Speed (kn)</label><input type="number" inputMode="decimal" required min="0" step="any" value={fishSpeed} onChange={e => setFishSpeed(e.target.value)} className={input} /></div>
-            <div className="space-y-1"><label className={label}>Rudder (deg)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishRudder} onChange={e => setFishRudder(e.target.value)} className={input} /></div>
-            <div className="space-y-1"><label className={label}>Overshoot (deg)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishOvershoot} onChange={e => setFishOvershoot(e.target.value)} className={input} /></div>
-            <div className="space-y-1"><label className={label}>Cycle time (s)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishCycle} onChange={e => setFishCycle(e.target.value)} className={input} /></div>
+            {def.fields.map(f => (
+              <div key={f.key} className="space-y-1">
+                <label className={label}>{f.label}</label>
+                {f.type === 'select' ? (
+                  <select value={recordValues[f.key] ?? ''} onChange={e => setRecordValues({ ...recordValues, [f.key]: e.target.value })} className={input + ' appearance-none'}>
+                    {f.options!.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input type="number" inputMode="decimal" step="any" min={f.signed ? undefined : 0} required={f.required} value={recordValues[f.key] ?? ''} onChange={e => setRecordValues({ ...recordValues, [f.key]: e.target.value })} className={input} />
+                )}
+              </div>
+            ))}
           </div>
-          <div className="space-y-1"><label className={label}>Remarks</label><textarea rows={3} value={fishRemarks} onChange={e => setFishRemarks(e.target.value)} className={input + ' font-medium resize-none'} /></div>
-          <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Save Fishtail</button>
+          <div className="space-y-1"><label className={label}>Remarks</label><textarea rows={3} value={recordRemarks} onChange={e => setRecordRemarks(e.target.value)} className={input + ' font-medium resize-none'} /></div>
+          <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Save Record</button>
         </form>
       </div>
     );
@@ -768,7 +825,7 @@ const App: React.FC = () => {
 
         {/* Module: Fishtails */}
         <button
-          onClick={openFishtailForm}
+          onClick={() => openRecordForm('fishtails')}
           className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
         >
           <div className="flex items-center gap-4">
@@ -992,7 +1049,7 @@ const App: React.FC = () => {
       {view === 'details' && renderShipDetails()}
       {view === 'particulars_form' && renderParticularsForm()}
       {view === 'turning_data_form' && renderTurningDataForm()}
-      {view === 'fishtail_form' && renderFishtailForm()}
+      {view === 'record_form' && renderRecordForm()}
 
       {/* Floating Tools Button */}
       <div className="fixed bottom-6 right-6 z-40">
