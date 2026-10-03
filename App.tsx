@@ -30,7 +30,7 @@ import {
   Download,
   Upload
 } from 'lucide-react';
-import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet } from './types';
+import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
 import { exportBackup, parseBackup } from './services/backup';
@@ -134,6 +134,12 @@ const App: React.FC = () => {
   const [selectedShipId, setSelectedShipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Welcome splash: logo -> typewriter tagline -> fade out
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashStage, setSplashStage] = useState<'logo' | 'text' | 'fadeout'>('logo');
+  const [typewriterText, setTypewriterText] = useState('');
+  const fullSubtitle = 'Long ND made Short';
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
@@ -152,12 +158,46 @@ const App: React.FC = () => {
   const [initialHead, setInitialHead] = useState<number>(180);
   const [localTurningData, setLocalTurningData] = useState<TurningDataRow[]>([]);
 
+  // Fishtail Entry Form States
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+  const [fishDate, setFishDate] = useState(todayISO());
+  const [fishSpeed, setFishSpeed] = useState('');
+  const [fishRudder, setFishRudder] = useState('15');
+  const [fishOvershoot, setFishOvershoot] = useState('');
+  const [fishCycle, setFishCycle] = useState('');
+  const [fishRemarks, setFishRemarks] = useState('');
+
   // Tools State
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedShip = ships.find(s => s.id === selectedShipId);
+
+  useEffect(() => {
+    const logoTimer = setTimeout(() => setSplashStage('text'), 1800);
+    return () => clearTimeout(logoTimer);
+  }, []);
+
+  useEffect(() => {
+    if (splashStage !== 'text') return;
+    let i = 0;
+    let holdTimer: ReturnType<typeof setTimeout>;
+    const interval = setInterval(() => {
+      setTypewriterText(fullSubtitle.slice(0, ++i));
+      if (i >= fullSubtitle.length) {
+        clearInterval(interval);
+        holdTimer = setTimeout(() => setSplashStage('fadeout'), 1500);
+      }
+    }, 80);
+    return () => { clearInterval(interval); clearTimeout(holdTimer); };
+  }, [splashStage]);
+
+  useEffect(() => {
+    if (splashStage !== 'fadeout') return;
+    const hideTimer = setTimeout(() => setShowSplash(false), 800);
+    return () => clearTimeout(hideTimer);
+  }, [splashStage]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -578,12 +618,63 @@ const App: React.FC = () => {
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accel_decel_data} />
-            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} />
+            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} />
+            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={openFishtailForm} onDelete={(id) => deleteFishtail(selectedShip.id, id)} />
             <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} />
             <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} />
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const openFishtailForm = () => {
+    if (!selectedShipId) { setView('select'); return; }
+    setFishDate(todayISO()); setFishSpeed(''); setFishRudder('15'); setFishOvershoot(''); setFishCycle(''); setFishRemarks('');
+    setView('fishtail_form');
+  };
+
+  const saveFishtail = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedShip || !fishDate || !fishSpeed) return;
+    const parts = [
+      `${fishSpeed} kn`,
+      fishRudder && `${fishRudder}\u00B0 rudder`,
+      fishOvershoot && `overshoot ${fishOvershoot}\u00B0`,
+      fishCycle && `cycle ${fishCycle} s`,
+    ].filter(Boolean);
+    const record: SimpleRecord = { id: Math.random().toString(36).slice(2, 11), date: fishDate, description: fishRemarks.trim() || 'Fishtail manoeuvre', value: parts.join(' \u00B7 ') };
+    setShips(prev => prev.map(s => s.id === selectedShip.id ? { ...s, fishtails: [...s.fishtails, record] } : s));
+    setView('details');
+  };
+
+  const deleteFishtail = (shipId: string, recordId: string) => {
+    if (!confirm('Delete this fishtail record?')) return;
+    setShips(prev => prev.map(s => s.id === shipId ? { ...s, fishtails: s.fishtails.filter(r => r.id !== recordId) } : s));
+  };
+
+  const renderFishtailForm = () => {
+    if (!selectedShip) return null;
+    const input = 'w-full p-4 rounded-2xl bg-white border border-slate-200 outline-none font-bold text-slate-950 focus:border-blue-400 focus:ring-2 focus:ring-blue-50';
+    const label = 'text-xs font-bold text-slate-500 ml-1 uppercase';
+    return (
+      <div className="p-6 pb-24 max-w-xl mx-auto">
+        <header className="flex items-center gap-4 mb-8">
+          <button onClick={() => setView('details')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
+          <h1 className="text-2xl font-bold text-slate-800">Record Fishtail</h1>
+          <p className="text-sm text-slate-500 font-bold ml-auto">{selectedShip.name}</p>
+        </header>
+        <form onSubmit={saveFishtail} className="space-y-4">
+          <div className="space-y-1"><label className={label}>Date</label><input type="date" required value={fishDate} onChange={e => setFishDate(e.target.value)} className={input} /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1"><label className={label}>Speed (kn)</label><input type="number" inputMode="decimal" required min="0" step="any" value={fishSpeed} onChange={e => setFishSpeed(e.target.value)} className={input} /></div>
+            <div className="space-y-1"><label className={label}>Rudder (deg)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishRudder} onChange={e => setFishRudder(e.target.value)} className={input} /></div>
+            <div className="space-y-1"><label className={label}>Overshoot (deg)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishOvershoot} onChange={e => setFishOvershoot(e.target.value)} className={input} /></div>
+            <div className="space-y-1"><label className={label}>Cycle time (s)</label><input type="number" inputMode="decimal" min="0" step="any" value={fishCycle} onChange={e => setFishCycle(e.target.value)} className={input} /></div>
+          </div>
+          <div className="space-y-1"><label className={label}>Remarks</label><textarea rows={3} value={fishRemarks} onChange={e => setFishRemarks(e.target.value)} className={input + ' font-medium resize-none'} /></div>
+          <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Save Fishtail</button>
+        </form>
       </div>
     );
   };
@@ -673,6 +764,18 @@ const App: React.FC = () => {
             <div><h3 className="font-bold text-slate-800">Ship Particulars</h3><p className="text-sm text-slate-400">Update vessel dimensions</p></div>
           </div>
           <ChevronRight className="text-slate-300 group-hover:text-amber-500 transition-colors" />
+        </button>
+
+        {/* Module: Fishtails */}
+        <button
+          onClick={openFishtailForm}
+          className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-cyan-50 text-cyan-600 rounded-2xl group-hover:bg-cyan-600 group-hover:text-white transition-colors"><Wind size={24} /></div>
+            <div><h3 className="font-bold text-slate-800">Fishtails</h3><p className="text-sm text-slate-400">Record a fishtail manoeuvre</p></div>
+          </div>
+          <ChevronRight className="text-slate-300 group-hover:text-cyan-500 transition-colors" />
         </button>
 
         {/* Module 4: Backup / Restore */}
@@ -872,14 +975,24 @@ const App: React.FC = () => {
     );
   };
 
+  const renderSplash = () => (
+    <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-1000 ${splashStage === 'fadeout' ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`transition-all duration-1000 flex flex-col items-center ${splashStage === 'logo' ? 'scale-110 opacity-100' : 'scale-100 opacity-0 absolute'}`}><div className="p-6 bg-blue-600 rounded-[2.5rem] text-white shadow-2xl shadow-blue-500/20 mb-4 animate-bounce"><Anchor size={80} strokeWidth={1.5} /></div><div className="w-16 h-1 bg-blue-500/30 rounded-full overflow-hidden"><div className="h-full bg-blue-400 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }} /></div></div>
+      <div className={`transition-all duration-1000 text-center ${splashStage === 'text' || splashStage === 'fadeout' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10 absolute'}`}><h1 className="text-5xl font-black text-white tracking-tighter mb-2">Cursed Pilot</h1><p className="text-blue-400 text-lg font-bold tracking-[0.3em] uppercase min-h-[1.5em]">{typewriterText}<span className="animate-pulse inline-block w-1 h-5 bg-blue-400 ml-1" /></p></div>
+      <style>{`@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }`}</style>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 font-sans shadow-2xl relative overflow-hidden">
+      {showSplash && renderSplash()}
       {view === 'home' && renderHome()}
       {view === 'select' && renderSelectShip()}
       {view === 'add' && renderAddShip()}
       {view === 'details' && renderShipDetails()}
       {view === 'particulars_form' && renderParticularsForm()}
       {view === 'turning_data_form' && renderTurningDataForm()}
+      {view === 'fishtail_form' && renderFishtailForm()}
 
       {/* Floating Tools Button */}
       <div className="fixed bottom-6 right-6 z-40">
@@ -901,14 +1014,20 @@ const App: React.FC = () => {
   );
 };
 
-const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[] }> = ({ title, icon, items }) => (
+const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], onAdd?: () => void, onDelete?: (id: string) => void }> = ({ title, icon, items, onAdd, onDelete }) => (
   <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-    <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3></div>
+    <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>
+      {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="ml-auto p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} /></button>}
+    </div>
     <div className="space-y-3">
       {items && items.length > 0 ? items.map(item => (
         <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-          <div className="flex justify-between items-center mb-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.date}</span></div>
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.date}</span>
+            {onDelete && <button onClick={() => onDelete(item.id)} aria-label="Delete record" className="p-1 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>}
+          </div>
           <p className="text-sm text-slate-900 font-bold">{item.value || item.description}</p>
+          {item.value && item.description && <p className="text-xs text-slate-500 mt-1">{item.description}</p>}
         </div>
       )) : <p className="text-xs text-slate-400 italic">No records found.</p>}
     </div>
