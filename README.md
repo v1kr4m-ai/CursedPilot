@@ -9,9 +9,10 @@
 - **Turning data** – one sheet per speed, wheel angle and turn side (Port or Starboard), prefilled with turn amounts from 0° to 345°. Records bearing of MOB, angle, range, transfer, advance, distance to new course, time and speed.
 - **Other records** – acceleration/deceleration, fishtails, EM log calibration and compass swing.
 - **Navigator's Tools** – bearing reciprocal, radian rule (θ = d/R) and speed rule (S = D/T).
-- **Print** – the vessel details view has a print button (uses the system print dialog).
+- **Print** – the Turning Data Entry screen has a print button (uses the system print dialog).
 - **AI particulars (optional)** – fill a vessel's particulars with Gemini-generated estimates. Needs a network connection and an API key; everything else works without either.
 - **Persistence** – data is saved in the browser's `localStorage` (key `cursedpilot.ships.v1`) and survives restarts. It is local to the device and is not synced anywhere.
+- **Backup and restore** – *Export* on the home screen saves every vessel to a `cursedpilot-backup-YYYY-MM-DD.json` file (a download on the web, the share sheet on Android, so you can send it to Drive, email or another device). *Restore* loads such a file and replaces all current vessels after a confirmation. Files from other apps or damaged files are rejected without changing anything.
 
 ## Run on the web
 
@@ -66,5 +67,6 @@ React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capa
 
 ## Known limits
 
-- Data lives only in on-device storage: clearing app data or uninstalling erases it, and there is no file export or backup yet.
+- Data lives in on-device storage: clearing app data or uninstalling erases it. Export a backup regularly; nothing is backed up automatically.
+- Restore replaces everything. There is no merge.
 - Records are for reference. Always verify against your ship's own trials and standing orders.

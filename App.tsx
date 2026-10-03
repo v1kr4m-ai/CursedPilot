@@ -26,11 +26,14 @@ import {
   RefreshCcw,
   Clock,
   Send,
-  ChevronDown
+  ChevronDown,
+  Download,
+  Upload
 } from 'lucide-react';
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet } from './types';
 import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
+import { exportBackup, parseBackup } from './services/backup';
 
 const SHIP_CATEGORIES = [
   "Destroyer", "Frigate", "Corvette", "OPVs", "NOPVs", 
@@ -585,6 +588,24 @@ const App: React.FC = () => {
     );
   };
 
+  const handleExport = async () => {
+    try { await exportBackup(ships); } catch (err) { alert(`Export failed: ${err instanceof Error ? err.message : err}`); }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const imported = parseBackup(await file.text());
+      if (!confirm(`Restore ${imported.length} vessel(s) from "${file.name}"? This replaces all ${ships.length} vessel(s) currently in the app.`)) return;
+      setShips(imported);
+      if (selectedShipId && !imported.some(s => s.id === selectedShipId)) setSelectedShipId(null);
+    } catch (err) {
+      alert(`Restore failed: ${err instanceof Error ? err.message : err}`);
+    }
+  };
+
   const renderHome = () => (
     <div className="flex flex-col gap-6 p-6 max-w-xl mx-auto pb-24">
       <div className="flex flex-col gap-2">
@@ -653,6 +674,19 @@ const App: React.FC = () => {
           </div>
           <ChevronRight className="text-slate-300 group-hover:text-amber-500 transition-colors" />
         </button>
+
+        {/* Module 4: Backup / Restore */}
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={handleExport} className="flex items-center gap-3 p-4 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left">
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Download size={20} /></div>
+            <div><h3 className="font-bold text-slate-800 text-sm">Export</h3><p className="text-xs text-slate-400">Save backup file</p></div>
+          </button>
+          <label className="flex items-center gap-3 p-4 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left cursor-pointer">
+            <div className="p-3 bg-violet-50 text-violet-600 rounded-2xl"><Upload size={20} /></div>
+            <div><h3 className="font-bold text-slate-800 text-sm">Restore</h3><p className="text-xs text-slate-400">Load backup file</p></div>
+            <input type="file" accept="application/json,.json" onChange={handleImport} className="hidden" />
+          </label>
+        </div>
       </div>
 
       <div className="mt-4">
