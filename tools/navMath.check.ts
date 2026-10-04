@@ -67,4 +67,75 @@ near(m.convertUnit(2025, 'yard', 'nautical mile', dist), 2025 * 0.9144 / 1852);
 near(m.convertUnit(10, 'knot', 'metre/second', speed), 5.144444444444445, 1e-9); near(m.convertUnit(1, 'knot', 'kilometre/hour', speed), 1.852, 1e-9);
 near(m.convertUnit(6, 'foot', 'fathom', dist), 1);
 
+// ---- angle on the bow: we are east of a target (bearing to target 270 from us would mean it is west of us)
+const aob = m.angleOnBow;
+assert.deepEqual(aob(90, 270), { angle: 0, side: null });                    // target east of us, heading west straight at us
+assert.deepEqual(aob(90, 90), { angle: 180, side: null });                   // target east of us, heading east straight away
+let bow = aob(90, 0);                                                        // target east of us heading north: we are on its port beam (west of it)
+assert.equal(bow.side, 'Port'); near(bow.angle, 90);
+bow = aob(90, 180); assert.equal(bow.side, 'Starboard'); near(bow.angle, 90); // heading south: we (west) are on its starboard beam
+bow = aob(45, 300); assert.equal(bow.side, 'Port'); near(bow.angle, 75);
+near(m.targetCourseFromBowAngle(90, 90, 'Starboard'), 180); near(m.targetCourseFromBowAngle(90, 90, 'Port'), 0);
+near(m.targetCourseFromBowAngle(90, 0, null), 270); near(m.targetCourseFromBowAngle(90, 180, null), 90);
+for (let b = 0; b < 360; b += 37) for (let tc = 0; tc < 360; tc += 41) {       // round trip for every combination
+  const x = aob(b, tc);
+  near(Math.abs(m.norm360(m.targetCourseFromBowAngle(b, x.angle, x.side) - tc + 180) - 180), 0, 1e-9);
+}
+
+// ---- coordinates
+near(m.parseCoord('51 28.5 N', 'lat')!, 51 + 28.5 / 60); near(m.parseCoord("1\u00B012.3'W", 'lon')!, -(1 + 12.3 / 60));
+near(m.parseCoord('-1.2', 'lon')!, -1.2); near(m.parseCoord('51.475', 'lat')!, 51.475); near(m.parseCoord('1 12 30 W', 'lon')!, -(1 + 12 / 60 + 30 / 3600));
+for (const [t, k] of [['95 N', 'lat'], ['51 70 N', 'lat'], ['51 E', 'lat'], ['abc', 'lat'], ['1 2 3 4', 'lat'], ['51 N 2 S', 'lat'], ['', 'lon'], ['181 E', 'lon']] as const) {
+  assert.equal(m.parseCoord(t, k), null, `${t} should be rejected`);
+}
+near(m.parseAngle('26 34.2')!, 26 + 34.2 / 60); near(m.parseAngle('26.57')!, 26.57);
+assert.equal(m.parseAngle('-5'), null); assert.equal(m.parseAngle('26 61'), null); assert.equal(m.parseAngle('x'), null);
+assert.equal(m.formatCoord(51.475, 'lat'), "51\u00B028.50'N"); assert.equal(m.formatCoord(-1.2, 'lon'), "1\u00B012.00'W");
+assert.equal(m.formatCoord(0.99999999, 'lat'), "1\u00B000.00'N");
+const lp = m.fromLocalNm(m.toLocalNm(51.2, -1.3, 51, -1.5), 51, -1.5); near(lp.lat, 51.2, 1e-12); near(lp.lon, -1.3, 1e-12);
+
+// ---- horizontal sextant angle
+near(m.positionCircleRadius(2, 90), 1); near(m.distanceOffHSA(2, 90)!, 1);
+near(m.distanceOffHSA(4, 60)!, 2 / Math.tan(Math.PI / 6)); assert.equal(m.distanceOffHSA(2, 0), null); assert.equal(m.distanceOffHSA(0, 30), null);
+
+type P = { x: number; y: number };
+const brg = (p: P, q: P) => m.norm360(Math.atan2(q.x - p.x, q.y - p.y) * 180 / Math.PI);
+const seen = (p: P, a: P, b: P, c: P) => [m.norm360(brg(p, b) - brg(p, a)), m.norm360(brg(p, c) - brg(p, b))];
+const solve = (p: P, a: P, b: P, c: P) => { const [al, be] = seen(p, a, b, c); return { al, be, fix: m.hsaFix(a, b, c, al, be) }; };
+
+// observer at the origin looking roughly north, then looking south (left and right swap)
+for (const [A, B, C] of [[{ x: -2, y: 6 }, { x: 1, y: 7 }, { x: 5, y: 5 }], [{ x: 2, y: -6 }, { x: -1, y: -7 }, { x: -5, y: -5 }]]) {
+  const { al, be, fix } = solve({ x: 0, y: 0 }, A, B, C);
+  assert.ok(!('error' in fix), JSON.stringify(fix)); if ('error' in fix) throw 0;
+  near(fix.x, 0, 1e-6); near(fix.y, 0, 1e-6); assert.equal(fix.weak, false);
+  near(fix.ranges[1], Math.hypot(B.x, B.y), 1e-6); near(fix.bearings[1], brg({ x: 0, y: 0 }, B), 1e-6);
+  assert.ok(al > 0 && be > 0);
+}
+
+// sweep: a fixed shore line seen from many offshore positions - every non-degenerate case must recover the position
+const A = { x: -4, y: 0 }, B = { x: 0, y: 2 }, C = { x: 5, y: 0 };
+const d2 = (a: P, b: P) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+const ux = (A.x ** 2 + A.y ** 2) * (B.y - C.y) + (B.x ** 2 + B.y ** 2) * (C.y - A.y) + (C.x ** 2 + C.y ** 2) * (A.y - B.y);
+const uy = (A.x ** 2 + A.y ** 2) * (C.x - B.x) + (B.x ** 2 + B.y ** 2) * (A.x - C.x) + (C.x ** 2 + C.y ** 2) * (B.x - A.x);
+const den = 2 * (A.x * (B.y - C.y) + B.x * (C.y - A.y) + C.x * (A.y - B.y));
+const cc = { x: ux / den, y: uy / den }; const rc = Math.sqrt(d2(cc, A));          // circumcircle = the danger circle
+let solved = 0, flagged = 0, weak = 0;
+for (let x = -14; x <= 14; x += 2.5) for (let y = -16; y <= -2; y += 2.5) {
+  const p = { x, y }; const { al, be, fix } = solve(p, A, B, C);
+  if (!(al > 0 && be > 0 && al + be < 180)) continue;
+  const nearDanger = Math.abs(Math.sqrt(d2(p, cc)) - rc) < 0.4 * rc;
+  if ('error' in fix) { assert.ok(nearDanger, `unexpected failure at ${x},${y}: ${JSON.stringify(fix)}`); flagged++; continue; }
+  near(fix.x, x, 1e-6); near(fix.y, y, 1e-6);          // weak or not, the position itself must be exact
+  if (fix.weak) weak++; else solved++;
+}
+assert.ok(solved > 20 && weak > 0, `solved ${solved}, weak ${weak}, refused ${flagged}`);
+
+// on the danger circle itself: must refuse or flag, never return a confident wrong answer
+const onCircle = { x: cc.x + rc * Math.cos(-1.2), y: cc.y + rc * Math.sin(-1.2) };
+{ const { fix } = solve(onCircle, A, B, C); assert.ok('error' in fix || fix.weak, 'danger circle must be flagged'); }
+
+// bad input
+assert.ok('error' in m.hsaFix(A, B, C, 0, 20)); assert.ok('error' in m.hsaFix(A, B, C, 100, 90)); assert.ok('error' in m.hsaFix(A, A, C, 20, 20));
+{ const { al, be } = solve({ x: 0, y: -8 }, A, B, C); const r = m.hsaFix(C, B, A, al, be); assert.ok('error' in r || Math.hypot(r.x, r.y + 8) > 0.01, 'reversed objects must not reproduce the position'); }
+
 console.log('navMath: all checks passed');

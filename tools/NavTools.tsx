@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeftRight, Calculator, Clock, Compass, Eye, Navigation, Radar, RotateCw, Waves } from 'lucide-react';
+import { ArrowLeftRight, Calculator, Clock, Compass, Eye, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -21,13 +21,24 @@ function useForm<K extends string>(keys: readonly K[]) {
   return { v, bind, n };
 }
 
-const Field: React.FC<{ label: string; unit?: string; value: string; onChange: (s: string) => void; hint?: string }> = ({ label, unit, value, onChange, hint }) => (
+const Field: React.FC<{ label: string; unit?: string; value: string; onChange: (s: string) => void; hint?: string; text?: boolean; invalid?: boolean }> = ({ label, unit, value, onChange, hint, text, invalid }) => (
   <label className="block space-y-1">
     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}{unit && ` (${unit})`}</span>
-    <input type="number" inputMode="decimal" step="any" value={value} onChange={e => onChange(e.target.value)} placeholder={hint}
-      className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+    <input type={text ? 'text' : 'number'} inputMode={text ? 'text' : 'decimal'} step="any" value={value} onChange={e => onChange(e.target.value)} placeholder={hint}
+      className={`w-full p-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 ${invalid ? 'border-red-400' : 'border-slate-200'}`} />
   </label>
 );
+
+/** Small segmented choice, used where a tool has two modes. */
+function Seg<T extends string>({ value, options, onChange }: { value: T; options: readonly (readonly [T, string])[]; onChange: (v: T) => void }) {
+  return (
+    <div className="flex gap-2">
+      {options.map(([k, label]) => (
+        <button key={k} onClick={() => onChange(k)} className={`flex-1 py-2 rounded-xl text-xs font-bold border ${value === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{label}</button>
+      ))}
+    </div>
+  );
+}
 
 const Panel: React.FC<{ title: string; note?: string; children: React.ReactNode }> = ({ title, note, children }) => (
   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
@@ -318,6 +329,142 @@ const CompassTool: React.FC = () => {
   );
 };
 
+const AtbTool: React.FC = () => {
+  const f = useForm(['brg', 'angle', 'course'] as const);
+  const [mode, setMode] = useState<'course' | 'angle'>('course');
+  const [side, setSide] = useState<nav.BowSide>('Starboard');
+  const brg = f.n('brg'), angle = f.n('angle'), course = f.n('course');
+
+  const describe = (a: number) => (a < 15 ? 'bows on' : a > 165 ? 'stern on' : Math.abs(a - 90) < 15 ? 'beam on' : a < 90 ? 'on the bow' : 'on the quarter');
+  const bowRows = (b: nav.BowAngle): [string, string][] => {
+    if (b.side === null) return [['Angle on the bow', b.angle === 0 ? '0°, target heading straight at you' : '180°, target steaming directly away']];
+    const green = b.side === 'Starboard';
+    return [['Angle on the bow', `${Math.round(b.angle)}° ${b.side.toLowerCase()} (${green ? 'Green' : 'Red'} ${Math.round(b.angle)})`], ['Aspect', describe(b.angle)]];
+  };
+
+  return (
+    <Panel title="Angle on the bow (ATB)" note="The angle between the target's head and the line of sight from the target to you, 0-180° to port or starboard. Green is starboard, red is port. Bearing is true, from you to the target.">
+      <Seg value={mode} onChange={setMode} options={[['course', 'Find target course'], ['angle', 'Find angle on bow']]} />
+      <Field label="Bearing of target" unit="°T" {...f.bind('brg')} />
+      {mode === 'course' ? (
+        <>
+          <Grid>
+            <Field label="Angle on the bow" unit="°" hint="0 to 180" {...f.bind('angle')} />
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Side</span>
+              <div className="flex gap-1">
+                {(['Port', 'Starboard'] as const).map(sd => (
+                  <button key={sd} onClick={() => setSide(sd)} className={`flex-1 py-3 rounded-xl text-xs font-bold border ${side === sd ? (sd === 'Port' ? 'bg-red-600 border-red-600' : 'bg-green-600 border-green-600') + ' text-white' : 'bg-white text-slate-500 border-slate-200'}`}>{sd === 'Port' ? 'Port' : 'Stbd'}</button>
+                ))}
+              </div>
+            </div>
+          </Grid>
+          {angle !== null && (angle < 0 || angle > 180) && <Warn>The angle on the bow is between 0° and 180°.</Warn>}
+          {brg !== null && angle !== null && angle >= 0 && angle <= 180 && (
+            <Result rows={[
+              ['Target course', bearing(nav.targetCourseFromBowAngle(brg, angle, angle === 0 || angle === 180 ? null : side))],
+              ['Line of sight, target to you', bearing(nav.reciprocal(brg))],
+            ]} />
+          )}
+        </>
+      ) : (
+        <>
+          <Field label="Target course" unit="°T" {...f.bind('course')} />
+          {brg !== null && course !== null && <Result rows={bowRows(nav.angleOnBow(brg, course))} />}
+        </>
+      )}
+    </Panel>
+  );
+};
+
+const NM_PER: Record<string, number> = { 'nautical miles': 1, 'cables': 0.1, 'metres': 1 / 1852, 'yards': 0.9144 / 1852 };
+
+const HsaTool: React.FC = () => {
+  const [mode, setMode] = useState<'fix' | 'dist'>('fix');
+  return (
+    <div className="space-y-3">
+      <Seg value={mode} onChange={setMode} options={[['fix', 'Position fix'], ['dist', 'Distance off']]} />
+      {mode === 'fix' ? <HsaFixPanel /> : <HsaDistancePanel />}
+    </div>
+  );
+};
+
+const HsaFixPanel: React.FC = () => {
+  const f = useForm(['aLat', 'aLon', 'bLat', 'bLon', 'cLat', 'cLon', 'alpha', 'beta'] as const);
+  const lat = (k: 'aLat' | 'bLat' | 'cLat') => nav.parseCoord(f.v[k], 'lat');
+  const lon = (k: 'aLon' | 'bLon' | 'cLon') => nav.parseCoord(f.v[k], 'lon');
+  const alpha = nav.parseAngle(f.v.alpha), beta = nav.parseAngle(f.v.beta);
+  const bad = (k: keyof typeof f.v, ok: boolean) => f.v[k].trim() !== '' && !ok;
+
+  const lats = [lat('aLat'), lat('bLat'), lat('cLat')], lons = [lon('aLon'), lon('bLon'), lon('cLon')];
+  const ready = lats.every(x => x !== null) && lons.every(x => x !== null) && alpha !== null && beta !== null;
+  let fix: nav.HsaFix | null = null, pos: { lat: number; lon: number } | null = null;
+  if (ready) {
+    const lat0 = (lats[0]! + lats[1]! + lats[2]!) / 3, lon0 = (lons[0]! + lons[1]! + lons[2]!) / 3;
+    const pt = (i: number) => nav.toLocalNm(lats[i]!, lons[i]!, lat0, lon0);
+    fix = nav.hsaFix(pt(0), pt(1), pt(2), alpha!, beta!);
+    if (!('error' in fix)) pos = nav.fromLocalNm(fix, lat0, lon0);
+  }
+
+  const obj = (name: 'A' | 'B' | 'C', latKey: 'aLat' | 'bLat' | 'cLat', lonKey: 'aLon' | 'bLon' | 'cLon', where: string) => (
+    <div key={name} className="space-y-1">
+      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Object {name} <span className="text-slate-400 normal-case font-semibold">({where})</span></p>
+      <Grid>
+        <Field label="Latitude" text hint="51 28.5 N" invalid={bad(latKey, lat(latKey) !== null)} {...f.bind(latKey)} />
+        <Field label="Longitude" text hint="1 12.3 W" invalid={bad(lonKey, lon(lonKey) !== null)} {...f.bind(lonKey)} />
+      </Grid>
+    </div>
+  );
+
+  return (
+    <Panel title="Position from two horizontal sextant angles" note="Look at the three charted objects: A is on your left, B in the middle, C on your right. Measure the angle between A and B, and between B and C. Positions as on the chart (51 28.5 N, 1 12.3 W, or decimal degrees); angles in degrees (26.57) or degrees and minutes (26 34.2). Beware a fix near the circle through all three objects.">
+      {obj('A', 'aLat', 'aLon', 'left')}
+      {obj('B', 'bLat', 'bLon', 'middle')}
+      {obj('C', 'cLat', 'cLon', 'right')}
+      <Grid>
+        <Field label="Angle A to B" unit="°" text hint="26.57" invalid={bad('alpha', alpha !== null)} {...f.bind('alpha')} />
+        <Field label="Angle B to C" unit="°" text hint="36 52" invalid={bad('beta', beta !== null)} {...f.bind('beta')} />
+      </Grid>
+      {fix && 'error' in fix && <Warn>{fix.error}</Warn>}
+      {fix && !('error' in fix) && pos && (
+        <>
+          <Result tone={fix.weak ? 'warn' : 'ok'} rows={[
+            ['Latitude', nav.formatCoord(pos.lat, 'lat')],
+            ['Longitude', nav.formatCoord(pos.lon, 'lon')],
+            ...(['A', 'B', 'C'] as const).map((n, i): [string, string] => [`Object ${n}`, `${fix.ranges[i].toFixed(2)} nm (${(fix.ranges[i] * 10).toFixed(1)} cables), bearing ${bearing(fix.bearings[i])}`]),
+          ]} />
+          {fix.weak && <Warn>Weak fix: the two position circles cross at a shallow angle, so a small error in either angle moves the position a long way. This happens close to the danger circle through the objects, or when they are far off. Confirm with another bearing, a different object or a depth check.</Warn>}
+        </>
+      )}
+    </Panel>
+  );
+};
+
+const HsaDistancePanel: React.FC = () => {
+  const f = useForm(['base', 'ang'] as const);
+  const [unit, setUnit] = useState('cables');
+  const base = f.n('base'), ang = nav.parseAngle(f.v.ang);
+  const d = base !== null && ang !== null ? nav.distanceOffHSA(base, ang) : null;
+  const r = base !== null && ang !== null && ang > 0 && ang < 180 && base > 0 ? nav.positionCircleRadius(base, ang) : null;
+  const show = (v: number) => `${v.toFixed(2)} ${unit} (${(v * NM_PER[unit]).toFixed(3)} nm)`;
+  return (
+    <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object.">
+      <Grid>
+        <Field label="Distance between the objects" {...f.bind('base')} />
+        <label className="block space-y-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit</span>
+          <select value={unit} onChange={e => setUnit(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none">
+            {Object.keys(NM_PER).map(u => <option key={u}>{u}</option>)}
+          </select>
+        </label>
+      </Grid>
+      <Field label="Horizontal sextant angle" unit="°" text hint="26.57 or 26 34.2" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
+      {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0° and 180°.</Warn>}
+      {d !== null && r !== null && <Result rows={[['Distance off the line', show(d)], ['Position circle radius', show(r)]]} />}
+    </Panel>
+  );
+};
+
 // ---- registry ----------------------------------------------------------------------------------
 
 export interface NavTool { name: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship }> }
@@ -326,8 +473,10 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Bearing Calculator', short: 'Bearings', desc: 'Reciprocal and relative to true bearings', icon: <Navigation size={18} className="text-blue-500" />, Component: BearingTool },
   { name: 'Time / Speed / Distance', short: 'Time-Speed-Dist', desc: 'Solve any one from the other two', icon: <Clock size={18} className="text-orange-500" />, Component: TsdTool },
   { name: 'CPA / TCPA', short: 'CPA', desc: 'Closest approach to a contact', icon: <Radar size={18} className="text-red-500" />, Component: CpaTool },
+  { name: 'Angle on the Bow (ATB)', short: 'ATB', desc: 'Target course from bearing and angle on the bow, or the reverse', icon: <ShipIcon size={18} className="text-sky-500" />, Component: AtbTool },
   { name: 'Course to Steer', short: 'Course to steer', desc: 'Allow for set and drift', icon: <Waves size={18} className="text-cyan-500" />, Component: CtsTool },
   { name: 'Distance Off & Horizon', short: 'Dist off', desc: 'Vertical sextant angle, visibility, radar range', icon: <Eye size={18} className="text-emerald-500" />, Component: DistanceOffTool },
+  { name: 'Horizontal Sextant Angle (HSA)', short: 'HSA', desc: 'Position fix from two horizontal angles, and distance off', icon: <MapPin size={18} className="text-rose-500" />, Component: HsaTool },
   { name: 'Wheel-over Point', short: 'Wheel-over', desc: 'Where to put the wheel over for a turn', icon: <RotateCw size={18} className="text-indigo-500" />, Component: WheelOverTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
   { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },

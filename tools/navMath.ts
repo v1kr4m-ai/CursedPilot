@@ -116,3 +116,127 @@ export const UNIT_GROUPS: UnitGroup[] = [
 
 export const convertUnit = (value: number, from: string, to: string, group: UnitGroup) =>
   (value * group.units[from]) / group.units[to];
+
+// ---- Angle on the bow (ATB) -------------------------------------------------------------------
+
+export type BowSide = 'Port' | 'Starboard';
+/** `side` is null when we are dead ahead of the target (0) or dead astern of it (180). */
+export interface BowAngle { angle: number; side: BowSide | null }
+
+const EPS = 1e-9;
+
+/**
+ * Angle on the bow: where we are, measured from the target's head, 0-180 to port or starboard.
+ * `bearingToTarget` is the true bearing from us to the target; the line of sight from the target to us is the reciprocal.
+ */
+export function angleOnBow(bearingToTarget: number, targetCourse: number): BowAngle {
+  const r = norm360(bearingToTarget + 180 - targetCourse);   // our bearing from the target, relative to its head, clockwise
+  if (r < EPS || Math.abs(r - 360) < EPS) return { angle: 0, side: null };
+  if (Math.abs(r - 180) < EPS) return { angle: 180, side: null };
+  return r < 180 ? { angle: r, side: 'Starboard' } : { angle: 360 - r, side: 'Port' };
+}
+
+export const targetCourseFromBowAngle = (bearingToTarget: number, angle: number, side: BowSide | null) =>
+  norm360(bearingToTarget + 180 - (side === 'Port' ? -angle : angle));
+
+// ---- Coordinates -------------------------------------------------------------------------------
+
+export interface Pt { x: number; y: number }
+
+/** Flat local plane in nautical miles (x east, y north) about (lat0, lon0). Good for the few miles a fix covers. */
+export const toLocalNm = (lat: number, lon: number, lat0: number, lon0: number): Pt =>
+  ({ x: (lon - lon0) * 60 * Math.cos(rad(lat0)), y: (lat - lat0) * 60 });
+export const fromLocalNm = (p: Pt, lat0: number, lon0: number) =>
+  ({ lat: lat0 + p.y / 60, lon: lon0 + p.x / (60 * Math.cos(rad(lat0))) });
+
+/**
+ * Reads a latitude or longitude typed the way it appears on a chart: "51.475", "-1.2", "51 28.5 N",
+ * "51\u00B028.5'N", "1 12 30 W". Hemisphere letters override the sign. Returns decimal degrees, or null.
+ */
+export function parseCoord(text: string, kind: 'lat' | 'lon'): number | null {
+  const letters = text.toUpperCase().match(/[NSEW]/g) ?? [];
+  if (letters.length > 1) return null;
+  if (letters[0] && !(kind === 'lat' ? 'NS' : 'EW').includes(letters[0])) return null;
+  const nums = text.match(/\d+(\.\d+)?/g) ?? [];
+  if (nums.length < 1 || nums.length > 3) return null;
+  const [d, m = 0, s = 0] = nums.map(Number);
+  if (m >= 60 || s >= 60) return null;
+  const deg = d + m / 60 + s / 3600;
+  if (deg > (kind === 'lat' ? 90 : 180)) return null;
+  const negative = /^\s*-/.test(text) || letters[0] === 'S' || letters[0] === 'W';
+  return negative ? -deg : deg;
+}
+
+/** An angle typed as degrees ("26.57"), degrees and minutes ("26 34.2") or with seconds. Positive only. */
+export function parseAngle(text: string): number | null {
+  const nums = text.match(/\d+(\.\d+)?/g) ?? [];
+  if (nums.length < 1 || nums.length > 3 || /-/.test(text)) return null;
+  const [d, m = 0, s = 0] = nums.map(Number);
+  return m >= 60 || s >= 60 ? null : d + m / 60 + s / 3600;
+}
+
+/** 51.475 -> 51\u00B028.50'N */
+export function formatCoord(deg: number, kind: 'lat' | 'lon'): string {
+  const hemi = kind === 'lat' ? (deg < 0 ? 'S' : 'N') : (deg < 0 ? 'W' : 'E');
+  let d = Math.floor(Math.abs(deg));
+  let m = Math.round((Math.abs(deg) - d) * 6000) / 100;
+  if (m >= 60) { d += 1; m = 0; }
+  return `${d}\u00B0${m.toFixed(2).padStart(5, '0')}'${hemi}`;
+}
+
+// ---- Horizontal sextant angle (HSA) -------------------------------------------------------------
+
+/** Radius of the position circle through two objects `baseline` apart that subtend `angle` at the observer. */
+export const positionCircleRadius = (baseline: number, angle: number) => baseline / (2 * Math.sin(rad(angle)));
+
+/** Distance off the baseline (same unit) when the observer is on the perpendicular bisector of the two objects. */
+export const distanceOffHSA = (baseline: number, angle: number): number | null =>
+  angle > 0 && angle < 180 && baseline > 0 ? baseline / 2 / Math.tan(rad(angle / 2)) : null;
+
+export type HsaFix =
+  | { x: number; y: number; ranges: [number, number, number]; bearings: [number, number, number]; weak: boolean }
+  | { error: string };
+
+const bearingTo = (from: Pt, to: Pt) => norm360(deg(Math.atan2(to.x - from.x, to.y - from.y)));
+
+/**
+ * Position from two horizontal sextant angles between three objects, as seen from the observer with A on the
+ * left, B in the middle and C on the right: `alpha` between A and B, `beta` between B and C. Each angle puts the
+ * observer on a circle through its two objects; the circles meet at B and at the observer.
+ * `weak` is set when the circles meet at a shallow angle, i.e. the observer is near the danger circle through A, B, C.
+ */
+export function hsaFix(A: Pt, B: Pt, C: Pt, alpha: number, beta: number): HsaFix {
+  if (!(alpha > 0 && beta > 0 && alpha + beta < 180)) return { error: 'Each angle must be above 0\u00B0 and together below 180\u00B0.' };
+  const len = (P: Pt, Q: Pt) => Math.hypot(Q.x - P.x, Q.y - P.y);
+  if (len(A, B) < EPS || len(B, C) < EPS) return { error: 'The objects must be at three different positions.' };
+
+  // The observer sees the pair left-to-right, so is on the right-hand side of the directed line from the left object to the right one.
+  const circle = (P: Pt, Q: Pt, angle: number) => {
+    const L = len(P, Q);
+    const R = L / (2 * Math.sin(rad(angle)));
+    const right = { x: (Q.y - P.y) / L, y: -(Q.x - P.x) / L };
+    const offset = R * Math.cos(rad(angle));            // negative for angles over 90\u00B0: the centre is then on the far side
+    return { O: { x: (P.x + Q.x) / 2 + right.x * offset, y: (P.y + Q.y) / 2 + right.y * offset }, R };
+  };
+  const c1 = circle(A, B, alpha), c2 = circle(B, C, beta);
+  const d = { x: c2.O.x - c1.O.x, y: c2.O.y - c1.O.y };
+  const L = Math.hypot(d.x, d.y);
+  if (L < 1e-9 * Math.max(c1.R, c2.R)) return { error: 'The observer is on the danger circle through all three objects: the angles give no single position.' };
+
+  // Second intersection of the circles = reflection of B in the line of centres.
+  const u = { x: d.x / L, y: d.y / L };
+  const t = (B.x - c1.O.x) * u.x + (B.y - c1.O.y) * u.y;
+  const foot = { x: c1.O.x + u.x * t, y: c1.O.y + u.y * t };
+  const P = { x: 2 * foot.x - B.x, y: 2 * foot.y - B.y };
+  if (len(P, B) < 1e-6 * Math.max(c1.R, c2.R)) return { error: 'The circles only touch at the middle object: the angles give no usable position.' };
+
+  const bA = bearingTo(P, A), bB = bearingTo(P, B), bC = bearingTo(P, C);
+  const near = (x: number, y: number) => Math.abs(norm360(x - y + 180) - 180) < 0.05;
+  if (!near(norm360(bB - bA), alpha) || !near(norm360(bC - bB), beta)) {
+    return { error: "These angles don't fit these objects in this order. Check that A is on the left, B in the middle and C on the right as you look at them." };
+  }
+  // sine of the angle between the two circles where they cross
+  const r1 = { x: P.x - c1.O.x, y: P.y - c1.O.y }, r2 = { x: P.x - c2.O.x, y: P.y - c2.O.y };
+  const sinCross = Math.abs(r1.x * r2.y - r1.y * r2.x) / (Math.hypot(r1.x, r1.y) * Math.hypot(r2.x, r2.y));
+  return { x: P.x, y: P.y, ranges: [len(P, A), len(P, B), len(P, C)], bearings: [bA, bB, bC], weak: sinCross < 0.3 };
+}
