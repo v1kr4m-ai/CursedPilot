@@ -18,6 +18,18 @@
 - **Per-vessel export** – the download button on a vessel's screen exports just that vessel as an Excel workbook (one sheet each for particulars, turning data and the four record types), a printable report (open in a browser, then print or save as PDF), or a single-vessel file. Restoring a single-vessel file adds or updates that vessel and leaves the rest of the fleet alone; restoring a full backup still replaces everything.
 - **Backup and restore** – *Export* on the home screen saves every vessel to a `cursedpilot-backup-YYYY-MM-DD.json` file (a download on the web, the share sheet on Android, so you can send it to Drive, email or another device). *Restore* loads such a file and replaces all current vessels after a confirmation. Files from other apps or damaged files are rejected without changing anything.
 
+## Quick start on Windows
+
+Double-click `start-windows.bat` for a menu, or pass an option:
+
+```bat
+start-windows.bat dev     :: dev server on http://localhost:3100, opens the browser
+start-windows.bat test    :: type check, all self-checks and a production build
+start-windows.bat apk     :: Android debug APK (uses a JDK 21)
+```
+
+It installs dependencies on the first run. Needs Node.js 22.18 or newer.
+
 ## Run on the web
 
 Requires Node.js 22 or newer.
