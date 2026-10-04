@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Anchor, 
   PlusCircle, 
@@ -37,13 +37,12 @@ import {
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
-import { exportBackup, parseBackup, restoreFishtailDb } from './services/backup';
+import { exportBackup, parseBackup } from './services/backup';
 import { exportVessel, ExportFormat } from './services/vesselExport';
-import { syncShipToFishtail } from './fishtail/shipBridge';
+import FishtailScreen from './fishtail/FishtailScreen';
+import { mergeTurningSets } from './fishtail/tableConvert';
 import { NAV_TOOLS } from './tools/NavTools';
 
-// Loaded on demand: the calculator pulls in the spreadsheet library, which most sessions never need.
-const FishtailModule = lazy(() => import('./fishtail/FishtailModule'));
 
 const SHIP_CATEGORIES = [
   "Destroyer", "Frigate", "Corvette", "OPVs", "NOPVs", 
@@ -669,8 +668,12 @@ const App: React.FC = () => {
     );
   };
 
+  const [calcReturn, setCalcReturn] = useState<AppView>('home');
   const openFishtailCalc = () => {
-    if (selectedShip) syncShipToFishtail(selectedShip);
+    // the calculator works on one vessel: the selected one, else the first with turning data, else the first
+    const target = selectedShip ?? ships.find(s => s.turningDataSets.some(t => t.data.length)) ?? ships[0];
+    if (target) setSelectedShipId(target.id);
+    setCalcReturn(view === 'details' ? 'details' : 'home');
     setView('fishtail_calc');
   };
 
@@ -763,7 +766,7 @@ const App: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     try {
-      const { ships: imported, fishtailDb, kind } = parseBackup(await file.text());
+      const { ships: imported, kind } = parseBackup(await file.text());
       if (kind === 'vessel') {
         const names = imported.map(s => s.name).join(', ');
         const replacing = imported.filter(s => ships.some(x => x.id === s.id)).length;
@@ -773,7 +776,6 @@ const App: React.FC = () => {
       }
       if (!confirm(`Restore ${imported.length} vessel(s) from "${file.name}"? This replaces all ${ships.length} vessel(s) currently in the app.`)) return;
       setShips(imported);
-      if (fishtailDb) restoreFishtailDb(fishtailDb);
       if (selectedShipId && !imported.some(s => s.id === selectedShipId)) setSelectedShipId(null);
     } catch (err) {
       alert(`Restore failed: ${err instanceof Error ? err.message : err}`);
@@ -1110,11 +1112,15 @@ const App: React.FC = () => {
         </div>
       )}
       {view === 'fishtail_calc' && (
-        <div className="original-palette fixed inset-0 z-40 bg-slate-950 text-slate-50">
-          <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 text-sm font-bold uppercase tracking-widest">Loading calculator...</div>}>
-            <FishtailModule isModule onExit={() => setView(selectedShipId ? 'details' : 'home')} />
-          </Suspense>
-        </div>
+        <FishtailScreen
+          ship={selectedShip}
+          ships={ships}
+          onSelectShip={setSelectedShipId}
+          onBack={() => setView(calcReturn)}
+          onSaveRecord={(shipId, record) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, fishtails: [...s.fishtails, record] } : s))}
+          onImportSets={(shipId, sets) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, turningDataSets: mergeTurningSets(s.turningDataSets, sets) } : s))}
+          onEditTurningData={() => setView('turning_data_form')}
+        />
       )}
 
       {/* Floating Tools Button */}

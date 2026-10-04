@@ -5,7 +5,6 @@ import { Ship, ShipParticulars } from '../types';
 
 const APP_ID = 'cursedpilot';
 const VERSION = 1;
-const FISHTAIL_DB_KEY = 'fishtail_db';
 const EMPTY_PARTICULARS: ShipParticulars = { lengthOverall: 0, breadthOverall: 0, displacement: 0, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 };
 
 export type FileContent = { text: string } | { base64: string };
@@ -26,14 +25,9 @@ export async function saveFile(fileName: string, content: FileContent, mime: str
   URL.revokeObjectURL(url);
 }
 
-/** Saves all ships (and the Fishtail library) as a JSON backup. */
+/** Saves all ships as a JSON backup. */
 export async function exportBackup(ships: Ship[]): Promise<void> {
-  let fishtailDb: unknown[] = [];
-  try {
-    const parsed = JSON.parse(localStorage.getItem(FISHTAIL_DB_KEY) || '[]');
-    if (Array.isArray(parsed)) fishtailDb = parsed;
-  } catch { /* unreadable library: back up the vessels without it */ }
-  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships, fishtailDb }, null, 2);
+  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships }, null, 2);
   await saveFile(`cursedpilot-backup-${new Date().toISOString().slice(0, 10)}.json`, { text: json }, 'application/json', 'Cursed Pilot backup');
 }
 
@@ -45,7 +39,7 @@ export async function exportVesselJson(ship: Ship, fileName: string): Promise<vo
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-export interface Backup { ships: Ship[]; fishtailDb: unknown[] | null; /** 'vessel' files merge into the fleet; 'fleet' backups replace it. */ kind: 'fleet' | 'vessel' }
+export interface Backup { ships: Ship[]; /** 'vessel' files merge into the fleet; 'fleet' backups replace it. */ kind: 'fleet' | 'vessel' }
 
 /** Parses and validates a backup file's text. Throws an Error with a readable message. */
 export function parseBackup(text: string): Backup {
@@ -69,10 +63,5 @@ export function parseBackup(text: string): Backup {
       compassSwing: Array.isArray(s.compassSwing) ? s.compassSwing : [],
     } as Ship;
   });
-  return { kind: (data as Record<string, unknown>).kind === 'vessel' ? 'vessel' : 'fleet', ships, fishtailDb: Array.isArray((data as Record<string, unknown>).fishtailDb) ? (data as { fishtailDb: unknown[] }).fishtailDb : null };
-}
-
-/** Replaces the Fishtail calculator's tables with the ones from a backup. */
-export function restoreFishtailDb(rows: unknown[]): void {
-  try { localStorage.setItem(FISHTAIL_DB_KEY, JSON.stringify(rows)); } catch { /* storage full or blocked */ }
+  return { kind: (data as Record<string, unknown>).kind === 'vessel' ? 'vessel' : 'fleet', ships };
 }
