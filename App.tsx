@@ -39,6 +39,7 @@ import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
 import { exportBackup, parseBackup, restoreFishtailDb } from './services/backup';
 import { syncShipToFishtail } from './fishtail/shipBridge';
+import { NAV_TOOLS } from './tools/NavTools';
 
 // Loaded on demand: the calculator pulls in the spreadsheet library, which most sessions never need.
 const FishtailModule = lazy(() => import('./fishtail/FishtailModule'));
@@ -67,57 +68,6 @@ const generateInitialTurningSheet = () => {
     time: '',
     speed: ''
   }));
-};
-
-const BearingCalc = () => {
-  const [val, setVal] = useState('');
-  const reciprocal = (parseFloat(val) + 180) % 360;
-  const ok = Number.isFinite(reciprocal);
-  return (
-    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bearing Calculator</p>
-      <input 
-        type="number" 
-        placeholder="Enter Heading (0-359)" 
-        value={val} 
-        onChange={e => setVal(e.target.value)}
-        className="w-full p-3 rounded-xl border border-slate-200 bg-white font-bold outline-none"
-      />
-      {ok && <div className="p-3 bg-blue-600 text-white rounded-xl text-center font-bold">Reciprocal: {reciprocal.toFixed(0)}°</div>}
-    </div>
-  );
-};
-
-const RadianRule = () => {
-  const [dist, setDist] = useState('');
-  const [range, setRange] = useState('');
-  const angle = (parseFloat(dist) / parseFloat(range)) * (180 / Math.PI);
-  return (
-    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Radian Rule (θ = d/R)</p>
-      <div className="grid grid-cols-2 gap-2">
-        <input type="number" placeholder="Distance Off" value={dist} onChange={e => setDist(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm outline-none" />
-        <input type="number" placeholder="Range" value={range} onChange={e => setRange(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm outline-none" />
-      </div>
-      {Number.isFinite(angle) && <div className="p-3 bg-blue-600 text-white rounded-xl text-center font-bold text-sm">Angle: {angle.toFixed(2)}°</div>}
-    </div>
-  );
-};
-
-const SpeedRule = () => {
-  const [dist, setDist] = useState('');
-  const [time, setTime] = useState(''); // in minutes
-  const speed = (parseFloat(dist) / (parseFloat(time) / 60));
-  return (
-    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Speed Rule (S = D/T)</p>
-      <div className="grid grid-cols-2 gap-2">
-        <input type="number" placeholder="Distance (nm)" value={dist} onChange={e => setDist(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm outline-none" />
-        <input type="number" placeholder="Time (min)" value={time} onChange={e => setTime(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm outline-none" />
-      </div>
-      {Number.isFinite(speed) && <div className="p-3 bg-blue-600 text-white rounded-xl text-center font-bold text-sm">Speed: {speed.toFixed(1)} knots</div>}
-    </div>
-  );
 };
 
 type RecordKind = 'fishtails' | 'accelDecelData' | 'emLogCalibration' | 'compassSwing';
@@ -1050,9 +1000,7 @@ const App: React.FC = () => {
                   <p className="text-sm font-bold">{activeTool}</p>
                 </div>
                 <div className="w-full">
-                  {activeTool === 'Bearing Calculator' && <BearingCalc />}
-                  {activeTool === 'Radian Rule' && <RadianRule />}
-                  {activeTool === 'Speed Rule' && <SpeedRule />}
+                  {(() => { const Tool = NAV_TOOLS.find(t => t.name === activeTool)?.Component; return Tool ? <Tool ship={selectedShip} /> : null; })()}
                   <button onClick={() => setActiveTool(null)} className="mt-2 text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline">
                     <RefreshCcw size={12} /> Select another tool
                   </button>
@@ -1062,11 +1010,7 @@ const App: React.FC = () => {
 
             {!activeTool && (
               <div className="grid grid-cols-1 gap-3 pt-2">
-                {[
-                  { name: 'Bearing Calculator', icon: <Navigation size={18} className="text-blue-500" />, desc: 'Reciprocal & Relative Bearings' },
-                  { name: 'Radian Rule', icon: <Calculator size={18} className="text-purple-500" />, desc: 'Distance off & Range calculations' },
-                  { name: 'Speed Rule', icon: <Clock size={18} className="text-orange-500" />, desc: 'D/S/T relationship calculator' }
-                ].map(tool => (
+                {NAV_TOOLS.map(tool => (
                   <button 
                     key={tool.name}
                     onClick={() => setActiveTool(tool.name)}

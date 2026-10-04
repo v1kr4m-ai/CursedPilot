@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "android": "vite build && cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "check:nav": "node tools/navMath.check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

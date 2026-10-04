@@ -10,7 +10,7 @@
 - **Turning data** – one sheet per speed, wheel angle and turn side (Port or Starboard), prefilled with turn amounts from 0° to 345°. Records bearing of MOB, angle, range, transfer, advance, distance to new course, time and speed.
 - **Fishtail Calculator** – the full fishtail manoeuvre module (from the standalone Fishtail app): calculator with plot, radar and animation views, a Battenberg target solver, and a library of turning tables with Excel/CSV/JSON import. Open it from the home screen, or from the compass button on a vessel to load *that vessel's* recorded turning data (rows with advance/transfer, times converted to seconds) into the library automatically. The calculator keeps its own tables (`fishtail_db`), which are included in backups. It lives in `fishtail/` and loads on demand.
 - **Records** – entry forms for fishtails (speed, rudder, overshoot, cycle time), acceleration/deceleration runs (from/to speed, time, distance), EM log calibration (true speed vs log reading, error worked out for you) and compass swing (compass, residual deviation), each with date and remarks. Open a form from the **+** on the vessel's card (fishtails also from the home screen). Records can be edited (pencil) or deleted. Records saved before editing existed open for re-entry, since their original values were never stored.
-- **Navigator's Tools** – bearing reciprocal, radian rule (θ = d/R) and speed rule (S = D/T).
+- **Navigator's Tools** – nine offline tools behind the Tools button: bearing calculator (reciprocal, relative to true), time/speed/distance (solves any one from the other two), CPA/TCPA, course to steer for set and drift, distance off by vertical sextant angle with visual and radar horizons, wheel-over point (typed advance/transfer, or interpolated from the selected vessel's turning data), compass conversion (true/magnetic/compass and gyro), radian rule, and a unit converter (nm, cables, yards, fathoms, knots and more). Results are aids: each tool states its assumptions, so check them against your own procedures.
 - **Print** – the Turning Data Entry screen has a print button (uses the system print dialog).
 - **AI particulars (optional)** – fill a vessel's particulars with Gemini-generated estimates. Needs a network connection and an API key; everything else works without either.
 - **Themes** – Day, Dark, and Night red (dark theme plus a red filter so only red light reaches the eye, to protect night vision on the bridge). Cycle with the button at the top of the home screen; the choice is remembered. The Fishtail calculator keeps its own dark styling.
@@ -66,6 +66,7 @@ React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capa
 | `types.ts` | Ship, particulars and record types |
 | `constants.tsx` | Seed vessels |
 | `services/geminiService.ts` | Gemini call for particulars |
+| `tools/` | Navigator's tools: `navMath.ts` (pure maths), `NavTools.tsx` (UI), `navMath.check.ts` (run with `npm run check:nav`) |
 | `fishtail/` | Fishtail calculator module and the bridge from vessel turning data |
 | `android/` | Capacitor Android project |
 
