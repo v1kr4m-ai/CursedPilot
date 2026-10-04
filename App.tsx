@@ -38,6 +38,7 @@ import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleR
 import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
 import { exportBackup, parseBackup, restoreFishtailDb } from './services/backup';
+import { exportVessel, ExportFormat } from './services/vesselExport';
 import { syncShipToFishtail } from './fishtail/shipBridge';
 import { NAV_TOOLS } from './tools/NavTools';
 
@@ -200,6 +201,8 @@ const App: React.FC = () => {
   const [recordRemarks, setRecordRemarks] = useState('');
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editingLegacy, setEditingLegacy] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Tools State
   const [isToolsOpen, setIsToolsOpen] = useState(false);
@@ -528,6 +531,7 @@ const App: React.FC = () => {
             <div><h1 className="text-xl font-bold text-slate-800 leading-tight">{selectedShip.name}</h1><p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedShip.type}</p></div>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => setExportOpen(true)} aria-label="Export this vessel" title="Export vessel" className="p-2 text-emerald-600 bg-emerald-50 rounded-lg"><Download size={20} /></button>
             <button onClick={openFishtailCalc} aria-label="Open Fishtail calculator with this vessel's turning data" title="Fishtail calculator" className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Compass size={20} /></button>
             <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
           </div>
@@ -735,6 +739,21 @@ const App: React.FC = () => {
     );
   };
 
+  const runVesselExport = async (format: ExportFormat) => {
+    if (!selectedShip) return;
+    setExporting(true);
+    try {
+      await exportVessel(selectedShip, format);
+      setExportOpen(false);
+    } catch (err) {
+      // closing the Android share sheet without choosing a target also rejects; that is not an error worth shouting about
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/cancel/i.test(msg)) alert(`Export failed: ${msg}`);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleExport = async () => {
     try { await exportBackup(ships); } catch (err) { alert(`Export failed: ${err instanceof Error ? err.message : err}`); }
   };
@@ -744,7 +763,14 @@ const App: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     try {
-      const { ships: imported, fishtailDb } = parseBackup(await file.text());
+      const { ships: imported, fishtailDb, kind } = parseBackup(await file.text());
+      if (kind === 'vessel') {
+        const names = imported.map(s => s.name).join(', ');
+        const replacing = imported.filter(s => ships.some(x => x.id === s.id)).length;
+        if (!confirm(`Add ${names} from "${file.name}"?${replacing ? ` ${replacing} existing vessel(s) with the same ID will be replaced.` : ''} Other vessels are kept.`)) return;
+        setShips(prev => [...prev.filter(s => !imported.some(i => i.id === s.id)), ...imported]);
+        return;
+      }
       if (!confirm(`Restore ${imported.length} vessel(s) from "${file.name}"? This replaces all ${ships.length} vessel(s) currently in the app.`)) return;
       setShips(imported);
       if (fishtailDb) restoreFishtailDb(fishtailDb);
@@ -1063,6 +1089,26 @@ const App: React.FC = () => {
       {view === 'particulars_form' && renderParticularsForm()}
       {view === 'turning_data_form' && renderTurningDataForm()}
       {view === 'record_form' && renderRecordForm()}
+      {exportOpen && selectedShip && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => !exporting && setExportOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div><h3 className="font-bold text-slate-900">Export {selectedShip.name}</h3><p className="text-xs text-slate-400 font-medium">One vessel: particulars, turning data and records</p></div>
+              <button onClick={() => setExportOpen(false)} disabled={exporting} aria-label="Close" className="p-2 bg-slate-50 text-slate-400 rounded-full"><X size={18} /></button>
+            </div>
+            {([
+              ['xlsx', 'Excel workbook', 'One sheet per section, opens in any spreadsheet app'],
+              ['report', 'Printable report', 'Open it in a browser, then print or save as PDF'],
+              ['json', 'Vessel file', 'Restore it later to add or update just this vessel'],
+            ] as [ExportFormat, string, string][]).map(([fmt, title, desc]) => (
+              <button key={fmt} disabled={exporting} onClick={() => runVesselExport(fmt)} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 text-left disabled:opacity-50 transition-all">
+                <div><p className="text-sm font-bold text-slate-800">{title}</p><p className="text-[11px] text-slate-400 font-medium">{desc}</p></div>
+                <Download size={16} className="text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {view === 'fishtail_calc' && (
         <div className="original-palette fixed inset-0 z-40 bg-slate-950 text-slate-50">
           <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 text-sm font-bold uppercase tracking-widest">Loading calculator...</div>}>

@@ -15,6 +15,7 @@
 - **AI particulars (optional)** – fill a vessel's particulars with Gemini-generated estimates. Needs a network connection and an API key; everything else works without either.
 - **Themes** – Day, Dark, and Night red (dark theme plus a red filter so only red light reaches the eye, to protect night vision on the bridge). Cycle with the button at the top of the home screen; the choice is remembered. The Fishtail calculator keeps its own dark styling.
 - **Persistence** – data is saved in the browser's `localStorage` (key `cursedpilot.ships.v1`) and survives restarts. It is local to the device and is not synced anywhere.
+- **Per-vessel export** – the download button on a vessel's screen exports just that vessel as an Excel workbook (one sheet each for particulars, turning data and the four record types), a printable report (open in a browser, then print or save as PDF), or a single-vessel file. Restoring a single-vessel file adds or updates that vessel and leaves the rest of the fleet alone; restoring a full backup still replaces everything.
 - **Backup and restore** – *Export* on the home screen saves every vessel to a `cursedpilot-backup-YYYY-MM-DD.json` file (a download on the web, the share sheet on Android, so you can send it to Drive, email or another device). *Restore* loads such a file and replaces all current vessels after a confirmation. Files from other apps or damaged files are rejected without changing anything.
 
 ## Run on the web
@@ -65,13 +66,13 @@ React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capa
 | `App.tsx` | All views and state |
 | `types.ts` | Ship, particulars and record types |
 | `constants.tsx` | Seed vessels |
-| `services/geminiService.ts` | Gemini call for particulars |
 | `tools/` | Navigator's tools: `navMath.ts` (pure maths), `NavTools.tsx` (UI), `navMath.check.ts` (run with `npm run check:nav`) |
+| `services/` | Gemini call, backup/restore, per-vessel export (`vesselReport.ts` has the pure builders, checked with `npm run check:export`) |
 | `fishtail/` | Fishtail calculator module and the bridge from vessel turning data |
 | `android/` | Capacitor Android project |
 
 ## Known limits
 
 - Data lives in on-device storage: clearing app data or uninstalling erases it. Export a backup regularly; nothing is backed up automatically.
-- Restore replaces everything. There is no merge.
+- Restoring a full backup replaces everything; use a single-vessel file to merge one vessel in.
 - Records are for reference. Always verify against your ship's own trials and standing orders.

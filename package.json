@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "android": "vite build && cap sync android",
     "android:open": "cap open android",
-    "check:nav": "node tools/navMath.check.ts"
+    "check:nav": "node tools/navMath.check.ts",
+    "check:export": "node services/vesselReport.check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
