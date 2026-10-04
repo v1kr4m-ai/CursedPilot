@@ -41,7 +41,7 @@ import { exportBackup, parseBackup } from './services/backup';
 import { exportVessel, ExportFormat } from './services/vesselExport';
 import FishtailScreen from './fishtail/FishtailScreen';
 import { mergeTurningSets } from './fishtail/tableConvert';
-import { NAV_TOOLS } from './tools/NavTools';
+import NavYeo from './navyeo/NavYeo';
 
 
 const SHIP_CATEGORIES = [
@@ -204,9 +204,6 @@ const App: React.FC = () => {
   const [exporting, setExporting] = useState(false);
 
   // Tools State
-  const [isToolsOpen, setIsToolsOpen] = useState(false);
-  const [activeTool, setActiveTool] = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const selectedShip = ships.find(s => s.id === selectedShipId);
 
@@ -234,12 +231,6 @@ const App: React.FC = () => {
     const hideTimer = setTimeout(() => setShowSplash(false), 800);
     return () => clearTimeout(hideTimer);
   }, [splashStage]);
-
-  useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [activeTool, isToolsOpen]);
 
   // Synchronize form when entering Turning Data Entry view
   useEffect(() => {
@@ -531,7 +522,6 @@ const App: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setExportOpen(true)} aria-label="Export this vessel" title="Export vessel" className="p-2 text-emerald-600 bg-emerald-50 rounded-lg"><Download size={20} /></button>
-            <button onClick={openFishtailCalc} aria-label="Open Fishtail calculator with this vessel's turning data" title="Fishtail calculator" className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Compass size={20} /></button>
             <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
           </div>
         </header>
@@ -659,7 +649,7 @@ const App: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onEdit={(item) => openRecordForm('accelDecelData', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'accelDecelData', id)} />
-            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={() => openRecordForm('fishtails')} onEdit={(item) => openRecordForm('fishtails', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
+            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} action={{ label: 'Calculator', icon: <Compass size={14} />, onClick: openFishtailCalc }} onAdd={() => openRecordForm('fishtails')} onEdit={(item) => openRecordForm('fishtails', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
             <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={(item) => openRecordForm('emLogCalibration', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'emLogCalibration', id)} />
             <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={(item) => openRecordForm('compassSwing', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'compassSwing', id)} />
           </div>
@@ -668,12 +658,8 @@ const App: React.FC = () => {
     );
   };
 
-  const [calcReturn, setCalcReturn] = useState<AppView>('home');
   const openFishtailCalc = () => {
-    // the calculator works on one vessel: the selected one, else the first with turning data, else the first
-    const target = selectedShip ?? ships.find(s => s.turningDataSets.some(t => t.data.length)) ?? ships[0];
-    if (target) setSelectedShipId(target.id);
-    setCalcReturn(view === 'details' ? 'details' : 'home');
+    if (!selectedShip) return;
     setView('fishtail_calc');
   };
 
@@ -857,30 +843,6 @@ const App: React.FC = () => {
           <ChevronRight className="text-slate-300 group-hover:text-amber-500 transition-colors" />
         </button>
 
-        {/* Module: Fishtail calculator */}
-        <button
-          onClick={openFishtailCalc}
-          className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors"><Compass size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Fishtail Calculator</h3><p className="text-sm text-slate-400">Plan and solve fishtail manoeuvres</p></div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
-        </button>
-
-        {/* Module: Fishtail records */}
-        <button
-          onClick={() => openRecordForm('fishtails')}
-          className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-cyan-50 text-cyan-600 rounded-2xl group-hover:bg-cyan-600 group-hover:text-white transition-colors"><Wind size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Fishtail Records</h3><p className="text-sm text-slate-400">Log a fishtail manoeuvre</p></div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-cyan-500 transition-colors" />
-        </button>
-
         {/* Module 4: Backup / Restore */}
         <div className="grid grid-cols-2 gap-4">
           <button onClick={handleExport} className="flex items-center gap-3 p-4 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left">
@@ -989,89 +951,6 @@ const App: React.FC = () => {
   const aiGenerateParticulars = async (ship: Ship) => { setLoading(true); const data = await generateSmartParticulars(ship.name, ship.type); if (data) updateParticulars(ship.id, data); setLoading(false); };
 
   // TOOLS INTERFACE
-  const renderTools = () => {
-    if (!isToolsOpen) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom duration-300">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200">
-                <MessageSquare size={20} />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900">Navigator's Tools</h3>
-                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Virtual Assistant
-                </div>
-              </div>
-            </div>
-            <button onClick={() => setIsToolsOpen(false)} className="p-2 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100 transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 flex-shrink-0">
-                <Compass size={16} />
-              </div>
-              <div className="bg-slate-100 p-4 rounded-2xl rounded-tl-none max-w-[80%]">
-                <p className="text-sm text-slate-800 font-medium">Hello! I'm your maritime assistant. Which utility do you need to calculate today?</p>
-              </div>
-            </div>
-
-            {activeTool && (
-              <div className="flex flex-col items-end gap-3">
-                <div className="bg-blue-600 p-4 rounded-2xl rounded-tr-none max-w-[80%] text-white shadow-md shadow-blue-100">
-                  <p className="text-sm font-bold">{activeTool}</p>
-                </div>
-                <div className="w-full">
-                  {(() => { const Tool = NAV_TOOLS.find(t => t.name === activeTool)?.Component; return Tool ? <Tool ship={selectedShip} /> : null; })()}
-                  <button onClick={() => setActiveTool(null)} className="mt-2 text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline">
-                    <RefreshCcw size={12} /> Select another tool
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {!activeTool && (
-              <div className="grid grid-cols-1 gap-3 pt-2">
-                {NAV_TOOLS.map(tool => (
-                  <button 
-                    key={tool.name}
-                    onClick={() => setActiveTool(tool.name)}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50 group transition-all"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-all">{tool.icon}</div>
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-slate-800">{tool.name}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{tool.desc}</p>
-                      </div>
-                    </div>
-                    <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-500" />
-                  </button>
-                ))}
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          <div className="p-4 border-t border-slate-50 bg-slate-50/50">
-             <div className="flex items-center gap-2 p-2 px-4 bg-white rounded-full border border-slate-200">
-               <input disabled type="text" placeholder="Ready to calculate..." className="flex-1 bg-transparent border-none text-xs font-medium focus:ring-0" />
-               <button disabled className="p-2 text-blue-600/30">
-                 <Send size={16} />
-               </button>
-             </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const renderSplash = () => (
     <div className={`original-palette fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-1000 ${splashStage === 'fadeout' ? 'opacity-0' : 'opacity-100'}`}>
       <div className={`transition-all duration-1000 flex flex-col items-center ${splashStage === 'logo' ? 'scale-110 opacity-100' : 'scale-100 opacity-0 absolute'}`}><div className="p-6 bg-blue-600 rounded-[2.5rem] text-white shadow-2xl shadow-blue-500/20 mb-4 animate-bounce"><Anchor size={80} strokeWidth={1.5} /></div><div className="w-16 h-1 bg-blue-500/30 rounded-full overflow-hidden"><div className="h-full bg-blue-400 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }} /></div></div>
@@ -1116,37 +995,25 @@ const App: React.FC = () => {
           ship={selectedShip}
           ships={ships}
           onSelectShip={setSelectedShipId}
-          onBack={() => setView(calcReturn)}
+          onBack={() => setView('details')}
           onSaveRecord={(shipId, record) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, fishtails: [...s.fishtails, record] } : s))}
           onImportSets={(shipId, sets) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, turningDataSets: mergeTurningSets(s.turningDataSets, sets) } : s))}
           onEditTurningData={() => setView('turning_data_form')}
         />
       )}
 
-      {/* Floating Tools Button */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button 
-          onClick={() => setIsToolsOpen(!isToolsOpen)}
-          className={`group flex items-center gap-2 p-4 rounded-3xl shadow-2xl shadow-blue-400/30 transition-all active:scale-95 ${isToolsOpen ? 'bg-slate-900 text-white dark:bg-black dark:border dark:border-slate-300' : 'bg-blue-600 text-white'}`}
-        >
-          {isToolsOpen ? <X size={24} /> : (
-            <>
-              <MessageSquare size={24} />
-              <span className="font-bold text-sm pr-2">Tools</span>
-            </>
-          )}
-        </button>
-      </div>
-
-      {renderTools()}
+      <NavYeo ship={selectedShip} />
     </div>
   );
 };
 
-const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], onAdd?: () => void, onEdit?: (item: any) => void, onDelete?: (id: string) => void }> = ({ title, icon, items, onAdd, onEdit, onDelete }) => (
+const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], action?: { label: string; icon: React.ReactNode; onClick: () => void }, onAdd?: () => void, onEdit?: (item: any) => void, onDelete?: (id: string) => void }> = ({ title, icon, items, action, onAdd, onEdit, onDelete }) => (
   <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
     <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>
-      {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="ml-auto p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} /></button>}
+      <div className="ml-auto flex items-center gap-2">
+        {action && <button onClick={action.onClick} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">{action.icon}{action.label}</button>}
+        {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} /></button>}
+      </div>
     </div>
     <div className="space-y-3">
       {items && items.length > 0 ? items.map(item => (
