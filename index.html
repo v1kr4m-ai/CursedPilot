@@ -5,10 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Cursed Pilot</title>
+    <script>try{document.documentElement.dataset.theme=localStorage.getItem('cursedpilot.theme')||'light'}catch(e){}</script>
     <style>
       body {
         font-family: 'Roboto', system-ui, sans-serif;
-        background-color: #f3f4f6;
+        background-color: var(--color-slate-100, #f3f4f6);
       }
       /* Hide arrows/spinners in number inputs */
       input::-webkit-outer-spin-button,

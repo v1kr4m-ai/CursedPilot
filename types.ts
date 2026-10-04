@@ -36,6 +36,8 @@ export interface SimpleRecord {
   date: string;
   description: string;
   value?: string;
+  /** Raw form entries, kept so the record can be edited. Absent on records made before editing existed. */
+  fields?: Record<string, string>;
 }
 
 export interface Ship {

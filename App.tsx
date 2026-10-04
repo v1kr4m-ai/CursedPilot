@@ -28,7 +28,11 @@ import {
   Send,
   ChevronDown,
   Download,
-  Upload
+  Upload,
+  Pencil,
+  Sun,
+  Moon,
+  Eye
 } from 'lucide-react';
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { INITIAL_SHIPS } from './constants';
@@ -171,6 +175,19 @@ const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string;
 const initialValues = (kind: RecordKind): RecordValues =>
   Object.fromEntries(RECORD_KINDS[kind].fields.map(f => [f.key, f.initial ?? '']));
 
+const THEME_KEY = 'cursedpilot.theme';
+type Theme = 'light' | 'dark' | 'red';
+const THEME_ORDER: Theme[] = ['light', 'dark', 'red'];
+const THEME_LABEL: Record<Theme, string> = { light: 'Day', dark: 'Dark', red: 'Night red' };
+
+const loadTheme = (): Theme => {
+  try {
+    const t = localStorage.getItem(THEME_KEY);
+    if (t === 'light' || t === 'dark' || t === 'red') return t;
+  } catch { /* storage unavailable */ }
+  return 'light';
+};
+
 const STORAGE_KEY = 'cursedpilot.ships.v1';
 
 const loadShips = (): Ship[] => {
@@ -184,6 +201,14 @@ const loadShips = (): Ship[] => {
 
 const App: React.FC = () => {
   const [ships, setShips] = useState<Ship[]>(loadShips);
+  const [theme, setTheme] = useState<Theme>(loadTheme);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* storage full or blocked */ }
+  }, [theme]);
+
+  const cycleTheme = () => setTheme(t => THEME_ORDER[(THEME_ORDER.indexOf(t) + 1) % THEME_ORDER.length]);
 
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(ships)); } catch { /* quota/private mode: ignore */ }
@@ -223,6 +248,8 @@ const App: React.FC = () => {
   const [recordDate, setRecordDate] = useState(todayISO());
   const [recordValues, setRecordValues] = useState<RecordValues>({});
   const [recordRemarks, setRecordRemarks] = useState('');
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [editingLegacy, setEditingLegacy] = useState(false);
 
   // Tools State
   const [isToolsOpen, setIsToolsOpen] = useState(false);
@@ -678,10 +705,10 @@ const App: React.FC = () => {
           </section>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onDelete={(id) => deleteRecord(selectedShip.id, 'accelDecelData', id)} />
-            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={() => openRecordForm('fishtails')} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
-            <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onDelete={(id) => deleteRecord(selectedShip.id, 'emLogCalibration', id)} />
-            <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} onAdd={() => openRecordForm('compassSwing')} onDelete={(id) => deleteRecord(selectedShip.id, 'compassSwing', id)} />
+            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onEdit={(item) => openRecordForm('accelDecelData', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'accelDecelData', id)} />
+            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} onAdd={() => openRecordForm('fishtails')} onEdit={(item) => openRecordForm('fishtails', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
+            <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={(item) => openRecordForm('emLogCalibration', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'emLogCalibration', id)} />
+            <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={(item) => openRecordForm('compassSwing', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'compassSwing', id)} />
           </div>
         </div>
       </div>
@@ -693,9 +720,15 @@ const App: React.FC = () => {
     setView('fishtail_calc');
   };
 
-  const openRecordForm = (kind: RecordKind) => {
+  const openRecordForm = (kind: RecordKind, record?: SimpleRecord) => {
     if (!selectedShipId) { setView('select'); return; }
-    setRecordKind(kind); setRecordDate(todayISO()); setRecordValues(initialValues(kind)); setRecordRemarks('');
+    const def = RECORD_KINDS[kind];
+    setRecordKind(kind);
+    setEditingRecordId(record?.id ?? null);
+    setEditingLegacy(!!record && !record.fields);
+    setRecordDate(record?.date ?? todayISO());
+    setRecordValues(record?.fields ? { ...initialValues(kind), ...record.fields } : initialValues(kind));
+    setRecordRemarks(record && record.description !== def.defaultNote ? record.description : '');
     setView('record_form');
   };
 
@@ -703,8 +736,11 @@ const App: React.FC = () => {
     e.preventDefault();
     const def = RECORD_KINDS[recordKind];
     if (!selectedShip || !recordDate || def.fields.some(f => f.required && !recordValues[f.key])) return;
-    const record: SimpleRecord = { id: Math.random().toString(36).slice(2, 11), date: recordDate, description: recordRemarks.trim() || def.defaultNote, value: def.summarize(recordValues) };
-    setShips(prev => prev.map(s => s.id === selectedShip.id ? { ...s, [recordKind]: [...s[recordKind], record] } : s));
+    const record: SimpleRecord = { id: editingRecordId ?? Math.random().toString(36).slice(2, 11), date: recordDate, description: recordRemarks.trim() || def.defaultNote, value: def.summarize(recordValues), fields: { ...recordValues } };
+    setShips(prev => prev.map(s => s.id !== selectedShip.id ? s : {
+      ...s,
+      [recordKind]: editingRecordId ? s[recordKind].map(r => r.id === editingRecordId ? record : r) : [...s[recordKind], record],
+    }));
     setView('details');
   };
 
@@ -722,10 +758,11 @@ const App: React.FC = () => {
       <div className="p-6 pb-24 max-w-xl mx-auto">
         <header className="flex items-center gap-4 mb-8">
           <button onClick={() => setView('details')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
-          <h1 className="text-2xl font-bold text-slate-800">{def.formTitle}</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{editingRecordId ? def.formTitle.replace('Record', 'Edit') : def.formTitle}</h1>
           <p className="text-sm text-slate-500 font-bold ml-auto">{selectedShip.name}</p>
         </header>
         <form onSubmit={saveRecord} className="space-y-4">
+          {editingLegacy && <p className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl p-3">This record was saved before editing existed, so its original values are gone. Enter them again to replace it; the date and remarks are kept.</p>}
           <div className="space-y-1"><label className={label}>Date</label><input type="date" required value={recordDate} onChange={e => setRecordDate(e.target.value)} className={input} /></div>
           <div className="grid grid-cols-2 gap-4">
             {def.fields.map(f => (
@@ -742,7 +779,7 @@ const App: React.FC = () => {
             ))}
           </div>
           <div className="space-y-1"><label className={label}>Remarks</label><textarea rows={3} value={recordRemarks} onChange={e => setRecordRemarks(e.target.value)} className={input + ' font-medium resize-none'} /></div>
-          <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Save Record</button>
+          <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">{editingRecordId ? 'Save Changes' : 'Save Record'}</button>
         </form>
       </div>
     );
@@ -772,8 +809,14 @@ const App: React.FC = () => {
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Cursed Pilot</h1>
-          <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200">
-            <Anchor size={24} />
+          <div className="flex items-center gap-3">
+            <button onClick={cycleTheme} aria-label={`Theme: ${THEME_LABEL[theme]}. Tap to change`} title={`Theme: ${THEME_LABEL[theme]}`} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-2xl text-slate-600 text-xs font-bold shadow-sm active:scale-95 transition-all">
+              {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Eye size={16} />}
+              {THEME_LABEL[theme]}
+            </button>
+            <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200">
+              <Anchor size={24} />
+            </div>
           </div>
         </div>
         <p className="text-slate-500 font-semibold tracking-wide">Long ND made Short</p>
@@ -972,7 +1015,7 @@ const App: React.FC = () => {
     if (!isToolsOpen) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
         <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom duration-300">
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1058,7 +1101,7 @@ const App: React.FC = () => {
   };
 
   const renderSplash = () => (
-    <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-1000 ${splashStage === 'fadeout' ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`original-palette fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-900 transition-opacity duration-1000 ${splashStage === 'fadeout' ? 'opacity-0' : 'opacity-100'}`}>
       <div className={`transition-all duration-1000 flex flex-col items-center ${splashStage === 'logo' ? 'scale-110 opacity-100' : 'scale-100 opacity-0 absolute'}`}><div className="p-6 bg-blue-600 rounded-[2.5rem] text-white shadow-2xl shadow-blue-500/20 mb-4 animate-bounce"><Anchor size={80} strokeWidth={1.5} /></div><div className="w-16 h-1 bg-blue-500/30 rounded-full overflow-hidden"><div className="h-full bg-blue-400 animate-[loading_2s_ease-in-out_infinite]" style={{ width: '40%' }} /></div></div>
       <div className={`transition-all duration-1000 text-center ${splashStage === 'text' || splashStage === 'fadeout' ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10 absolute'}`}><h1 className="text-5xl font-black text-white tracking-tighter mb-2">Cursed Pilot</h1><p className="text-blue-400 text-lg font-bold tracking-[0.3em] uppercase min-h-[1.5em]">{typewriterText}<span className="animate-pulse inline-block w-1 h-5 bg-blue-400 ml-1" /></p></div>
       <style>{`@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }`}</style>
@@ -1067,6 +1110,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans shadow-2xl relative overflow-hidden">
+      {theme === 'red' && <div aria-hidden className="fixed inset-0 z-[9999] pointer-events-none" style={{ background: '#d00000', mixBlendMode: 'multiply' }} />}
       {showSplash && renderSplash()}
       {view === 'home' && renderHome()}
       {view === 'select' && renderSelectShip()}
@@ -1076,7 +1120,7 @@ const App: React.FC = () => {
       {view === 'turning_data_form' && renderTurningDataForm()}
       {view === 'record_form' && renderRecordForm()}
       {view === 'fishtail_calc' && (
-        <div className="fixed inset-0 z-40 bg-slate-950 text-slate-50">
+        <div className="original-palette fixed inset-0 z-40 bg-slate-950 text-slate-50">
           <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 text-sm font-bold uppercase tracking-widest">Loading calculator...</div>}>
             <FishtailModule isModule onExit={() => setView(selectedShipId ? 'details' : 'home')} />
           </Suspense>
@@ -1087,7 +1131,7 @@ const App: React.FC = () => {
       <div className="fixed bottom-6 right-6 z-40">
         <button 
           onClick={() => setIsToolsOpen(!isToolsOpen)}
-          className={`group flex items-center gap-2 p-4 rounded-3xl shadow-2xl shadow-blue-400/30 transition-all active:scale-95 ${isToolsOpen ? 'bg-slate-900 text-white' : 'bg-blue-600 text-white'}`}
+          className={`group flex items-center gap-2 p-4 rounded-3xl shadow-2xl shadow-blue-400/30 transition-all active:scale-95 ${isToolsOpen ? 'bg-slate-900 text-white dark:bg-black dark:border dark:border-slate-300' : 'bg-blue-600 text-white'}`}
         >
           {isToolsOpen ? <X size={24} /> : (
             <>
@@ -1103,7 +1147,7 @@ const App: React.FC = () => {
   );
 };
 
-const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], onAdd?: () => void, onDelete?: (id: string) => void }> = ({ title, icon, items, onAdd, onDelete }) => (
+const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], onAdd?: () => void, onEdit?: (item: any) => void, onDelete?: (id: string) => void }> = ({ title, icon, items, onAdd, onEdit, onDelete }) => (
   <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
     <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>
       {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="ml-auto p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} /></button>}
@@ -1113,7 +1157,10 @@ const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[],
         <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
           <div className="flex justify-between items-center mb-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{item.date}</span>
-            {onDelete && <button onClick={() => onDelete(item.id)} aria-label="Delete record" className="p-1 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>}
+            <span className="flex items-center gap-1">
+              {onEdit && <button onClick={() => onEdit(item)} aria-label="Edit record" className="p-1 text-slate-300 hover:text-blue-500 transition-colors"><Pencil size={14} /></button>}
+              {onDelete && <button onClick={() => onDelete(item.id)} aria-label="Delete record" className="p-1 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>}
+            </span>
           </div>
           <p className="text-sm text-slate-900 font-bold">{item.value || item.description}</p>
           {item.value && item.description && <p className="text-xs text-slate-500 mt-1">{item.description}</p>}

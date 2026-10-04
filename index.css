@@ -5,3 +5,94 @@
 @theme {
   --breakpoint-xs: 30rem;
 }
+
+/* ---- Themes -------------------------------------------------------------------------
+   data-theme="dark"  : dark surfaces, light text
+   data-theme="red"   : the dark theme plus a red multiply overlay (see App.tsx) so only red
+                        light reaches the eye, which preserves night vision on a bridge.
+   Theming works by overriding Tailwind's colour variables, so existing classes follow. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="red"], [data-theme="dark"] *, [data-theme="red"] *));
+
+:root[data-theme="dark"], :root[data-theme="red"] {
+  color-scheme: dark;
+  --surface: oklch(20% 0.03 265);
+  --color-slate-50: oklch(24% 0.03 265);
+  --color-slate-100: oklch(16% 0.03 265);
+  --color-slate-200: oklch(30% 0.03 265);
+  --color-slate-300: oklch(38% 0.03 265);
+  --color-slate-400: oklch(62% 0.03 265);
+  --color-slate-500: oklch(68% 0.03 265);
+  --color-slate-600: oklch(78% 0.03 265);
+  --color-slate-700: oklch(85% 0.03 265);
+  --color-slate-800: oklch(92% 0.03 265);
+  --color-slate-900: oklch(96% 0.03 265);
+  --color-slate-950: oklch(98% 0.03 265);
+  --color-blue-50: oklch(24% 0.06 260);
+  --color-blue-100: oklch(28% 0.06 260);
+  --color-blue-200: oklch(34% 0.06 260);
+  --color-blue-300: oklch(42% 0.06 260);
+  --color-indigo-50: oklch(24% 0.06 277);
+  --color-indigo-100: oklch(28% 0.06 277);
+  --color-indigo-200: oklch(34% 0.06 277);
+  --color-indigo-300: oklch(42% 0.06 277);
+  --color-violet-50: oklch(24% 0.06 293);
+  --color-violet-100: oklch(28% 0.06 293);
+  --color-violet-200: oklch(34% 0.06 293);
+  --color-violet-300: oklch(42% 0.06 293);
+  --color-cyan-50: oklch(24% 0.06 210);
+  --color-cyan-100: oklch(28% 0.06 210);
+  --color-cyan-200: oklch(34% 0.06 210);
+  --color-cyan-300: oklch(42% 0.06 210);
+  --color-emerald-50: oklch(24% 0.06 163);
+  --color-emerald-100: oklch(28% 0.06 163);
+  --color-emerald-200: oklch(34% 0.06 163);
+  --color-emerald-300: oklch(42% 0.06 163);
+  --color-green-50: oklch(24% 0.06 150);
+  --color-green-100: oklch(28% 0.06 150);
+  --color-green-200: oklch(34% 0.06 150);
+  --color-green-300: oklch(42% 0.06 150);
+  --color-amber-50: oklch(24% 0.06 80);
+  --color-amber-100: oklch(28% 0.06 80);
+  --color-amber-200: oklch(34% 0.06 80);
+  --color-amber-300: oklch(42% 0.06 80);
+  --color-yellow-50: oklch(24% 0.06 95);
+  --color-yellow-100: oklch(28% 0.06 95);
+  --color-yellow-200: oklch(34% 0.06 95);
+  --color-yellow-300: oklch(42% 0.06 95);
+  --color-orange-50: oklch(24% 0.06 55);
+  --color-orange-100: oklch(28% 0.06 55);
+  --color-orange-200: oklch(34% 0.06 55);
+  --color-orange-300: oklch(42% 0.06 55);
+  --color-red-50: oklch(24% 0.06 25);
+  --color-red-100: oklch(28% 0.06 25);
+  --color-red-200: oklch(34% 0.06 25);
+  --color-red-300: oklch(42% 0.06 25);
+  --color-blue-900: oklch(85% 0.08 260);
+  --color-purple-50: oklch(24% 0.06 305);
+  --color-purple-100: oklch(28% 0.06 305);
+  --color-purple-200: oklch(34% 0.06 305);
+  --color-purple-300: oklch(42% 0.06 305);
+  --color-purple-700: oklch(80% 0.1 305);
+}
+
+[data-theme="dark"] .bg-white, [data-theme="red"] .bg-white,
+[data-theme="dark"] .hover\:bg-white:hover, [data-theme="red"] .hover\:bg-white:hover,
+[data-theme="dark"] .focus\:bg-white:focus, [data-theme="red"] .focus\:bg-white:focus { background-color: var(--surface); }
+[data-theme="dark"] .bg-white\/60, [data-theme="red"] .bg-white\/60 { background-color: color-mix(in oklab, var(--surface) 60%, transparent); }
+[data-theme="dark"] .bg-white\/80, [data-theme="red"] .bg-white\/80 { background-color: color-mix(in oklab, var(--surface) 80%, transparent); }
+
+/* Elements that are already dark-styled (the Fishtail module, the splash) keep the original palette. */
+.original-palette {
+  --color-slate-50: oklch(98.4% 0.003 247.858);
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+  --color-slate-200: oklch(92.9% 0.013 255.508);
+  --color-slate-300: oklch(86.9% 0.022 252.894);
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  --color-slate-700: oklch(37.2% 0.044 257.287);
+  --color-slate-800: oklch(27.9% 0.041 260.031);
+  --color-slate-900: oklch(20.8% 0.042 265.755);
+  --color-slate-950: oklch(12.9% 0.042 264.695);
+}
+
