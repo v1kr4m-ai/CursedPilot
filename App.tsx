@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import { 
   Anchor, 
   PlusCircle, 
@@ -33,7 +33,11 @@ import {
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
-import { exportBackup, parseBackup } from './services/backup';
+import { exportBackup, parseBackup, restoreFishtailDb } from './services/backup';
+import { syncShipToFishtail } from './fishtail/shipBridge';
+
+// Loaded on demand: the calculator pulls in the spreadsheet library, which most sessions never need.
+const FishtailModule = lazy(() => import('./fishtail/FishtailModule'));
 
 const SHIP_CATEGORIES = [
   "Destroyer", "Frigate", "Corvette", "OPVs", "NOPVs", 
@@ -546,7 +550,10 @@ const App: React.FC = () => {
             <button onClick={() => setView('select')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
             <div><h1 className="text-xl font-bold text-slate-800 leading-tight">{selectedShip.name}</h1><p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedShip.type}</p></div>
           </div>
-          <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={openFishtailCalc} aria-label="Open Fishtail calculator with this vessel's turning data" title="Fishtail calculator" className="p-2 text-indigo-600 bg-indigo-50 rounded-lg"><Compass size={20} /></button>
+            <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
+          </div>
         </header>
         
         <div className="p-4 md:max-w-4xl md:mx-auto space-y-6">
@@ -681,6 +688,11 @@ const App: React.FC = () => {
     );
   };
 
+  const openFishtailCalc = () => {
+    if (selectedShip) syncShipToFishtail(selectedShip);
+    setView('fishtail_calc');
+  };
+
   const openRecordForm = (kind: RecordKind) => {
     if (!selectedShipId) { setView('select'); return; }
     setRecordKind(kind); setRecordDate(todayISO()); setRecordValues(initialValues(kind)); setRecordRemarks('');
@@ -745,9 +757,10 @@ const App: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     try {
-      const imported = parseBackup(await file.text());
+      const { ships: imported, fishtailDb } = parseBackup(await file.text());
       if (!confirm(`Restore ${imported.length} vessel(s) from "${file.name}"? This replaces all ${ships.length} vessel(s) currently in the app.`)) return;
       setShips(imported);
+      if (fishtailDb) restoreFishtailDb(fishtailDb);
       if (selectedShipId && !imported.some(s => s.id === selectedShipId)) setSelectedShipId(null);
     } catch (err) {
       alert(`Restore failed: ${err instanceof Error ? err.message : err}`);
@@ -823,14 +836,26 @@ const App: React.FC = () => {
           <ChevronRight className="text-slate-300 group-hover:text-amber-500 transition-colors" />
         </button>
 
-        {/* Module: Fishtails */}
+        {/* Module: Fishtail calculator */}
+        <button
+          onClick={openFishtailCalc}
+          className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors"><Compass size={24} /></div>
+            <div><h3 className="font-bold text-slate-800">Fishtail Calculator</h3><p className="text-sm text-slate-400">Plan and solve fishtail manoeuvres</p></div>
+          </div>
+          <ChevronRight className="text-slate-300 group-hover:text-indigo-500 transition-colors" />
+        </button>
+
+        {/* Module: Fishtail records */}
         <button
           onClick={() => openRecordForm('fishtails')}
           className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
         >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-cyan-50 text-cyan-600 rounded-2xl group-hover:bg-cyan-600 group-hover:text-white transition-colors"><Wind size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Fishtails</h3><p className="text-sm text-slate-400">Record a fishtail manoeuvre</p></div>
+            <div><h3 className="font-bold text-slate-800">Fishtail Records</h3><p className="text-sm text-slate-400">Log a fishtail manoeuvre</p></div>
           </div>
           <ChevronRight className="text-slate-300 group-hover:text-cyan-500 transition-colors" />
         </button>
@@ -1050,6 +1075,13 @@ const App: React.FC = () => {
       {view === 'particulars_form' && renderParticularsForm()}
       {view === 'turning_data_form' && renderTurningDataForm()}
       {view === 'record_form' && renderRecordForm()}
+      {view === 'fishtail_calc' && (
+        <div className="fixed inset-0 z-40 bg-slate-950 text-slate-50">
+          <Suspense fallback={<div className="h-full flex items-center justify-center text-slate-400 text-sm font-bold uppercase tracking-widest">Loading calculator...</div>}>
+            <FishtailModule isModule onExit={() => setView(selectedShipId ? 'details' : 'home')} />
+          </Suspense>
+        </div>
+      )}
 
       {/* Floating Tools Button */}
       <div className="fixed bottom-6 right-6 z-40">

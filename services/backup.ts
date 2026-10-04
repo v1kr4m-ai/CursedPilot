@@ -5,11 +5,17 @@ import { Ship, ShipParticulars } from '../types';
 
 const APP_ID = 'cursedpilot';
 const VERSION = 1;
+const FISHTAIL_DB_KEY = 'fishtail_db';
 const EMPTY_PARTICULARS: ShipParticulars = { lengthOverall: 0, breadthOverall: 0, displacement: 0, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 };
 
 /** Saves all ships as a JSON backup: share sheet on Android, file download on web. */
 export async function exportBackup(ships: Ship[]): Promise<void> {
-  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships }, null, 2);
+  let fishtailDb: unknown[] = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(FISHTAIL_DB_KEY) || '[]');
+    if (Array.isArray(parsed)) fishtailDb = parsed;
+  } catch { /* unreadable library: back up the vessels without it */ }
+  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships, fishtailDb }, null, 2);
   const fileName = `cursedpilot-backup-${new Date().toISOString().slice(0, 10)}.json`;
 
   if (Capacitor.isNativePlatform()) {
@@ -25,14 +31,16 @@ export async function exportBackup(ships: Ship[]): Promise<void> {
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
+export interface Backup { ships: Ship[]; fishtailDb: unknown[] | null }
+
 /** Parses and validates a backup file's text. Throws an Error with a readable message. */
-export function parseBackup(text: string): Ship[] {
+export function parseBackup(text: string): Backup {
   let data: unknown;
   try { data = JSON.parse(text); } catch { throw new Error('File is not valid JSON.'); }
   const list = isObj(data) && data.app === APP_ID ? data.ships : null;
   if (!Array.isArray(list)) throw new Error('Not a Cursed Pilot backup file.');
 
-  return list.map((s, i) => {
+  const ships = list.map((s, i) => {
     if (!isObj(s) || typeof s.id !== 'string' || typeof s.name !== 'string' || !isObj(s.particulars)) {
       throw new Error(`Vessel #${i + 1} in the backup is malformed.`);
     }
@@ -47,4 +55,10 @@ export function parseBackup(text: string): Ship[] {
       compassSwing: Array.isArray(s.compassSwing) ? s.compassSwing : [],
     } as Ship;
   });
+  return { ships, fishtailDb: Array.isArray((data as Record<string, unknown>).fishtailDb) ? (data as { fishtailDb: unknown[] }).fishtailDb : null };
+}
+
+/** Replaces the Fishtail calculator's tables with the ones from a backup. */
+export function restoreFishtailDb(rows: unknown[]): void {
+  try { localStorage.setItem(FISHTAIL_DB_KEY, JSON.stringify(rows)); } catch { /* storage full or blocked */ }
 }

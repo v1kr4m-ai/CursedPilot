@@ -8,6 +8,7 @@
 - **Fleet inventory** – add, search, filter (Destroyer, Frigate, Corvette, OPV, Carrier, LST, Tanker, Submarine and more) and remove vessels.
 - **Ship particulars** – length and breadth overall, displacement, and stem-to-standard / bridge / RAS point / fueling point distances.
 - **Turning data** – one sheet per speed, wheel angle and turn side (Port or Starboard), prefilled with turn amounts from 0° to 345°. Records bearing of MOB, angle, range, transfer, advance, distance to new course, time and speed.
+- **Fishtail Calculator** – the full fishtail manoeuvre module (from the standalone Fishtail app): calculator with plot, radar and animation views, a Battenberg target solver, and a library of turning tables with Excel/CSV/JSON import. Open it from the home screen, or from the compass button on a vessel to load *that vessel's* recorded turning data (rows with advance/transfer, times converted to seconds) into the library automatically. The calculator keeps its own tables (`fishtail_db`), which are included in backups. It lives in `fishtail/` and loads on demand.
 - **Records** – entry forms for fishtails (speed, rudder, overshoot, cycle time), acceleration/deceleration runs (from/to speed, time, distance), EM log calibration (true speed vs log reading, error worked out for you) and compass swing (compass, residual deviation), each with date and remarks. Open a form from the **+** on the vessel's card (fishtails also from the home screen). Records can be deleted.
 - **Navigator's Tools** – bearing reciprocal, radian rule (θ = d/R) and speed rule (S = D/T).
 - **Print** – the Turning Data Entry screen has a print button (uses the system print dialog).
@@ -54,7 +55,7 @@ The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`. The a
 
 ## Stack
 
-React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capacitor 8, `@google/genai`.
+React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capacitor 8, `@google/genai`, `xlsx` (spreadsheet import in the calculator).
 
 ## Layout
 
@@ -64,6 +65,7 @@ React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capa
 | `types.ts` | Ship, particulars and record types |
 | `constants.tsx` | Seed vessels |
 | `services/geminiService.ts` | Gemini call for particulars |
+| `fishtail/` | Fishtail calculator module and the bridge from vessel turning data |
 | `android/` | Capacitor Android project |
 
 ## Known limits

@@ -1,2 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+
+/* The Fishtail module uses an `xs:` breakpoint (tab labels) that Tailwind does not define by default. */
+@theme {
+  --breakpoint-xs: 30rem;
+}
