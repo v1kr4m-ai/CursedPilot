@@ -12,7 +12,12 @@
     "check:nav": "node tools/navMath.check.ts",
     "check:export": "node services/vesselReport.check.ts",
     "check:tables": "node fishtail/tableConvert.check.ts",
-    "check": "npm run check:nav && npm run check:export && npm run check:tables"
+    "check": "npm run check:nav && npm run check:export && npm run check:tables && npm run check:fleet && npm run check:lookup && npm run check:navyeo && npm run check:data && npm run check:files",
+    "check:fleet": "node data/fleet.check.ts",
+    "check:lookup": "node services/shipLookup.check.ts",
+    "check:navyeo": "node navyeo/layout.check.ts && node tools/toolMemory.check.ts && node tools/toolInfo.check.ts",
+    "check:data": "node data/summaries.check.ts && node data/customFields.check.ts",
+    "check:files": "node services/docx.check.ts && node services/turningRoundTrip.check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -20,6 +25,7 @@
     "@capacitor/filesystem": "^8.1.4",
     "@capacitor/share": "^8.0.3",
     "@google/genai": "^1.34.0",
+    "jszip": "^3.10.2",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",

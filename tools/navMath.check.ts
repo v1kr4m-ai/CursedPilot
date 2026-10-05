@@ -138,4 +138,26 @@ const onCircle = { x: cc.x + rc * Math.cos(-1.2), y: cc.y + rc * Math.sin(-1.2) 
 assert.ok('error' in m.hsaFix(A, B, C, 0, 20)); assert.ok('error' in m.hsaFix(A, B, C, 100, 90)); assert.ok('error' in m.hsaFix(A, A, C, 20, 20));
 { const { al, be } = solve({ x: 0, y: -8 }, A, B, C); const r = m.hsaFix(C, B, A, al, be); assert.ok('error' in r || Math.hypot(r.x, r.y + 8) > 0.01, 'reversed objects must not reproduce the position'); }
 
+// ---- length units
+assert.deepEqual(m.LENGTH_UNIT_KEYS, ['cables', 'nm', 'metres', 'yards', 'km', 'feet', 'fathoms']);
+assert.equal(m.DEFAULT_DISTANCE_UNIT, 'cables'); assert.equal(m.DEFAULT_HEIGHT_UNIT, 'metres');
+near(m.convertLength(1, 'nm', 'cables'), 10); near(m.convertLength(1, 'cables', 'metres'), 185.2); near(m.convertLength(2025, 'yards', 'nm'), 2025 * 0.9144 / 1852);
+near(m.convertLength(6, 'feet', 'fathoms'), 1); near(m.convertLength(1, 'km', 'nm'), 1000 / 1852); near(m.convertLength(5, 'metres', 'metres'), 5);
+for (const a of m.LENGTH_UNIT_KEYS) for (const b of m.LENGTH_UNIT_KEYS) near(m.convertLength(m.convertLength(7.5, a, b), b, a), 7.5, 1e-9);   // every pair round-trips
+assert.equal(m.isLengthUnit('cables'), true); assert.equal(m.isLengthUnit('nautical miles'), false); assert.equal(m.isLengthUnit(undefined), false); assert.equal(m.isLengthUnit('toString'), false);
+assert.equal(m.formatLength(3.4641, 'cables'), '3.46 cables'); assert.equal(m.formatLength(1852, 'metres'), '1852 m'); assert.equal(m.formatLength(0.05, 'nm'), '0.050 nm');
+assert.equal(m.formatLength(0.4, 'metres'), '0.40 m'); assert.equal(m.formatLength(7.25, 'metres'), '7.3 m'); assert.equal(m.formatLength(123.456, 'yards'), '123 yd');
+
+// ---- object length from end bearings
+let o = m.objectLengthFromBearings(1, 355, 5)!;                                   // 10 degrees across, wrapping through north
+near(o.angle, 10); near(o.length, 2 * Math.tan(5 * Math.PI / 180));
+near(m.objectLengthFromBearings(1, 5, 355)!.length, o.length);                     // order of the two bearings does not matter
+near(m.objectLengthFromBearings(2, 90, 100)!.length, 2 * o.length);                // proportional to distance
+near(m.objectLengthFromBearings(10, 0, 90)!.length, 20);                           // 90 degrees: length = 2 x distance
+near(m.objectLengthFromBearings(5, 10, 350)!.angle, 20);                           // the smaller angle is taken
+// the answer comes out in the unit the distance went in: 5 cables, 3 degrees -> about 0.26 cables, ~48.5 m
+near(m.convertLength(m.objectLengthFromBearings(5, 100, 103)!.length, 'cables', 'metres'), 2 * 5 * Math.tan(1.5 * Math.PI / 180) * 185.2);
+assert.equal(m.objectLengthFromBearings(1, 40, 40), null); assert.equal(m.objectLengthFromBearings(1, 0, 180), null);   // no angle / opposite directions
+assert.equal(m.objectLengthFromBearings(0, 40, 50), null); assert.equal(m.objectLengthFromBearings(-1, 40, 50), null); assert.equal(m.objectLengthFromBearings(NaN, 40, 50), null);
+
 console.log('navMath: all checks passed');

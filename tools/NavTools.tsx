@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { ArrowLeftRight, Calculator, Clock, Compass, Eye, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
 import * as nav from './navMath';
+import { PREF, toolMemory } from './toolMemory';
 
 // ---- shared bits ------------------------------------------------------------------------------
 
@@ -13,12 +14,24 @@ const toNum = (s: string): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-/** Text state for a set of number fields; `bind('speed')` gives Field its value/onChange. */
-function useForm<K extends string>(keys: readonly K[]) {
-  const [v, setV] = useState(() => Object.fromEntries(keys.map(k => [k, ''])) as Record<K, string>);
-  const bind = (k: K) => ({ value: v[k], onChange: (s: string) => setV(prev => ({ ...prev, [k]: s })) });
-  const n = (k: K) => toNum(v[k]);
-  return { v, bind, n };
+/** State that is remembered between uses (and across restarts) under `key`, until NavYeo's clear-all is pressed. */
+function useMemory<T>(key: string, initial: T): [T, (v: T | ((prev: T) => T)) => void] {
+  const all = useSyncExternalStore(toolMemory.subscribe, toolMemory.snapshot);
+  const value = key in all ? (all[key] as T) : initial;
+  const set = useCallback((v: T | ((prev: T) => T)) => {
+    const prev = toolMemory.get<T>(key, initial);
+    toolMemory.set(key, typeof v === 'function' ? (v as (p: T) => T)(prev) : v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return [value, set];
+}
+
+/** Text state for a set of number fields; `bind('speed')` gives Field its value/onChange. `id` names the tool for the memory. */
+function useForm<K extends string>(id: string, keys: readonly K[]) {
+  const [v, setV] = useMemory<Record<K, string>>(`${id}:fields`, Object.fromEntries(keys.map(k => [k, ''])) as Record<K, string>);
+  const bind = (k: K) => ({ value: v[k] ?? '', onChange: (s: string) => setV(prev => ({ ...prev, [k]: s })) });
+  const n = (k: K) => toNum(v[k] ?? '');
+  return { v: new Proxy(v, { get: (t, k) => (t as Record<string, string>)[k as string] ?? '' }) as Record<K, string>, bind, n };
 }
 
 const Field: React.FC<{ label: string; unit?: string; value: string; onChange: (s: string) => void; hint?: string; text?: boolean; invalid?: boolean }> = ({ label, unit, value, onChange, hint, text, invalid }) => (
@@ -50,6 +63,40 @@ const Panel: React.FC<{ title: string; note?: string; children: React.ReactNode 
 
 const Grid: React.FC<{ children: React.ReactNode }> = ({ children }) => <div className="grid grid-cols-2 gap-2">{children}</div>;
 
+/** The last length unit used in a tool, remembered per tool (a preference: clear-all keeps it). */
+function useUnit(tool: string, fallback: nav.LengthUnit = nav.DEFAULT_DISTANCE_UNIT): [nav.LengthUnit, (u: nav.LengthUnit) => void] {
+  const [raw, set] = useMemory<string>(`${PREF}${tool}`, fallback);
+  return [nav.isLengthUnit(raw) ? raw : fallback, (u: nav.LengthUnit) => set(u)];
+}
+
+const SELECT = 'p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400';
+
+/** A number field with a length-unit dropdown beside it. */
+const LengthField: React.FC<{ label: string; value: string; onChange: (s: string) => void; unit: nav.LengthUnit; onUnit: (u: nav.LengthUnit) => void; hint?: string }> = ({ label, value, onChange, unit, onUnit, hint }) => (
+  <div className="block space-y-1">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+    <div className="flex gap-2">
+      <input type="number" inputMode="decimal" step="any" value={value} placeholder={hint} aria-label={label} onChange={e => onChange(e.target.value)}
+        className="min-w-0 flex-1 p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+      <select value={unit} onChange={e => onUnit(e.target.value as nav.LengthUnit)} aria-label={`${label} unit`} className={`${SELECT} w-[5.5rem] shrink-0`}>
+        {nav.LENGTH_UNIT_KEYS.map(k => <option key={k} value={k} title={nav.LENGTH_UNITS[k].label}>{nav.LENGTH_UNITS[k].short}</option>)}
+      </select>
+    </div>
+  </div>
+);
+
+/** A unit dropdown for answers (or for a group of fields that share a unit). */
+const UnitPick: React.FC<{ label: string; unit: nav.LengthUnit; onChange: (u: nav.LengthUnit) => void }> = ({ label, unit, onChange }) => (
+  <label className="flex items-center justify-between gap-3">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+    <select value={unit} onChange={e => onChange(e.target.value as nav.LengthUnit)} className={`${SELECT} py-2 text-xs w-40`}>
+      {nav.LENGTH_UNIT_KEYS.map(k => <option key={k} value={k}>{nav.LENGTH_UNITS[k].label}</option>)}
+    </select>
+  </label>
+);
+
+const fromNm = (nm: number, unit: nav.LengthUnit) => nav.formatLength(nav.convertLength(nm, 'nm', unit), unit);
+
 const Result: React.FC<{ rows: [string, string][]; tone?: 'ok' | 'warn' }> = ({ rows, tone = 'ok' }) => (
   <div className={`p-3 rounded-xl text-white text-sm font-bold space-y-1 ${tone === 'warn' ? 'bg-amber-600' : 'bg-blue-600'}`}>
     {rows.map(([k, val]) => <div key={k} className="flex justify-between gap-3"><span className="opacity-80 font-semibold">{k}</span><span>{val}</span></div>)}
@@ -66,7 +113,7 @@ const hhmm = (min: number) => `${Math.floor(min / 60)}h ${Math.round(min % 60).t
 // ---- tools -------------------------------------------------------------------------------------
 
 const BearingTool: React.FC = () => {
-  const f = useForm(['brg', 'head', 'rel'] as const);
+  const f = useForm('bearing', ['brg', 'head', 'rel'] as const);
   const brg = f.n('brg'), head = f.n('head'), rel = f.n('rel');
   return (
     <div className="space-y-3">
@@ -86,19 +133,21 @@ const BearingTool: React.FC = () => {
 };
 
 const TsdTool: React.FC = () => {
-  const f = useForm(['d', 's', 't'] as const);
-  const given = [f.n('d'), f.n('s'), f.n('t')].filter(x => x !== null).length;
-  const r = nav.solveTSD({ distance: f.n('d'), speed: f.n('s'), minutes: f.n('t') });
+  const f = useForm('tsd', ['d', 's', 't'] as const);
+  const [unit, setUnit] = useUnit('tsd:unit');
+  const typed = f.n('d');
+  const given = [typed, f.n('s'), f.n('t')].filter(x => x !== null).length;
+  const r = nav.solveTSD({ distance: typed === null ? null : nav.convertLength(typed, unit, 'nm'), speed: f.n('s'), minutes: f.n('t') });
   const label = r && { distance: 'Distance', speed: 'Speed', minutes: 'Time' }[r.solved];
   return (
     <Panel title="Time, speed, distance" note="Fill any two, leave the third blank.">
-      <Field label="Distance" unit="nm" {...f.bind('d')} />
+      <LengthField label="Distance" unit={unit} onUnit={setUnit} {...f.bind('d')} />
       <Grid>
         <Field label="Speed" unit="kn" {...f.bind('s')} />
         <Field label="Time" unit="min" {...f.bind('t')} />
       </Grid>
       {r && <Result rows={[
-        [label!, r.solved === 'distance' ? `${r.distance.toFixed(2)} nm` : r.solved === 'speed' ? `${r.speed.toFixed(1)} kn` : `${r.minutes.toFixed(1)} min (${hhmm(r.minutes)})`],
+        [label!, r.solved === 'distance' ? fromNm(r.distance, unit) : r.solved === 'speed' ? `${r.speed.toFixed(1)} kn` : `${r.minutes.toFixed(1)} min (${hhmm(r.minutes)})`],
       ]} />}
       {given === 2 && !r && <Warn>Speed and time must be above zero where they are divided by.</Warn>}
     </Panel>
@@ -106,37 +155,39 @@ const TsdTool: React.FC = () => {
 };
 
 const RadianTool: React.FC = () => {
-  const f = useForm(['dist', 'range'] as const);
+  const f = useForm('radian', ['dist', 'range'] as const);
+  const [ud, setUd] = useUnit('radian:dist');
+  const [ur, setUr] = useUnit('radian:range');
   const d = f.n('dist'), r = f.n('range');
+  const dm = d === null ? null : nav.convertLength(d, ud, 'metres'), rm = r === null ? null : nav.convertLength(r, ur, 'metres');
   return (
-    <Panel title="Radian rule (angle = distance / range)" note="Gives the angle subtended in degrees; use the same unit for both.">
-      <Grid>
-        <Field label="Distance off" {...f.bind('dist')} />
-        <Field label="Range" {...f.bind('range')} />
-      </Grid>
-      {d !== null && r !== null && r > 0 && <Result rows={[['Angle', `${nav.radianAngle(d, r).toFixed(2)}°`]]} />}
+    <Panel title="Radian rule (angle = distance / range)" note="Gives the angle subtended in degrees. The two lengths may be in different units.">
+      <LengthField label="Distance off" unit={ud} onUnit={setUd} {...f.bind('dist')} />
+      <LengthField label="Range" unit={ur} onUnit={setUr} {...f.bind('range')} />
+      {dm !== null && rm !== null && rm > 0 && <Result rows={[['Angle', `${nav.radianAngle(dm, rm).toFixed(2)}\u00B0`]]} />}
     </Panel>
   );
 };
 
 const CpaTool: React.FC = () => {
-  const f = useForm(['oc', 'os', 'brg', 'rng', 'tc', 'ts'] as const);
+  const f = useForm('cpa', ['oc', 'os', 'brg', 'rng', 'tc', 'ts'] as const);
+  const [unit, setUnit] = useUnit('cpa:unit');
   const v = ['oc', 'os', 'brg', 'rng', 'tc', 'ts'].map(k => f.n(k as 'oc'));
   const ready = v.every(x => x !== null);
-  const r = ready ? nav.cpa({ ownCourse: v[0]!, ownSpeed: v[1]!, bearing: v[2]!, range: v[3]!, targetCourse: v[4]!, targetSpeed: v[5]! }) : null;
+  const r = ready ? nav.cpa({ ownCourse: v[0]!, ownSpeed: v[1]!, bearing: v[2]!, range: nav.convertLength(v[3]!, unit, 'nm'), targetCourse: v[4]!, targetSpeed: v[5]! }) : null;
   return (
     <Panel title="CPA / TCPA" note="True bearing, true courses, speeds through the ground. Assumes both vessels hold course and speed.">
       <Grid>
-        <Field label="Own course" unit="°T" {...f.bind('oc')} />
+        <Field label="Own course" unit="\u00B0T" {...f.bind('oc')} />
         <Field label="Own speed" unit="kn" {...f.bind('os')} />
-        <Field label="Target bearing" unit="°T" {...f.bind('brg')} />
-        <Field label="Target range" unit="nm" {...f.bind('rng')} />
-        <Field label="Target course" unit="°T" {...f.bind('tc')} />
+        <Field label="Target bearing" unit="\u00B0T" {...f.bind('brg')} />
+        <Field label="Target course" unit="\u00B0T" {...f.bind('tc')} />
         <Field label="Target speed" unit="kn" {...f.bind('ts')} />
       </Grid>
+      <LengthField label="Target range" unit={unit} onUnit={setUnit} {...f.bind('rng')} />
       {r && (
         <Result tone={r.status === 'closing' && r.cpa < 1 ? 'warn' : 'ok'} rows={[
-          ['CPA', `${r.cpa.toFixed(2)} nm`],
+          ['CPA', fromNm(r.cpa, unit)],
           ['TCPA', r.tcpaMinutes === null ? (r.status === 'steady' ? 'no relative motion' : 'past, opening') : `${r.tcpaMinutes.toFixed(1)} min`],
           ...(r.status === 'closing' && r.cpa >= 0.01 ? [['Bearing at CPA', bearing(r.bearingAtCpa)] as [string, string]] : []),
           ...(r.relativeCourse !== null ? [['Relative track', `${bearing(r.relativeCourse)} at ${r.relativeSpeed.toFixed(1)} kn`] as [string, string]] : []),
@@ -147,26 +198,28 @@ const CpaTool: React.FC = () => {
 };
 
 const CtsTool: React.FC = () => {
-  const f = useForm(['track', 'speed', 'set', 'drift', 'dist'] as const);
+  const f = useForm('cts', ['track', 'speed', 'set', 'drift', 'dist'] as const);
+  const [unit, setUnit] = useUnit('cts:unit');
   const [track, speed, set, drift] = ['track', 'speed', 'set', 'drift'].map(k => f.n(k as 'track'));
   const ready = track !== null && speed !== null && set !== null && drift !== null;
   const r = ready ? nav.courseToSteer(track!, speed!, set!, drift!) : null;
-  const dist = f.n('dist');
+  const typed = f.n('dist');
+  const distNm = typed === null ? null : nav.convertLength(typed, unit, 'nm');
   return (
     <Panel title="Course to steer (set and drift)" note="Speed is through the water. Set is the direction the current flows towards.">
       <Grid>
-        <Field label="Track to make good" unit="°T" {...f.bind('track')} />
+        <Field label="Track to make good" unit="\u00B0T" {...f.bind('track')} />
         <Field label="Ship speed" unit="kn" {...f.bind('speed')} />
-        <Field label="Set" unit="°T" {...f.bind('set')} />
+        <Field label="Set" unit="\u00B0T" {...f.bind('set')} />
         <Field label="Drift" unit="kn" {...f.bind('drift')} />
       </Grid>
-      <Field label="Distance to run (optional)" unit="nm" {...f.bind('dist')} />
+      <LengthField label="Distance to run (optional)" unit={unit} onUnit={setUnit} {...f.bind('dist')} />
       {r && ('error' in r ? <Warn>{r.error}</Warn> : (
         <Result rows={[
           ['Course to steer', bearing(r.cts)],
-          ['Allowance', `${Math.abs(r.allowance).toFixed(1)}° ${r.allowance < 0 ? 'to port' : r.allowance > 0 ? 'to starboard' : ''}`.trim()],
+          ['Allowance', `${Math.abs(r.allowance).toFixed(1)}\u00B0 ${r.allowance < 0 ? 'to port' : r.allowance > 0 ? 'to starboard' : ''}`.trim()],
           ['Speed over ground', `${r.sog.toFixed(1)} kn`],
-          ...(dist !== null && dist >= 0 ? [['Time to run', hhmm((dist / r.sog) * 60)] as [string, string]] : []),
+          ...(distNm !== null && distNm >= 0 ? [['Time to run', hhmm((distNm / r.sog) * 60)] as [string, string]] : []),
         ]} />
       ))}
     </Panel>
@@ -174,32 +227,40 @@ const CtsTool: React.FC = () => {
 };
 
 const DistanceOffTool: React.FC = () => {
-  const vsa = useForm(['h', 'a'] as const);
-  const hz = useForm(['eye', 'obj'] as const);
+  const vsa = useForm('vsa', ['h', 'a'] as const);
+  const hz = useForm('horizon', ['eye', 'obj'] as const);
+  const [vHeightUnit, setVHeightUnit] = useUnit('vsa:height', nav.DEFAULT_HEIGHT_UNIT);
+  const [vUnit, setVUnit] = useUnit('vsa:dist');
+  const [hHeightUnit, setHHeightUnit] = useUnit('horizon:height', nav.DEFAULT_HEIGHT_UNIT);
+  const [hUnit, setHUnit] = useUnit('horizon:dist');
   const h = vsa.n('h'), a = vsa.n('a'), eye = hz.n('eye'), obj = hz.n('obj');
+  const hm = h === null ? null : nav.convertLength(h, vHeightUnit, 'metres');
+  const eyeM = eye === null ? null : nav.convertLength(eye, hHeightUnit, 'metres');
+  const objM = obj === null ? null : nav.convertLength(obj, hHeightUnit, 'metres');
   return (
     <div className="space-y-3">
       <Panel title="Distance off by vertical sextant angle" note="Object height is above the water level used for the angle. Ignores curvature and refraction, so use for short ranges.">
-        <Grid>
-          <Field label="Object height" unit="m" {...vsa.bind('h')} />
-          <Field label="Sextant angle" unit="°" hint="e.g. 1.5" {...vsa.bind('a')} />
-        </Grid>
-        {h !== null && a !== null && h > 0 && a > 0 && a < 90 && (
-          <Result rows={[['Distance off', `${nav.distanceOffVSA(h, a).toFixed(2)} nm`], ['', `${Math.round(h / Math.tan((a * Math.PI) / 180))} m`]]} />
+        <LengthField label="Object height" unit={vHeightUnit} onUnit={setVHeightUnit} {...vsa.bind('h')} />
+        <Field label="Sextant angle" unit="\u00B0" hint="e.g. 1.5" {...vsa.bind('a')} />
+        <UnitPick label="Distance off in" unit={vUnit} onChange={setVUnit} />
+        {hm !== null && a !== null && hm > 0 && a > 0 && a < 90 && (
+          <Result rows={[['Distance off', fromNm(nav.distanceOffVSA(hm, a), vUnit)]]} />
         )}
       </Panel>
-      <Panel title="Horizon and visibility" note="Visual range assumes normal refraction (2.08√h); radar uses 2.21√h. Heights in metres above sea level.">
+      <Panel title="Horizon and visibility" note="Visual range assumes normal refraction (2.08\u221Ah); radar uses 2.21\u221Ah. Heights are above sea level.">
+        <UnitPick label="Heights in" unit={hHeightUnit} onChange={setHHeightUnit} />
         <Grid>
-          <Field label="Height of eye / antenna" unit="m" {...hz.bind('eye')} />
-          <Field label="Object height (optional)" unit="m" {...hz.bind('obj')} />
+          <Field label="Height of eye / antenna" unit={nav.LENGTH_UNITS[hHeightUnit].short} {...hz.bind('eye')} />
+          <Field label="Object height (optional)" unit={nav.LENGTH_UNITS[hHeightUnit].short} {...hz.bind('obj')} />
         </Grid>
-        {eye !== null && eye >= 0 && (
+        <UnitPick label="Ranges in" unit={hUnit} onChange={setHUnit} />
+        {eyeM !== null && eyeM >= 0 && (
           <Result rows={[
-            ['Visual horizon', `${nav.visualHorizon(eye).toFixed(1)} nm`],
-            ['Radar horizon', `${nav.radarHorizon(eye).toFixed(1)} nm`],
-            ...(obj !== null && obj >= 0 ? [
-              ['Object first seen at', `${nav.visibleRange(eye, obj).toFixed(1)} nm`] as [string, string],
-              ['Object on radar at', `${nav.radarRange(eye, obj).toFixed(1)} nm`] as [string, string],
+            ['Visual horizon', fromNm(nav.visualHorizon(eyeM), hUnit)],
+            ['Radar horizon', fromNm(nav.radarHorizon(eyeM), hUnit)],
+            ...(objM !== null && objM >= 0 ? [
+              ['Object first seen at', fromNm(nav.visibleRange(eyeM, objM), hUnit)] as [string, string],
+              ['Object on radar at', fromNm(nav.radarRange(eyeM, objM), hUnit)] as [string, string],
             ] : []),
           ]} />
         )}
@@ -208,70 +269,77 @@ const DistanceOffTool: React.FC = () => {
   );
 };
 
-const YARDS_PER_NM = 2025;   // same tactical convention as the Fishtail module
-
 const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const f = useForm(['turn', 'adv', 'tr'] as const);
+  const f = useForm('wheel', ['turn', 'adv', 'tr'] as const);
+  const [unit, setUnit] = useUnit('wheel:unit');
   const rows = useMemo(() => (ship ? shipToFishtailRows(ship) : []), [ship]);
   const tables = useMemo(() => {
     const m = new Map<string, { label: string; rows: typeof rows }>();
     rows.forEach(r => {
       const key = `${r.ownSpeed}|${r.rudder}|${r.side}`;
-      if (!m.has(key)) m.set(key, { label: `${r.ownSpeed} kn, ${r.rudder}° wheel, ${r.side === 'port' ? 'port' : 'starboard'}`, rows: [] });
+      if (!m.has(key)) m.set(key, { label: `${r.ownSpeed} kn, ${r.rudder}\u00B0 wheel, ${r.side === 'port' ? 'port' : 'starboard'}`, rows: [] });
       m.get(key)!.rows.push(r);
     });
     return [...m.entries()];
   }, [rows]);
-  const [tableKey, setTableKey] = useState('');   // '' = type advance and transfer by hand
+  const [tableKey, setTableKey] = useMemory('wheel:table', '');   // '' = type advance and transfer by hand
   const table = tables.find(([k]) => k === tableKey)?.[1];
 
+  // everything is worked in yards, the unit of the recorded turning data
   const turn = f.n('turn');
-  let adv = f.n('adv'), tr = f.n('tr'), outside = false;
+  const typedAdv = f.n('adv'), typedTr = f.n('tr');
+  let adv = typedAdv === null ? null : nav.convertLength(typedAdv, unit, 'yards');
+  let tr = typedTr === null ? null : nav.convertLength(typedTr, unit, 'yards');
+  let outside = false;
   if (table && turn !== null && Math.abs(turn) >= 1) {
     const maxHeading = Math.max(...table.rows.map(r => r.heading));
     outside = Math.abs(turn) > maxHeading;
     ({ advance: adv, transfer: tr } = interpolateData(Math.abs(turn), table.rows));
   }
   const dist = adv !== null && tr !== null && turn !== null ? nav.wheelOverDistance(adv, tr, turn) : null;
+  const show = (yd: number) => nav.formatLength(nav.convertLength(yd, 'yards', unit), unit);
 
   return (
     <Panel title="Wheel-over point" note="Approximate: takes advance and transfer at the heading change and assumes the ship is on the new track by the end of the turn. Confirm against your ship's own turning trials and standing orders.">
-      <Field label="Course alteration" unit="°" hint="1 to 179, either side" {...f.bind('turn')} />
+      <Field label="Course alteration" unit="\u00B0" hint="1 to 179, either side" {...f.bind('turn')} />
       {tables.length > 0 && (
         <label className="block space-y-1">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Turning data</span>
-          <select value={tableKey} onChange={e => setTableKey(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none">
+          <select value={tableKey} onChange={e => setTableKey(e.target.value)} className={`${SELECT} w-full`}>
             <option value="">Enter advance and transfer by hand</option>
             {tables.map(([k, t]) => <option key={k} value={k}>{ship!.name}: {t.label}</option>)}
           </select>
         </label>
       )}
       {!table && (
-        <Grid>
-          <Field label="Advance" unit="yd" {...f.bind('adv')} />
-          <Field label="Transfer" unit="yd" {...f.bind('tr')} />
-        </Grid>
+        <>
+          <LengthField label="Advance" unit={unit} onUnit={setUnit} {...f.bind('adv')} />
+          <Field label="Transfer" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('tr')} />
+        </>
       )}
+      {table && <UnitPick label="Distances in" unit={unit} onChange={setUnit} />}
       {outside && <Warn>That alteration is larger than anything in the table, so the largest recorded advance and transfer are used. Treat the result with caution.</Warn>}
       {turn !== null && Math.abs(turn) >= 1 && Math.abs(turn) < 180 && adv !== null && tr !== null && dist !== null && (
         <Result rows={[
-          ...(table ? [['Advance / transfer', `${Math.round(adv)} / ${Math.round(tr)} yd`] as [string, string]] : []),
-          ['Wheel over', `${Math.round(dist)} yd before the turn point`],
-          ['', `${(dist / (YARDS_PER_NM / 10)).toFixed(1)} cables`],
+          ...(table ? [['Advance / transfer', `${show(adv)} / ${show(tr)}`] as [string, string]] : []),
+          ['Wheel over', `${show(dist)} before the turn point`],
+          ...(unit !== 'yards' ? [['', `${Math.round(dist)} yd`] as [string, string]] : []),
         ]} />
       )}
-      {turn !== null && (Math.abs(turn) < 1 || Math.abs(turn) >= 180) && <Warn>Enter an alteration between 1° and 179°.</Warn>}
+      {turn !== null && (Math.abs(turn) < 1 || Math.abs(turn) >= 180) && <Warn>Enter an alteration between 1\u00B0 and 179\u00B0.</Warn>}
     </Panel>
   );
 };
 
 const UnitTool: React.FC = () => {
-  const [gi, setGi] = useState(0);
-  const group = nav.UNIT_GROUPS[gi];
+  const [gi, setGi] = useMemory('units:group', 0);
+  const group = nav.UNIT_GROUPS[gi] ?? nav.UNIT_GROUPS[0];
   const names = Object.keys(group.units);
-  const [from, setFrom] = useState(names[0]);
-  const [to, setTo] = useState(names[1]);
-  const [val, setVal] = useState('');
+  const [fromRaw, setFrom] = useMemory('units:from', names[0]);
+  const [toRaw, setTo] = useMemory('units:to', names[1]);
+  const [val, setVal] = useMemory('units:value', '');
+  const from = names.includes(fromRaw) ? fromRaw : names[0];
+  const to = names.includes(toRaw) ? toRaw : names[1];
   const x = toNum(val);
   const pick = 'w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none';
   const changeGroup = (i: number) => { const n = Object.keys(nav.UNIT_GROUPS[i].units); setGi(i); setFrom(n[0]); setTo(n[1]); };
@@ -293,9 +361,9 @@ const UnitTool: React.FC = () => {
 };
 
 const CompassTool: React.FC = () => {
-  const c = useForm(['course', 'dev', 'var'] as const);
-  const g = useForm(['gyro', 'err'] as const);
-  const [dir, setDir] = useState<'toTrue' | 'toCompass'>('toTrue');
+  const c = useForm('compass', ['course', 'dev', 'var'] as const);
+  const g = useForm('gyro', ['gyro', 'err'] as const);
+  const [dir, setDir] = useMemory<'toTrue' | 'toCompass'>('compass:dir', 'toTrue');
   const course = c.n('course'), dev = c.n('dev'), vr = c.n('var');
   const gyro = g.n('gyro'), err = g.n('err');
   const toTrue = dir === 'toTrue';
@@ -330,9 +398,9 @@ const CompassTool: React.FC = () => {
 };
 
 const AtbTool: React.FC = () => {
-  const f = useForm(['brg', 'angle', 'course'] as const);
-  const [mode, setMode] = useState<'course' | 'angle'>('course');
-  const [side, setSide] = useState<nav.BowSide>('Starboard');
+  const f = useForm('atb', ['brg', 'angle', 'course'] as const);
+  const [mode, setMode] = useMemory<'course' | 'angle'>('atb:mode', 'course');
+  const [side, setSide] = useMemory<nav.BowSide>('atb:side', 'Starboard');
   const brg = f.n('brg'), angle = f.n('angle'), course = f.n('course');
 
   const describe = (a: number) => (a < 15 ? 'bows on' : a > 165 ? 'stern on' : Math.abs(a - 90) < 15 ? 'beam on' : a < 90 ? 'on the bow' : 'on the quarter');
@@ -344,7 +412,7 @@ const AtbTool: React.FC = () => {
 
   return (
     <Panel title="Angle on the bow (ATB)" note="The angle between the target's head and the line of sight from the target to you, 0-180° to port or starboard. Green is starboard, red is port. Bearing is true, from you to the target.">
-      <Seg value={mode} onChange={setMode} options={[['course', 'Find target course'], ['angle', 'Find angle on bow']]} />
+      <Seg value={mode} onChange={v => setMode(v as 'course' | 'angle')} options={[['course', 'Find target course'], ['angle', 'Find angle on bow']]} />
       <Field label="Bearing of target" unit="°T" {...f.bind('brg')} />
       {mode === 'course' ? (
         <>
@@ -377,22 +445,21 @@ const AtbTool: React.FC = () => {
   );
 };
 
-const NM_PER: Record<string, number> = { 'nautical miles': 1, 'cables': 0.1, 'metres': 1 / 1852, 'yards': 0.9144 / 1852 };
-
 const HsaTool: React.FC = () => {
-  const [mode, setMode] = useState<'fix' | 'dist'>('fix');
+  const [mode, setMode] = useMemory<'fix' | 'dist' | 'length'>('hsa:mode', 'fix');
   return (
     <div className="space-y-3">
-      <Seg value={mode} onChange={setMode} options={[['fix', 'Position fix'], ['dist', 'Distance off']]} />
-      {mode === 'fix' ? <HsaFixPanel /> : <HsaDistancePanel />}
+      <Seg value={mode} onChange={v => setMode(v as 'fix' | 'dist' | 'length')} options={[['fix', 'Position fix'], ['dist', 'Distance off'], ['length', 'Object length']]} />
+      {mode === 'fix' ? <HsaFixPanel /> : mode === 'dist' ? <HsaDistancePanel /> : <HsaLengthPanel />}
     </div>
   );
 };
 
 const HsaFixPanel: React.FC = () => {
-  const f = useForm(['aLat', 'aLon', 'bLat', 'bLon', 'cLat', 'cLon', 'alpha', 'beta'] as const);
+  const f = useForm('hsa-fix', ['aLat', 'aLon', 'bLat', 'bLon', 'cLat', 'cLon', 'alpha', 'beta'] as const);
   const lat = (k: 'aLat' | 'bLat' | 'cLat') => nav.parseCoord(f.v[k], 'lat');
   const lon = (k: 'aLon' | 'bLon' | 'cLon') => nav.parseCoord(f.v[k], 'lon');
+  const [rangeUnit, setRangeUnit] = useUnit('hsa-fix:unit');
   const alpha = nav.parseAngle(f.v.alpha), beta = nav.parseAngle(f.v.beta);
   const bad = (k: keyof typeof f.v, ok: boolean) => f.v[k].trim() !== '' && !ok;
 
@@ -425,13 +492,14 @@ const HsaFixPanel: React.FC = () => {
         <Field label="Angle A to B" unit="°" text hint="26.57" invalid={bad('alpha', alpha !== null)} {...f.bind('alpha')} />
         <Field label="Angle B to C" unit="°" text hint="36 52" invalid={bad('beta', beta !== null)} {...f.bind('beta')} />
       </Grid>
+      <UnitPick label="Distances in" unit={rangeUnit} onChange={setRangeUnit} />
       {fix && 'error' in fix && <Warn>{fix.error}</Warn>}
       {fix && !('error' in fix) && pos && (
         <>
           <Result tone={fix.weak ? 'warn' : 'ok'} rows={[
             ['Latitude', nav.formatCoord(pos.lat, 'lat')],
             ['Longitude', nav.formatCoord(pos.lon, 'lon')],
-            ...(['A', 'B', 'C'] as const).map((n, i): [string, string] => [`Object ${n}`, `${fix.ranges[i].toFixed(2)} nm (${(fix.ranges[i] * 10).toFixed(1)} cables), bearing ${bearing(fix.bearings[i])}`]),
+            ...(['A', 'B', 'C'] as const).map((n, i): [string, string] => [`Object ${n}`, `${fromNm(fix.ranges[i], rangeUnit)}, bearing ${bearing(fix.bearings[i])}`]),
           ]} />
           {fix.weak && <Warn>Weak fix: the two position circles cross at a shallow angle, so a small error in either angle moves the position a long way. This happens close to the danger circle through the objects, or when they are far off. Confirm with another bearing, a different object or a depth check.</Warn>}
         </>
@@ -441,26 +509,45 @@ const HsaFixPanel: React.FC = () => {
 };
 
 const HsaDistancePanel: React.FC = () => {
-  const f = useForm(['base', 'ang'] as const);
-  const [unit, setUnit] = useState('cables');
+  const f = useForm('hsa-dist', ['base', 'ang'] as const);
+  const [unit, setUnit] = useUnit('hsa-dist:unit');
   const base = f.n('base'), ang = nav.parseAngle(f.v.ang);
   const d = base !== null && ang !== null ? nav.distanceOffHSA(base, ang) : null;
   const r = base !== null && ang !== null && ang > 0 && ang < 180 && base > 0 ? nav.positionCircleRadius(base, ang) : null;
-  const show = (v: number) => `${v.toFixed(2)} ${unit} (${(v * NM_PER[unit]).toFixed(3)} nm)`;
+  const show = (v: number) => nav.formatLength(v, unit);
   return (
-    <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object.">
-      <Grid>
-        <Field label="Distance between the objects" {...f.bind('base')} />
-        <label className="block space-y-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unit</span>
-          <select value={unit} onChange={e => setUnit(e.target.value)} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none">
-            {Object.keys(NM_PER).map(u => <option key={u}>{u}</option>)}
-          </select>
-        </label>
-      </Grid>
-      <Field label="Horizontal sextant angle" unit="°" text hint="26.57 or 26 34.2" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
-      {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0° and 180°.</Warn>}
+    <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object. The answer is in the same unit as the distance between the objects.">
+      <LengthField label="Distance between the objects" unit={unit} onUnit={setUnit} {...f.bind('base')} />
+      <Field label="Horizontal sextant angle" unit="\u00B0" text hint="26.57 or 26 34.2" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
+      {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0\u00B0 and 180\u00B0.</Warn>}
       {d !== null && r !== null && <Result rows={[['Distance off the line', show(d)], ['Position circle radius', show(r)]]} />}
+    </Panel>
+  );
+};
+
+/** The length of an object from the bearings of its two ends and the distance to it. */
+const HsaLengthPanel: React.FC = () => {
+  const f = useForm('hsa-len', ['b1', 'b2', 'dist'] as const);
+  const [unit, setUnit] = useUnit('hsa-len:unit');
+  const b1 = f.n('b1'), b2 = f.n('b2'), dist = f.n('dist');
+  const r = b1 !== null && b2 !== null && dist !== null ? nav.objectLengthFromBearings(dist, b1, b2) : null;
+  const ready = b1 !== null && b2 !== null && dist !== null;
+  const metres = r ? nav.convertLength(r.length, unit, 'metres') : 0;
+  return (
+    <Panel title="Length of an object from its end bearings" note="Take the bearing to each end of the object and the distance to its middle. The angle between the two bearings, with the distance, gives the length across the line of sight. If the object lies at an angle to your line of sight it is longer than this.">
+      <Grid>
+        <Field label="Bearing, one end" unit="\u00B0" {...f.bind('b1')} />
+        <Field label="Bearing, other end" unit="\u00B0" {...f.bind('b2')} />
+      </Grid>
+      <LengthField label="Distance to the object" unit={unit} onUnit={setUnit} {...f.bind('dist')} />
+      {ready && !r && <Warn>Needs a distance above zero and two different bearings (less than 180\u00B0 apart).</Warn>}
+      {r && (
+        <Result rows={[
+          ['Angle between bearings', `${r.angle.toFixed(2)}\u00B0`],
+          ['Length of the object', nav.formatLength(r.length, unit)],
+          ...(unit !== 'metres' ? [['', nav.formatLength(metres, 'metres')] as [string, string]] : []),
+        ]} />
+      )}
     </Panel>
   );
 };

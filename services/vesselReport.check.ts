@@ -9,8 +9,13 @@ const ship: Ship = {
   id: 's1', name: 'HMS <Evil> & "Co"', type: 'Destroyer',
   particulars: { lengthOverall: 152.4, breadthOverall: 21.2, displacement: 8500, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 },
   turningDataSets: [{ wheelAngle: 15, testSpeed: 12, turnSide: 'Starboard', initialHead: 90, data: [blank, filled] }, { wheelAngle: 20, testSpeed: 8, turnSide: 'Port', data: [blank] }],
+  info: { shipClass: 'Test class', pennant: 'D99', builder: '', commissioned: '2014-08', status: 'In service', displacement: '', length: '', beam: '', draught: '', speed: '30 kn', propulsion: '', complement: '', armament: '', sensors: '', aircraft: '', notes: '<b>note</b>', wiki: '' },
   accelDecelData: [{ id: 'a', date: '2026-01-02', description: 'trial', value: '0 to 20 kn in 120 s' }],
   fishtails: [], emLogCalibration: [], compassSwing: [],
+  custom: [
+    { id: 'p1', group: 'particulars', label: 'Mast height', value: '38.5', unit: 'm' }, { id: 'p2', group: 'particulars', label: '', value: '9' },
+    { id: 'd1', group: 'details', label: 'Call sign', value: '<VWXY>' }, { id: 'd2', group: 'details', label: 'Empty', value: '  ' },
+  ],
 };
 
 // blank pre-filled sheet rows are dropped, real ones kept
@@ -20,6 +25,10 @@ assert.equal(r.rowHasData({ ...blank, time: '01:00' }), true);
 const sheets = r.vesselSheets(ship);
 assert.deepEqual(sheets.map(s => s.name), ['Vessel', 'Turning data', 'Acceleration and deceleration', 'Fishtails', 'EM log calibration', 'Compass swing']);
 assert.ok(sheets.every(s => s.name.length <= 31));
+assert.deepEqual(sheets[0].rows.slice(0, 7), [['Name', 'HMS <Evil> & "Co"'], ['Type', 'Destroyer'], ['Class', 'Test class'], ['Pennant', 'D99'], ['Commissioned', '2014-08'], ['Status', 'In service'], ['Speed', '30 kn']]);   // blank details are left out
+// the user's own headings come after the built-in ones; rows without a heading or without a value are left out
+{ const v = sheets[0].rows; const i = v.findIndex(r => r[0] === 'Call sign'); assert.deepEqual(v[i - 1], ['Notes', '<b>note</b>']); assert.deepEqual(v[i + 1], []); }
+assert.deepEqual(sheets[0].rows.at(-1), ['Mast height', '38.5', 'm']); assert.ok(!sheets[0].rows.some(r => r[0] === 'Empty' || r[1] === 9));
 assert.equal(sheets[1].rows.length, 2);                                    // header + the one filled row (second set is all blank)
 assert.deepEqual(sheets[1].rows[1].slice(0, 5), [12, 15, 'Starboard', 90, 60]);
 assert.deepEqual(sheets[2].rows[1], ['2026-01-02', '0 to 20 kn in 120 s', 'trial']);
@@ -31,6 +40,10 @@ assert.ok(!html.includes('<Evil>') && html.includes('&lt;Evil&gt; &amp; &quot;Co
 assert.ok(html.includes('exported 2026-10-04') && html.includes('152.4') && html.includes('640') && html.includes('12 kn, wheel 15° Starboard, initial head 90°'));
 assert.ok(!html.includes('wheel 20'));                                      // all-blank set omitted
 assert.ok(html.includes('No records.'));
+assert.ok(html.includes('Mast height') && html.includes('38.5') && html.includes('&lt;VWXY&gt;') && !html.includes('<VWXY>'));
+assert.ok(html.includes('<h2>Details</h2>') && html.includes('D99') && html.includes('&lt;b&gt;note&lt;/b&gt;'));
+assert.ok(!r.vesselReportHtml({ ...ship, info: undefined, custom: [] }).includes('<h2>Details</h2>'));
+assert.ok(r.vesselReportHtml({ ...ship, info: undefined }).includes('<h2>Details</h2>'));          // the user's own details alone are enough
 assert.equal(r.vesselReportHtml({ ...ship, turningDataSets: [] }).includes('No turning data recorded.'), true);
 
 // file names

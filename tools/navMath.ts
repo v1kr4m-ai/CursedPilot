@@ -240,3 +240,45 @@ export function hsaFix(A: Pt, B: Pt, C: Pt, alpha: number, beta: number): HsaFix
   const sinCross = Math.abs(r1.x * r2.y - r1.y * r2.x) / (Math.hypot(r1.x, r1.y) * Math.hypot(r2.x, r2.y));
   return { x: P.x, y: P.y, ranges: [len(P, A), len(P, B), len(P, C)], bearings: [bA, bB, bC], weak: sinCross < 0.3 };
 }
+
+// ---- Length units for the NavYeo tools ------------------------------------------------------------
+
+export const LENGTH_UNITS = {
+  cables: { label: 'Cables', short: 'cables', metres: 185.2, decimals: 2 },
+  nm: { label: 'Nautical miles', short: 'nm', metres: 1852, decimals: 3 },
+  metres: { label: 'Metres', short: 'm', metres: 1, decimals: 0 },
+  yards: { label: 'Yards', short: 'yd', metres: 0.9144, decimals: 0 },
+  km: { label: 'Kilometres', short: 'km', metres: 1000, decimals: 3 },
+  feet: { label: 'Feet', short: 'ft', metres: 0.3048, decimals: 0 },
+  fathoms: { label: 'Fathoms', short: 'fm', metres: 1.8288, decimals: 1 },
+} as const;
+export type LengthUnit = keyof typeof LENGTH_UNITS;
+export const LENGTH_UNIT_KEYS = Object.keys(LENGTH_UNITS) as LengthUnit[];
+/** Distances default to cables; heights (of eye, of a light) to metres. */
+export const DEFAULT_DISTANCE_UNIT: LengthUnit = 'cables';
+export const DEFAULT_HEIGHT_UNIT: LengthUnit = 'metres';
+
+export const isLengthUnit = (u: unknown): u is LengthUnit => typeof u === 'string' && Object.prototype.hasOwnProperty.call(LENGTH_UNITS, u);
+export const convertLength = (value: number, from: LengthUnit, to: LengthUnit) => (value * LENGTH_UNITS[from].metres) / LENGTH_UNITS[to].metres;
+
+/** "3.46 cables", "1 852 m" without grouping; small values get an extra decimal so they do not round to 0. */
+export function formatLength(value: number, unit: LengthUnit): string {
+  const { decimals, short } = LENGTH_UNITS[unit];
+  const a = Math.abs(value);
+  const d = a < 1 ? Math.max(decimals, 2) : a < 10 ? Math.max(decimals, 1) : decimals;
+  return `${value.toFixed(d)} ${short}`;
+}
+
+// ---- Length of an object from the bearings of its two ends -----------------------------------------
+
+/**
+ * An object seen at `distance` (any length unit, to its middle) between end bearings `bearingA` and `bearingB`
+ * subtends the angle between them; for an object lying across the line of sight its length is
+ * 2 \u00D7 distance \u00D7 tan(angle / 2), in the same unit as the distance.
+ */
+export function objectLengthFromBearings(distance: number, bearingA: number, bearingB: number): { angle: number; length: number } | null {
+  const diff = norm360(bearingB - bearingA);
+  const angle = diff > 180 ? 360 - diff : diff;
+  if (!(distance > 0) || !(angle > 1e-9) || !(angle < 180 - 1e-9)) return null;
+  return { angle, length: 2 * distance * Math.tan(rad(angle / 2)) };
+}

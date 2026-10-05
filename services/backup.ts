@@ -2,6 +2,8 @@ import { Capacitor } from '@capacitor/core';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Ship, ShipParticulars } from '../types';
+import { FleetMeta, sanitizeMeta } from '../data/fleet';
+import { sanitizeFields } from '../data/customFields';
 
 const APP_ID = 'cursedpilot';
 const VERSION = 1;
@@ -26,8 +28,8 @@ export async function saveFile(fileName: string, content: FileContent, mime: str
 }
 
 /** Saves all ships as a JSON backup. */
-export async function exportBackup(ships: Ship[]): Promise<void> {
-  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships }, null, 2);
+export async function exportBackup(ships: Ship[], fleetMeta?: FleetMeta): Promise<void> {
+  const json = JSON.stringify({ app: APP_ID, version: VERSION, exportedAt: new Date().toISOString(), ships, fleetMeta }, null, 2);
   await saveFile(`cursedpilot-backup-${new Date().toISOString().slice(0, 10)}.json`, { text: json }, 'application/json', 'Cursed Pilot backup');
 }
 
@@ -39,7 +41,7 @@ export async function exportVesselJson(ship: Ship, fileName: string): Promise<vo
 
 const isObj = (v: unknown): v is Record<string, any> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
-export interface Backup { ships: Ship[]; /** 'vessel' files merge into the fleet; 'fleet' backups replace it. */ kind: 'fleet' | 'vessel' }
+export interface Backup { ships: Ship[]; /** pins, My Ship, usage and sort order; null in older files and vessel files */ fleetMeta: FleetMeta | null; /** 'vessel' files merge into the fleet; 'fleet' backups replace it. */ kind: 'fleet' | 'vessel' }
 
 /** Parses and validates a backup file's text. Throws an Error with a readable message. */
 export function parseBackup(text: string): Backup {
@@ -55,6 +57,7 @@ export function parseBackup(text: string): Backup {
     return {
       ...s,
       type: typeof s.type === 'string' ? s.type : '',
+      custom: sanitizeFields(s.custom),
       particulars: { ...EMPTY_PARTICULARS, ...s.particulars },
       turningDataSets: Array.isArray(s.turningDataSets) ? s.turningDataSets : [],
       accelDecelData: Array.isArray(s.accelDecelData) ? s.accelDecelData : [],
@@ -63,5 +66,6 @@ export function parseBackup(text: string): Backup {
       compassSwing: Array.isArray(s.compassSwing) ? s.compassSwing : [],
     } as Ship;
   });
-  return { kind: (data as Record<string, unknown>).kind === 'vessel' ? 'vessel' : 'fleet', ships };
+  const meta = (data as Record<string, unknown>).fleetMeta;
+  return { kind: (data as Record<string, unknown>).kind === 'vessel' ? 'vessel' : 'fleet', ships, fleetMeta: meta ? sanitizeMeta(meta) : null };
 }

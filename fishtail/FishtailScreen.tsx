@@ -6,10 +6,8 @@ import { calculateManeuverLocally } from './utils/maneuverEngine';
 import ManeuverForm from './components/ManeuverForm';
 import ManeuverVisualizer, { ManeuverVisualizerHandle } from './components/ManeuverVisualizer';
 import TargetMatchSolver from './components/TargetMatchSolver';
-import ImportMetadataModal from './components/ImportMetadataModal';
+import TurningImport, { ImportMessage } from '../components/TurningImport';
 import { shipToFishtailRows } from './shipBridge';
-import { mergeTurningSets, pointsToTurningSets, rowsToPoints } from './tableConvert';
-import { parseTurningFile } from './importTables';
 import { saveFile } from '../services/backup';
 import { Ship, SimpleRecord, TurningDataSet } from '../types';
 import './fishtail.css';
@@ -75,7 +73,6 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [pendingFlat, setPendingFlat] = useState<{ rows: Record<string, unknown>[]; name: string } | null>(null);
   const visualizerRef = useRef<ManeuverVisualizerHandle>(null);
 
   // Keep a valid table selected, and drop a stale plot when the vessel changes.
@@ -198,33 +195,7 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
     }
   };
 
-  // ---- importing turning data into the vessel ----
-  const applyImport = (shipId: string, points: ReturnType<typeof rowsToPoints>, fileName: string) => {
-    const { sets, skipped } = pointsToTurningSets(points);
-    if (!sets.length) { setError('No usable rows found. Each row needs a numeric wheel angle, speed and turn amount.'); return; }
-    const rows = sets.reduce((n, s) => n + s.data.length, 0);
-    if (!confirm(`Import ${rows} row(s) in ${sets.length} table(s) from "${fileName}" into ${ship?.name}? Rows for the same speed, wheel angle, side and turn amount are replaced; everything else is kept.${skipped ? ` ${skipped} unusable row(s) will be skipped.` : ''}`)) return;
-    onImportSets(shipId, sets);
-    setNotice(`Imported ${rows} row(s) into ${ship?.name}`);
-    setError(null);
-  };
-
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !ship) return;
-    try {
-      const parsed = await parseTurningFile(file);
-      if (parsed.kind === 'flat') { setPendingFlat({ rows: parsed.rows, name: file.name }); return; }
-      applyImport(ship.id, parsed.points, file.name);
-    } catch (err) {
-      setError(`Import error: ${err instanceof Error ? err.message : err}`);
-    }
-  };
-
-  const importInput = (
-    <input type="file" className="hidden" accept=".xlsx,.xls,.csv,.json" onChange={handleFile} />
-  );
+  const showImportMessage = (m: ImportMessage) => { if (m.kind === 'ok') { setNotice(m.text); setError(null); } else setError(m.text); };
 
   // ---- layout: app-style header, dark instrument panel for the plot and controls ----
   const tabBtn = (id: 'calc' | 'solver', label: string, icon: React.ReactNode) => (
@@ -246,9 +217,9 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
             </select>
           </div>
           {ship && (
-            <label className="p-2 text-blue-600 bg-blue-50 rounded-lg cursor-pointer active:scale-95 transition-all" title="Import turning data from Excel, CSV or JSON" aria-label="Import turning data">
-              <Upload size={20} />{importInput}
-            </label>
+            <TurningImport ship={ship} onImport={onImportSets} onMessage={showImportMessage} className="block p-2 text-blue-600 bg-blue-50 rounded-lg cursor-pointer active:scale-95 transition-all" title="Import turning data from Excel, CSV, Word or JSON">
+              <Upload size={20} aria-label="Import turning data" />
+            </TurningImport>
           )}
           <button onClick={onEditTurningData} disabled={!ship} aria-label="Edit turning data" title="Edit turning data" className="p-2 text-slate-600 bg-slate-100 rounded-lg disabled:opacity-40"><Settings size={20} /></button>
         </div>
@@ -275,11 +246,11 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
               <BarChart3 size={36} className="mx-auto text-slate-300" />
               <div>
                 <h2 className="font-bold text-slate-800">No turning data for {ship.name} yet</h2>
-                <p className="text-sm text-slate-500 mt-1">The calculator works from the vessel's own turning data. Enter it by hand, or import an Excel, CSV or JSON file.</p>
+                <p className="text-sm text-slate-500 mt-1">The calculator works from the vessel's own turning data. Enter it by hand, or import an Excel, CSV, Word or JSON file.</p>
               </div>
               <div className="flex flex-wrap justify-center gap-3">
                 <button onClick={onEditTurningData} className="px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-lg active:scale-95 transition-all">Enter turning data</button>
-                <label className="px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold cursor-pointer active:scale-95 transition-all">Import a file{importInput}</label>
+                <TurningImport ship={ship} onImport={onImportSets} onMessage={showImportMessage} className="block px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-2xl text-sm font-bold cursor-pointer active:scale-95 transition-all">Import a file</TurningImport>
               </div>
             </div>
           ) : (
@@ -332,16 +303,6 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
         </div>
       </main>
 
-      {pendingFlat && ship && (
-        <ImportMetadataModal
-          onClose={() => setPendingFlat(null)}
-          onSubmit={meta => {
-            const points = rowsToPoints(pendingFlat.rows, { ownSpeed: meta.ownSpeed, rudder: meta.rudder, side: meta.side });
-            setPendingFlat(null);
-            applyImport(ship.id, points, pendingFlat.name);
-          }}
-        />
-      )}
     </div>
   );
 };

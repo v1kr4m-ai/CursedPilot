@@ -32,23 +32,31 @@ import {
   Pencil,
   Sun,
   Moon,
-  Eye
+  Eye,
+  Star,
+  Pin
 } from 'lucide-react';
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
-import { INITIAL_SHIPS } from './constants';
 import { generateSmartParticulars } from './services/geminiService';
 import { exportBackup, parseBackup } from './services/backup';
 import { exportVessel, ExportFormat } from './services/vesselExport';
 import FishtailScreen from './fishtail/FishtailScreen';
 import { mergeTurningSets } from './fishtail/tableConvert';
 import NavYeo from './navyeo/NavYeo';
+import FleetRegistry from './components/FleetRegistry';
+import BottomBar from './components/BottomBar';
+import MyShipHero from './components/MyShipHero';
+import ShipInfoPanel from './components/ShipInfoPanel';
+import ShipInfoForm from './components/ShipInfoForm';
+import CalibrationData from './components/CalibrationData';
+import CustomFieldsEditor from './components/CustomFieldsEditor';
+import { fieldsOf, formatField, shownFields, tidy, withGroup } from './data/customFields';
+import { useShipWiki } from './components/useShipWiki';
+import { calibrationSummaries } from './data/summaries';
+import TurningImport from './components/TurningImport';
+import { TURNING_FORMATS, TurningFormat, exportTurning } from './services/turningExport';
+import { CATEGORIES, FleetMeta, MAX_PINS, loadMeta, mergeCatalog, pruneMeta, recordUse, saveMeta, setMyShip, togglePin } from './data/fleet';
 
-
-const SHIP_CATEGORIES = [
-  "Destroyer", "Frigate", "Corvette", "OPVs", "NOPVs", 
-  "Aircraft Carriers", "LSTs", "Tankers", "Research Vessels", 
-  "Training Ships", "Submarine"
-];
 
 const WHEEL_OPTIONS = [5, 10, 15, 20, 25];
 const SPEED_OPTIONS = [8, 12, 15, 18, 20];
@@ -144,14 +152,27 @@ const loadShips = (): Ship[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
-    if (Array.isArray(parsed)) return parsed;
-  } catch { /* corrupt or unavailable storage: fall back to seed data */ }
-  return INITIAL_SHIPS;
+    if (Array.isArray(parsed)) return mergeCatalog(parsed);
+  } catch { /* corrupt or unavailable storage: start from the catalogue */ }
+  return mergeCatalog([]);
 };
 
 const App: React.FC = () => {
   const [ships, setShips] = useState<Ship[]>(loadShips);
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [meta, setMeta] = useState<FleetMeta>(loadMeta);
+  const [dataSheetOpen, setDataSheetOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const restoreInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { saveMeta(meta); }, [meta]);
+  useEffect(() => { setMeta(m => pruneMeta(m, ships)); }, [ships]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2800);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -174,11 +195,9 @@ const App: React.FC = () => {
   const [typewriterText, setTypewriterText] = useState('');
   const fullSubtitle = 'Long ND made Short';
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const [newShipName, setNewShipName] = useState('');
-  const [newShipType, setNewShipType] = useState(SHIP_CATEGORIES[0]);
+  const [newShipType, setNewShipType] = useState<string>(CATEGORIES[0]);
 
   // Sequential Dropdown Selection States (Details View)
   const [detailSpeed, setDetailSpeed] = useState<number | null>(null);
@@ -201,11 +220,15 @@ const App: React.FC = () => {
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
   const [editingLegacy, setEditingLegacy] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [turningExportOpen, setTurningExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   // Tools State
 
   const selectedShip = ships.find(s => s.id === selectedShipId);
+
+  // a different ship starts with every calibration section collapsed
+  useEffect(() => { setCalOpen(null); }, [selectedShipId]);
 
   useEffect(() => {
     const logoTimer = setTimeout(() => setSplashStage('text'), 1800);
@@ -255,15 +278,6 @@ const App: React.FC = () => {
     setDetailSide(null);
   }, [selectedShipId]);
 
-  const filteredShips = useMemo(() => {
-    return ships.filter(ship => {
-      const matchesSearch = ship.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                           ship.type.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesFilter = !activeFilter || ship.type === activeFilter;
-      return matchesSearch && matchesFilter;
-    });
-  }, [ships, searchQuery, activeFilter]);
-
   const handleAddShip = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newShipName) return;
@@ -276,15 +290,38 @@ const App: React.FC = () => {
     };
     setShips([...ships, newShip]);
     setNewShipName('');
-    setView('home');
+    openShip(newShip.id);
   };
 
-  const deleteShip = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (confirm('Are you sure you want to remove this vessel from inventory?')) {
+  /** Opens a ship's screen and counts the visit (for the "most used" sort). */
+  const openShip = (id: string) => {
+    setSelectedShipId(id);
+    setMeta(m => recordUse(m, id, Date.now()));
+    setView('details');
+  };
+
+  const deleteShip = (id: string) => {
+    const ship = ships.find(s => s.id === id);
+    if (!ship || ship.catalog) return;
+    if (confirm(`Remove ${ship.name} from the fleet? Its records are deleted with it.`)) {
       setShips(prev => prev.filter(s => s.id !== id));
       if (selectedShipId === id) setSelectedShipId(null);
     }
+  };
+
+  const myShip = ships.find(s => s.id === meta.myShipId);
+  const myWiki = useShipWiki(view === 'home' ? myShip : undefined);
+  const shipWiki = useShipWiki(view === 'details' ? selectedShip : undefined);
+
+  const toggleMine = (ship: Ship) => {
+    const clearing = meta.myShipId === ship.id;
+    setMeta(m => setMyShip(m, clearing ? null : ship.id));
+    setToast(clearing ? 'My Ship cleared' : `${ship.name} is now My Ship`);
+  };
+  const togglePinned = (ship: Ship) => {
+    const r = togglePin(meta, ship.id);
+    if (!r.ok) { setToast(`You can pin up to ${MAX_PINS} ships. Unpin one first.`); return; }
+    setMeta(r.meta);
   };
 
   const handleUpdateTurningRow = (id: string, field: keyof TurningDataRow, value: any) => {
@@ -511,48 +548,30 @@ const App: React.FC = () => {
     );
   }, [selectedShip, detailSpeed, detailWheel, detailSide]);
 
-  const renderShipDetails = () => {
-    if (!selectedShip) return null;
-    return (
-      <div className="pb-12 bg-slate-50 min-h-screen">
-        <header className="sticky top-0 bg-white/80 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between border-b border-slate-200 shadow-sm">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setView('select')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
-            <div><h1 className="text-xl font-bold text-slate-800 leading-tight">{selectedShip.name}</h1><p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedShip.type}</p></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setExportOpen(true)} aria-label="Export this vessel" title="Export vessel" className="p-2 text-emerald-600 bg-emerald-50 rounded-lg"><Download size={20} /></button>
-            <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
-          </div>
-        </header>
-        
-        <div className="p-4 md:max-w-4xl md:mx-auto space-y-6">
-          <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Ruler size={20} className="text-blue-500" /> Ship Particulars</h2>
-              <button onClick={() => aiGenerateParticulars(selectedShip)} className="flex items-center gap-2 text-xs font-bold bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 disabled:opacity-50" disabled={loading}><Sparkles size={14} /> {loading ? 'Estimating...' : 'AI Suggest Data'}</button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-              {[
-                { l: 'Length Overall', v: selectedShip.particulars.lengthOverall, u: 'm' },
-                { l: 'Breadth Overall', v: selectedShip.particulars.breadthOverall, u: 'm' },
-                { l: 'Displacement', v: selectedShip.particulars.displacement, u: 'tons' },
-                { l: 'Stem to Standard', v: selectedShip.particulars.stemToStandard, u: 'm' },
-                { l: 'Stem to Bridge', v: selectedShip.particulars.stemToBridge, u: 'm' },
-                { l: 'Stem to RAS Point', v: selectedShip.particulars.stemToRas, u: 'm' },
-                { l: 'Stem to Fueling Point', v: selectedShip.particulars.stemToFueling, u: 'm' }
-              ].map((item, idx) => (
-                <div key={idx} className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span className="text-slate-500 text-sm font-medium">{item.l}</span><span className="font-bold text-slate-950">{item.v} {item.u}</span></div>
-              ))}
-            </div>
-          </section>
+  const importTurningSets = (shipId: string, sets: TurningDataSet[]) =>
+    setShips(prev => prev.map(sh => sh.id === shipId ? { ...sh, turningDataSets: mergeTurningSets(sh.turningDataSets, sets) } : sh));
 
-          <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+  const runTurningExport = async (format: TurningFormat) => {
+    if (!selectedShip) return;
+    try {
+      await exportTurning(selectedShip, format);
+      setTurningExportOpen(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!/cancel/i.test(msg)) setToast(msg);
+    }
+  };
+
+  const renderTurningTrials = () => (
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-4 pt-4">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">All turning data</p>
+        <div className="flex gap-2">
+          <TurningImport ship={selectedShip} onImport={importTurningSets} onMessage={m => setToast(m.text)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg cursor-pointer active:scale-95 transition-all"><Upload size={14} />Import</TurningImport>
+          <button onClick={() => setTurningExportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg active:scale-95 transition-all"><Download size={14} />Export</button>
+        </div>
+      </div>
             <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Navigation size={20} className="text-green-500" />
-                <h2 className="text-lg font-bold text-slate-800">Turning Circle Profile</h2>
-              </div>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <select 
@@ -645,14 +664,74 @@ const App: React.FC = () => {
                 </div>
               )}
             </div>
+    </div>
+  );
+
+  const calibrationSections = (ship: Ship) => {
+    const sum = Object.fromEntries(calibrationSummaries(ship).map(x => [x.id, x]));
+    return [
+      { id: 'turning', title: 'Turning Trials', icon: <Navigation size={18} className="text-green-500" />, count: sum.turning.count, latest: sum.turning.latest,
+        content: renderTurningTrials() },
+      { id: 'accel', title: 'Acceleration and Deceleration', icon: <Activity size={18} className="text-orange-500" />, count: sum.accel.count, latest: sum.accel.latest,
+        content: <DetailCard embedded title="Acceleration and Deceleration data" icon={null} items={ship.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onEdit={item => openRecordForm('accelDecelData', item)} onDelete={id => deleteRecord(ship.id, 'accelDecelData', id)} /> },
+      { id: 'fishtails', title: 'Fishtails', icon: <Wind size={18} className="text-cyan-500" />, count: sum.fishtails.count, latest: sum.fishtails.latest,
+        content: <DetailCard embedded title="Fishtails" icon={null} items={ship.fishtails} action={{ label: 'Calculator', icon: <Compass size={14} />, onClick: openFishtailCalc }} onAdd={() => openRecordForm('fishtails')} onEdit={item => openRecordForm('fishtails', item)} onDelete={id => deleteRecord(ship.id, 'fishtails', id)} /> },
+      { id: 'em', title: 'EM Log Calibration', icon: <Settings size={18} className="text-indigo-500" />, count: sum.em.count, latest: sum.em.latest,
+        content: <DetailCard embedded title="EM Log Calibration" icon={null} items={ship.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={item => openRecordForm('emLogCalibration', item)} onDelete={id => deleteRecord(ship.id, 'emLogCalibration', id)} /> },
+      { id: 'compass', title: 'Compass Swing', icon: <Compass size={18} className="text-amber-500" />, count: sum.compass.count, latest: sum.compass.latest,
+        content: <DetailCard embedded title="Compass Swing" icon={null} items={ship.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={item => openRecordForm('compassSwing', item)} onDelete={id => deleteRecord(ship.id, 'compassSwing', id)} /> },
+    ];
+  };
+
+  const renderShipDetails = () => {
+    if (!selectedShip) return null;
+    return (
+      <div className="pb-12 bg-slate-50 min-h-screen">
+        <header className="sticky top-0 bg-white/80 backdrop-blur-md z-10 px-6 py-4 flex items-center justify-between border-b border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('select')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
+            <div><h1 className="text-xl font-bold text-slate-800 leading-tight">{selectedShip.name}</h1><p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{selectedShip.type}</p></div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setExportOpen(true)} aria-label="Export this vessel" title="Export vessel" className="p-2 text-emerald-600 bg-emerald-50 rounded-lg"><Download size={20} /></button>
+            <button onClick={() => setView('particulars_form')} className="p-2 text-blue-600 bg-blue-50 rounded-lg"><Settings size={20} /></button>
+          </div>
+        </header>
+        
+        <div className="p-4 md:max-w-4xl md:mx-auto space-y-6">
+          <ShipInfoPanel
+            ship={selectedShip} wiki={shipWiki.wiki} lookup={shipWiki.state}
+            isMine={meta.myShipId === selectedShip.id} isPinned={meta.pinned.includes(selectedShip.id)}
+            onToggleMine={() => toggleMine(selectedShip)} onTogglePin={() => togglePinned(selectedShip)}
+            onEdit={() => setView('ship_info_form')}
+            onPhoto={photo => setShips(prev => prev.map(sh => sh.id === selectedShip.id ? { ...sh, photo } : sh))}
+          />
+          <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Ruler size={20} className="text-blue-500" /> Ship Particulars</h2>
+              <div className="flex items-center gap-2">
+              <button onClick={() => setView('particulars_form')} className="flex items-center gap-1.5 text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100"><Pencil size={14} /> Edit</button>
+              <button onClick={() => aiGenerateParticulars(selectedShip)} className="flex items-center gap-2 text-xs font-bold bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 disabled:opacity-50" disabled={loading}><Sparkles size={14} /> {loading ? 'Estimating...' : 'AI Suggest Data'}</button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+              {[
+                { l: 'Length Overall', v: selectedShip.particulars.lengthOverall, u: 'm' },
+                { l: 'Breadth Overall', v: selectedShip.particulars.breadthOverall, u: 'm' },
+                { l: 'Displacement', v: selectedShip.particulars.displacement, u: 'tons' },
+                { l: 'Stem to Standard', v: selectedShip.particulars.stemToStandard, u: 'm' },
+                { l: 'Stem to Bridge', v: selectedShip.particulars.stemToBridge, u: 'm' },
+                { l: 'Stem to RAS Point', v: selectedShip.particulars.stemToRas, u: 'm' },
+                { l: 'Stem to Fueling Point', v: selectedShip.particulars.stemToFueling, u: 'm' },
+                ...shownFields(selectedShip, 'particulars').map(f => ({ l: f.label, v: f.value, u: f.unit ?? '' })),
+              ].map((item, idx) => (
+                <div key={idx} className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span className="text-slate-500 text-sm font-medium">{item.l}</span><span className="font-bold text-slate-950">{item.v} {item.u}</span></div>
+              ))}
+            </div>
           </section>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DetailCard title="Acceleration and Deceleration data" icon={<Activity className="text-orange-500" />} items={selectedShip.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onEdit={(item) => openRecordForm('accelDecelData', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'accelDecelData', id)} />
-            <DetailCard title="Fishtails" icon={<Wind className="text-cyan-500" />} items={selectedShip.fishtails} action={{ label: 'Calculator', icon: <Compass size={14} />, onClick: openFishtailCalc }} onAdd={() => openRecordForm('fishtails')} onEdit={(item) => openRecordForm('fishtails', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'fishtails', id)} />
-            <DetailCard title="EM Log Calibration" icon={<Settings className="text-indigo-500" />} items={selectedShip.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={(item) => openRecordForm('emLogCalibration', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'emLogCalibration', id)} />
-            <DetailCard title="Compass Swing" icon={<Compass className="text-amber-500" />} items={selectedShip.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={(item) => openRecordForm('compassSwing', item)} onDelete={(id) => deleteRecord(selectedShip.id, 'compassSwing', id)} />
-          </div>
+          <CalibrationData sections={calibrationSections(selectedShip)} open={calOpen} onToggle={id => setCalOpen(o => (o === id ? null : id))} />
+
         </div>
       </div>
     );
@@ -744,7 +823,7 @@ const App: React.FC = () => {
   };
 
   const handleExport = async () => {
-    try { await exportBackup(ships); } catch (err) { alert(`Export failed: ${err instanceof Error ? err.message : err}`); }
+    try { await exportBackup(ships, meta); } catch (err) { alert(`Export failed: ${err instanceof Error ? err.message : err}`); }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -752,7 +831,7 @@ const App: React.FC = () => {
     e.target.value = '';
     if (!file) return;
     try {
-      const { ships: imported, kind } = parseBackup(await file.text());
+      const { ships: imported, kind, fleetMeta } = parseBackup(await file.text());
       if (kind === 'vessel') {
         const names = imported.map(s => s.name).join(', ');
         const replacing = imported.filter(s => ships.some(x => x.id === s.id)).length;
@@ -761,175 +840,106 @@ const App: React.FC = () => {
         return;
       }
       if (!confirm(`Restore ${imported.length} vessel(s) from "${file.name}"? This replaces all ${ships.length} vessel(s) currently in the app.`)) return;
-      setShips(imported);
+      setShips(mergeCatalog(imported));
+      if (fleetMeta) setMeta(fleetMeta);
       if (selectedShipId && !imported.some(s => s.id === selectedShipId)) setSelectedShipId(null);
     } catch (err) {
       alert(`Restore failed: ${err instanceof Error ? err.message : err}`);
     }
   };
 
-  const renderHome = () => (
-    <div className="flex flex-col gap-6 p-6 max-w-xl mx-auto pb-24">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Cursed Pilot</h1>
-          <div className="flex items-center gap-3">
-            <button onClick={cycleTheme} aria-label={`Theme: ${THEME_LABEL[theme]}. Tap to change`} title={`Theme: ${THEME_LABEL[theme]}`} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-2xl text-slate-600 text-xs font-bold shadow-sm active:scale-95 transition-all">
-              {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Eye size={16} />}
-              {THEME_LABEL[theme]}
-            </button>
-            <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200">
-              <Anchor size={24} />
+  const renderHome = () => {
+    const pinnedShips = meta.pinned.map(id => ships.find(sh => sh.id === id)).filter((sh): sh is Ship => !!sh);
+    const recent = ships.filter(sh => (meta.lastUsed[sh.id] ?? 0) > 0 && sh.id !== meta.myShipId)
+      .sort((a, b) => (meta.lastUsed[b.id] ?? 0) - (meta.lastUsed[a.id] ?? 0)).slice(0, 3);
+    const label = 'text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2';
+    return (
+      <div className="flex flex-col gap-6 p-6 max-w-xl mx-auto pb-28">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Cursed Pilot</h1>
+            <div className="flex items-center gap-3">
+              <button onClick={cycleTheme} aria-label={`Theme: ${THEME_LABEL[theme]}. Tap to change`} title={`Theme: ${THEME_LABEL[theme]}`} className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-2xl text-slate-600 text-xs font-bold shadow-sm active:scale-95 transition-all">
+                {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Eye size={16} />}
+                {THEME_LABEL[theme]}
+              </button>
+              <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200"><Anchor size={24} /></div>
             </div>
           </div>
+          <p className="text-slate-500 font-semibold tracking-wide">Long ND made Short</p>
         </div>
-        <p className="text-slate-500 font-semibold tracking-wide">Long ND made Short</p>
-        
-        {/* Module 1: Dropdown Selection */}
-        <div className="mt-4 space-y-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Select Ship Registry</label>
-          <div className="relative">
-            <select 
-              value={selectedShipId || ""}
-              onChange={(e) => {
-                setSelectedShipId(e.target.value);
-                if (e.target.value) setView('details');
-              }}
-              className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none appearance-none focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
-            >
-              <option value="" disabled>--- Choose a Vessel ---</option>
-              {ships.map(ship => (
-                <option key={ship.id} value={ship.id}>{ship.name} ({ship.type})</option>
-              ))}
-            </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <ChevronDown size={20} />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {/* Action Grid matching request */}
-        <button onClick={() => setView('select')} className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors"><Search size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Fleet Inventory</h3><p className="text-sm text-slate-400">Search & Select ship</p></div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-blue-500 transition-colors" />
-        </button>
-
-        {/* Module 2: Add Ship */}
-        <button onClick={() => setView('add')} className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-green-50 text-green-600 rounded-2xl group-hover:bg-green-600 group-hover:text-white transition-colors"><PlusCircle size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Add Ship</h3><p className="text-sm text-slate-400">Register new vessel</p></div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-green-500 transition-colors" />
-        </button>
-
-        {/* Module 3: Add/Update Ship Particulars */}
-        <button 
-          onClick={() => {
-            if (selectedShipId) setView('particulars_form');
-            else setView('select');
-          }} 
-          className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl group-hover:bg-amber-600 group-hover:text-white transition-colors"><Ruler size={24} /></div>
-            <div><h3 className="font-bold text-slate-800">Ship Particulars</h3><p className="text-sm text-slate-400">Update vessel dimensions</p></div>
-          </div>
-          <ChevronRight className="text-slate-300 group-hover:text-amber-500 transition-colors" />
-        </button>
-
-        {/* Module 4: Backup / Restore */}
-        <div className="grid grid-cols-2 gap-4">
-          <button onClick={handleExport} className="flex items-center gap-3 p-4 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left">
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Download size={20} /></div>
-            <div><h3 className="font-bold text-slate-800 text-sm">Export</h3><p className="text-xs text-slate-400">Save backup file</p></div>
+        {myShip ? (
+          <MyShipHero ship={myShip} wiki={myWiki.wiki} onOpen={() => openShip(myShip.id)} />
+        ) : (
+          <button onClick={() => setView('select')} className="w-full p-8 rounded-3xl border-2 border-dashed border-slate-200 bg-white text-center space-y-2 active:scale-[0.99] transition-transform">
+            <Star size={28} className="mx-auto text-amber-500" />
+            <h2 className="font-bold text-slate-800">Choose your ship</h2>
+            <p className="text-sm text-slate-400 font-medium">Open the Fleet and tap the star beside your ship. It will show here.</p>
           </button>
-          <label className="flex items-center gap-3 p-4 bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all active:scale-[0.98] text-left cursor-pointer">
-            <div className="p-3 bg-violet-50 text-violet-600 rounded-2xl"><Upload size={20} /></div>
-            <div><h3 className="font-bold text-slate-800 text-sm">Restore</h3><p className="text-xs text-slate-400">Load backup file</p></div>
-            <input type="file" accept="application/json,.json" onChange={handleImport} className="hidden" />
-          </label>
-        </div>
-      </div>
+        )}
 
-      <div className="mt-4">
-        <h2 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
-           <Activity size={20} className="text-blue-500" /> Recent Activity
-        </h2>
-        <div className="space-y-3">
-          {ships.slice(-3).reverse().map(ship => (
-            <div key={ship.id} onClick={() => { setSelectedShipId(ship.id); setView('details'); }} className={`p-4 rounded-2xl flex items-center gap-4 border transition-all cursor-pointer ${selectedShipId === ship.id ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-white border-slate-100 hover:border-blue-200'}`}>
-               <ShipIcon className={selectedShipId === ship.id ? 'text-blue-500' : 'text-slate-400'} size={20} />
-               <div className="flex-1">
-                 <p className="font-bold text-slate-800">{ship.name}</p>
-                 <p className="text-xs text-slate-400 font-medium">{ship.type}</p>
-               </div>
-               {selectedShipId === ship.id ? (
-                 <span className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-full uppercase tracking-wider font-bold">Current</span>
-               ) : (
-                 <span className="text-[10px] bg-slate-50 border border-slate-200 px-2 py-1 rounded-full uppercase tracking-wider text-slate-400 font-bold">Active</span>
-               )}
+        {pinnedShips.length > 0 && (
+          <section>
+            <h2 className={label}>Pinned</h2>
+            <div className="flex flex-wrap gap-2">
+              {pinnedShips.map(sh => (
+                <button key={sh.id} onClick={() => openShip(sh.id)} className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700 shadow-sm active:scale-95 transition-transform">
+                  <Pin size={12} className="text-blue-600 fill-current" />{sh.name}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
+          </section>
+        )}
+
+        {recent.length > 0 && (
+          <section>
+            <h2 className={label}>Recently opened</h2>
+            <div className="space-y-2">
+              {recent.map(sh => (
+                <button key={sh.id} onClick={() => openShip(sh.id)} className="w-full flex items-center gap-3 p-3.5 bg-white rounded-2xl border border-slate-100 text-left active:scale-[0.99] transition-transform">
+                  <ShipIcon size={18} className="text-slate-400" />
+                  <span className="flex-1 min-w-0"><span className="block font-bold text-sm text-slate-800 truncate">{sh.name}</span><span className="block text-xs text-slate-400 font-medium truncate">{[sh.info?.pennant, sh.info?.shipClass || sh.type].filter(Boolean).join(' \u00B7 ')}</span></span>
+                  <ChevronRight size={16} className="text-slate-300" />
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderSelectShip = () => (
-    <div className="p-6 pb-24 max-w-xl mx-auto">
-      <header className="flex items-center gap-4 mb-6">
-        <button onClick={() => setView('home')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
-        <h1 className="text-2xl font-bold text-slate-800">Fleet Inventory</h1>
-      </header>
-      <div className="relative mb-6">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none"><Search size={18} className="text-slate-400" /></div>
-        <input type="text" placeholder="Search ships..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-100 transition-all shadow-sm" />
-      </div>
-      <div className="space-y-3">
-        {filteredShips.map(ship => (
-          <div key={ship.id} className="group relative">
-            <button onClick={() => { setSelectedShipId(ship.id); setView('details'); }} className="w-full flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-100 hover:border-blue-400 transition-all shadow-sm active:scale-[0.98]">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-50 rounded-xl text-slate-600"><ShipIcon size={24} /></div>
-                <div><h3 className="font-bold text-slate-800">{ship.name}</h3><p className="text-sm text-slate-400">{ship.type}</p></div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={(e) => deleteShip(ship.id, e)} className="p-2 text-slate-200 hover:text-red-500 transition-colors"><Trash2 size={20} /></button>
-                <ChevronRight className="text-slate-300" />
-              </div>
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
+    <FleetRegistry ships={ships} meta={meta} onMeta={setMeta} onOpen={openShip} onDelete={deleteShip} />
   );
 
   const renderAddShip = () => (
-    <div className="p-6 max-w-xl mx-auto">
+    <div className="p-6 pb-28 max-w-xl mx-auto">
       <header className="flex items-center gap-4 mb-8">
         <button onClick={() => setView('home')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
         <h1 className="text-2xl font-bold text-slate-800">Add Ship</h1>
       </header>
       <form onSubmit={handleAddShip} className="space-y-6">
         <div><label className="text-sm font-bold text-slate-500 ml-1">Vessel Name</label><input autoFocus type="text" value={newShipName} onChange={(e) => setNewShipName(e.target.value)} className="w-full p-4 rounded-2xl bg-white border border-slate-200 outline-none focus:ring-2 focus:ring-blue-100" /></div>
-        <div><label className="text-sm font-bold text-slate-500 ml-1">Type</label><select value={newShipType} onChange={(e) => setNewShipType(e.target.value)} className="w-full p-4 rounded-2xl bg-white border border-slate-200 outline-none appearance-none">{SHIP_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+        <div><label className="text-sm font-bold text-slate-500 ml-1">Type</label><select value={newShipType} onChange={(e) => setNewShipType(e.target.value)} className="w-full p-4 rounded-2xl bg-white border border-slate-200 outline-none appearance-none">{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
         <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Register Vessel</button>
       </form>
     </div>
   );
+
+  /** Leaving the particulars form: rows that were added but left empty are dropped. */
+  const leaveParticulars = () => {
+    if (selectedShip) setShips(prev => prev.map(sh => sh.id === selectedShip.id && sh.custom ? { ...sh, custom: withGroup(sh, 'particulars', tidy(fieldsOf(sh, 'particulars'))) } : sh));
+    setView('details');
+  };
 
   const renderParticularsForm = () => {
     if (!selectedShip) return null;
     return (
       <div className="p-6 pb-24 max-w-xl mx-auto">
         <header className="flex items-center gap-4 mb-8">
-          <button onClick={() => setView('home')} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
+          <button onClick={leaveParticulars} aria-label="Back" className="p-2 hover:bg-slate-100 rounded-full transition-colors"><ArrowLeft size={24} className="text-slate-700" /></button>
           <h1 className="text-2xl font-bold text-slate-800">Edit Particulars</h1>
           <p className="text-sm text-slate-500 font-bold ml-auto">{selectedShip.name}</p>
         </header>
@@ -941,8 +951,13 @@ const App: React.FC = () => {
           <ParticularField label="Stem to Bridge" value={selectedShip.particulars.stemToBridge} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToBridge: v })} />
           <ParticularField label="Stem to RAS Point" value={selectedShip.particulars.stemToRas} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToRas: v })} />
           <ParticularField label="Stem to Fueling Point" value={selectedShip.particulars.stemToFueling} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToFueling: v })} />
+          <CustomFieldsEditor
+            title="Additional particulars" group="particulars" addLabel="Add a particular"
+            note="Your own measurements, such as mast height or draught aft. They appear with the particulars and in exports."
+            fields={fieldsOf(selectedShip, 'particulars')} onChange={fs => setShips(prev => prev.map(sh => sh.id === selectedShip.id ? { ...sh, custom: withGroup(sh, 'particulars', fs) } : sh))}
+          />
         </div>
-        <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 border-t border-slate-200 backdrop-blur-sm"><button onClick={() => setView('details')} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg">Save Changes</button></div>
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 border-t border-slate-200 backdrop-blur-sm"><button onClick={leaveParticulars} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg">Save Changes</button></div>
       </div>
     );
   };
@@ -970,6 +985,50 @@ const App: React.FC = () => {
       {view === 'particulars_form' && renderParticularsForm()}
       {view === 'turning_data_form' && renderTurningDataForm()}
       {view === 'record_form' && renderRecordForm()}
+      {view === 'ship_info_form' && selectedShip && (
+        <ShipInfoForm
+          key={selectedShip.id} ship={selectedShip}
+          onCancel={() => setView('details')}
+          onSave={({ name, type, info, custom }) => { setShips(prev => prev.map(sh => sh.id === selectedShip.id ? { ...sh, name, type, info, custom: custom.length ? custom : undefined } : sh)); setView('details'); }}
+        />
+      )}
+      <input ref={restoreInput} type="file" accept="application/json,.json" onChange={handleImport} className="hidden" />
+      {(view === 'home' || view === 'select' || view === 'add') && (
+        <BottomBar view={view} onHome={() => setView('home')} onFleet={() => setView('select')} onAdd={() => setView('add')} onData={() => setDataSheetOpen(true)} />
+      )}
+      {dataSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setDataSheetOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div><h3 className="font-bold text-slate-900">Backup</h3><p className="text-xs text-slate-400 font-medium">The whole fleet, with your edits, pins and My Ship</p></div>
+              <button onClick={() => setDataSheetOpen(false)} aria-label="Close" className="p-2 bg-slate-50 text-slate-400 rounded-full"><X size={18} /></button>
+            </div>
+            <button onClick={() => { setDataSheetOpen(false); handleExport(); }} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 text-left">
+              <div><p className="text-sm font-bold text-slate-800">Export backup</p><p className="text-[11px] text-slate-400 font-medium">Save a backup file you can keep or share</p></div><Download size={16} className="text-slate-300" />
+            </button>
+            <button onClick={() => { setDataSheetOpen(false); restoreInput.current?.click(); }} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 text-left">
+              <div><p className="text-sm font-bold text-slate-800">Restore backup</p><p className="text-[11px] text-slate-400 font-medium">Replaces the fleet with a backup file (a single-vessel file is added instead)</p></div><Upload size={16} className="text-slate-300" />
+            </button>
+          </div>
+        </div>
+      )}
+      {toast && <div role="status" className="fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] px-4 py-2.5 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-xs font-bold rounded-full shadow-xl max-w-[90vw] text-center">{toast}</div>}
+      {turningExportOpen && selectedShip && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setTurningExportOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div><h3 className="font-bold text-slate-900">Export turning data</h3><p className="text-xs text-slate-400 font-medium">{selectedShip.name}: every table in one file. Any of these imports back unchanged.</p></div>
+              <button onClick={() => setTurningExportOpen(false)} aria-label="Close" className="p-2 bg-slate-50 text-slate-400 rounded-full"><X size={18} /></button>
+            </div>
+            {TURNING_FORMATS.map(f => (
+              <button key={f.id} onClick={() => runTurningExport(f.id)} className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 text-left transition-all">
+                <div><p className="text-sm font-bold text-slate-800">{f.title}</p><p className="text-[11px] text-slate-400 font-medium">{f.desc}</p></div>
+                <Download size={16} className="text-slate-300" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {exportOpen && selectedShip && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => !exporting && setExportOpen(false)}>
           <div className="w-full max-w-md bg-white rounded-t-[2.5rem] shadow-2xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
@@ -997,7 +1056,7 @@ const App: React.FC = () => {
           onSelectShip={setSelectedShipId}
           onBack={() => setView('details')}
           onSaveRecord={(shipId, record) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, fishtails: [...s.fishtails, record] } : s))}
-          onImportSets={(shipId, sets) => setShips(prev => prev.map(s => s.id === shipId ? { ...s, turningDataSets: mergeTurningSets(s.turningDataSets, sets) } : s))}
+          onImportSets={importTurningSets}
           onEditTurningData={() => setView('turning_data_form')}
         />
       )}
@@ -1007,14 +1066,14 @@ const App: React.FC = () => {
   );
 };
 
-const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], action?: { label: string; icon: React.ReactNode; onClick: () => void }, onAdd?: () => void, onEdit?: (item: any) => void, onDelete?: (id: string) => void }> = ({ title, icon, items, action, onAdd, onEdit, onDelete }) => (
-  <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-    <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>
-      <div className="ml-auto flex items-center gap-2">
-        {action && <button onClick={action.onClick} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">{action.icon}{action.label}</button>}
-        {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} /></button>}
-      </div>
+const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[], embedded?: boolean, action?: { label: string; icon: React.ReactNode; onClick: () => void }, onAdd?: () => void, onEdit?: (item: any) => void, onDelete?: (id: string) => void }> = ({ title, icon, items, embedded, action, onAdd, onEdit, onDelete }) => {
+  const buttons = (
+    <div className={`flex items-center gap-2 ${embedded ? 'justify-end mb-3' : 'ml-auto'}`}>
+      {action && <button onClick={action.onClick} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">{action.icon}{action.label}</button>}
+      {onAdd && <button onClick={onAdd} aria-label={`Add ${title} record`} className="flex items-center gap-1 p-1.5 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"><Plus size={16} />{embedded && <span className="text-[11px] font-bold pr-1">Add</span>}</button>}
     </div>
+  );
+  const list = (
     <div className="space-y-3">
       {items && items.length > 0 ? items.map(item => (
         <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100">
@@ -1030,8 +1089,15 @@ const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[],
         </div>
       )) : <p className="text-xs text-slate-400 italic">No records found.</p>}
     </div>
-  </div>
-);
+  );
+  if (embedded) return <div>{buttons}{list}</div>;
+  return (
+    <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+      <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>{buttons}</div>
+      {list}
+    </div>
+  );
+};
 
 const ParticularField: React.FC<{ label: string, value: number, onChange: (val: number) => void }> = ({ label, value, onChange }) => (
   <div className="space-y-1">
