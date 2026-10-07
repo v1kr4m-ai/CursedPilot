@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "android": "vite build && cap sync android",
     "android:open": "cap open android",
-    "check:nav": "node tools/navMath.check.ts",
+    "check:nav": "node tools/navMath.check.ts && node tools/compassSwing.check.ts && node tools/emLog.check.ts",
     "check:export": "node services/vesselReport.check.ts",
     "check:tables": "node fishtail/tableConvert.check.ts",
     "check": "npm run check:nav && npm run check:export && npm run check:tables && npm run check:fleet && npm run check:lookup && npm run check:navyeo && npm run check:data && npm run check:files",

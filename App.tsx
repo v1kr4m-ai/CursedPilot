@@ -48,6 +48,9 @@ import BottomBar from './components/BottomBar';
 import MyShipHero from './components/MyShipHero';
 import ShipInfoPanel from './components/ShipInfoPanel';
 import FishtailTable from './components/FishtailTable';
+import CompassSwingList from './components/CompassSwingList';
+import EmLogList from './components/EmLogList';
+import { SWING_HEADINGS, coefficients, readDeviations, swingSummary } from './tools/compassSwing';
 import ShipInfoForm from './components/ShipInfoForm';
 import CalibrationData from './components/CalibrationData';
 import CustomFieldsEditor from './components/CustomFieldsEditor';
@@ -127,9 +130,10 @@ const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string;
     defaultNote: 'Compass swing',
     fields: [
       { key: 'compass', label: 'Compass', type: 'select', options: ['Standard', 'Steering', 'Gyro'], initial: 'Standard' },
-      { key: 'deviation', label: 'Residual deviation (deg, + E / - W)', type: 'number', required: true, signed: true },
+      { key: 'deviation', label: 'Residual deviation (deg, + E / - W)', type: 'number', signed: true },
+      ...SWING_HEADINGS.map(h => ({ key: `d${h}`, label: `Deviation on ${String(h).padStart(3, '0')}\u00B0 (+E / -W)`, type: 'number' as const, signed: true })),
     ],
-    summarize: v => `${v.compass} compass \u00B7 residual deviation ${signed(num(v.deviation))}\u00B0`,
+    summarize: v => swingSummary(v.compass, readDeviations(v), v.deviation ? signed(num(v.deviation)) : ''),
   },
 };
 
@@ -707,9 +711,9 @@ const App: React.FC = () => {
       { id: 'fishtails', title: 'Fishtails', icon: <Wind size={18} className="text-cyan-500" />, count: sum.fishtails.count, latest: sum.fishtails.latest,
         content: <FishtailTable items={ship.fishtails} onCalculator={openFishtailCalc} onDelete={id => deleteRecord(ship.id, 'fishtails', id)} /> },
       { id: 'em', title: 'EM Log Calibration', icon: <Settings size={18} className="text-indigo-500" />, count: sum.em.count, latest: sum.em.latest,
-        content: <DetailCard embedded title="EM Log Calibration" icon={null} items={ship.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={item => openRecordForm('emLogCalibration', item)} onDelete={id => deleteRecord(ship.id, 'emLogCalibration', id)} /> },
+        content: <EmLogList items={ship.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={item => openRecordForm('emLogCalibration', item)} onDelete={id => deleteRecord(ship.id, 'emLogCalibration', id)} /> },
       { id: 'compass', title: 'Compass Swing', icon: <Compass size={18} className="text-amber-500" />, count: sum.compass.count, latest: sum.compass.latest,
-        content: <DetailCard embedded title="Compass Swing" icon={null} items={ship.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={item => openRecordForm('compassSwing', item)} onDelete={id => deleteRecord(ship.id, 'compassSwing', id)} /> },
+        content: <CompassSwingList items={ship.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={item => openRecordForm('compassSwing', item)} onDelete={id => deleteRecord(ship.id, 'compassSwing', id)} /> },
     ];
   };
 
@@ -791,6 +795,10 @@ const App: React.FC = () => {
     e.preventDefault();
     const def = RECORD_KINDS[recordKind];
     if (!selectedShip || !recordDate || def.fields.some(f => f.required && !recordValues[f.key])) return;
+    if (recordKind === 'compassSwing' && !recordValues.deviation && !coefficients(readDeviations(recordValues))) {
+      setToast('Enter the residual deviation, or the deviation on all eight headings.');
+      return;
+    }
     const record: SimpleRecord = { id: editingRecordId ?? Math.random().toString(36).slice(2, 11), date: recordDate, description: recordRemarks.trim() || def.defaultNote, value: def.summarize(recordValues), fields: { ...recordValues } };
     setShips(prev => prev.map(s => s.id !== selectedShip.id ? s : {
       ...s,
