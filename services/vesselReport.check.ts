@@ -41,6 +41,18 @@ assert.ok(html.includes('exported 2026-10-04') && html.includes('152.4') && html
 assert.ok(!html.includes('wheel 20'));                                      // all-blank set omitted
 assert.ok(html.includes('No records.'));
 assert.ok(html.includes('Mast height') && html.includes('38.5') && html.includes('&lt;VWXY&gt;') && !html.includes('<VWXY>'));
+// the richer sections: turning plot (needs two filled rows), fishtail table, EM log error table, compass deviation card
+const rich = r.vesselReportHtml({
+  ...ship,
+  turningDataSets: [{ wheelAngle: 15, testSpeed: 12, turnSide: 'Starboard', data: [filled, { ...filled, id: 'g', turnAmount: 90, transfer: 420, advance: 800 }] }],
+  fishtails: [{ id: 'f1', date: '2026-10-01', description: '', fields: { kind: 'Half', angle: '60', speed: '12', wheel: '15', side: 'Starboard', station: 'Abeam Stbd', stationIdx: '2', lateral: '400', drop: '20' } }],
+  emLogCalibration: [{ id: 'e1', date: '2026-10-02', description: '', fields: { ref: '10', log: '10.4' } }],
+  compassSwing: [{ id: 'c1', date: '2026-10-03', description: '', value: 'Standard compass', fields: { d0: '1', d45: '4', d90: '5', d135: '2', d180: '-1', d225: '-4', d270: '-5', d315: '-2' } }],
+}, new Date('2026-10-04T10:00:00Z'));
+assert.ok(rich.includes('aria-label="Turning circle plot"') && !html.includes('aria-label="Turning circle plot"'));
+assert.ok(rich.includes('<td>Abeam Stbd</td>') && rich.includes('<td>400</td>') && rich.includes('Drop (yd)'));
+assert.ok(rich.includes('Correction (kn)') && rich.includes('<td>+0.4</td>') && rich.includes('<td>-0.4</td>'));
+assert.ok(rich.includes('aria-label="Deviation curve"') && rich.includes('Largest') && rich.includes('Compass heading'));
 assert.ok(html.includes('<h2>Details</h2>') && html.includes('D99') && html.includes('&lt;b&gt;note&lt;/b&gt;'));
 assert.ok(!r.vesselReportHtml({ ...ship, info: undefined, custom: [] }).includes('<h2>Details</h2>'));
 assert.ok(r.vesselReportHtml({ ...ship, info: undefined }).includes('<h2>Details</h2>'));          // the user's own details alone are enough

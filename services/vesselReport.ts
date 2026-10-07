@@ -2,6 +2,7 @@
 // `node services/vesselReport.check.ts`.
 import type { Ship, ShipInfo, SimpleRecord, TurningDataRow } from '../types.ts';
 import { formatField, shownFields } from '../data/customFields.ts';
+import { compassHtml, emLogHtml, fishtailsHtml, turningPlotSvg } from './reportExtras.ts';
 
 export type Cell = string | number;
 
@@ -102,10 +103,11 @@ export function vesselReportHtml(ship: Ship, date: Date = new Date()): string {
   const turning = ship.turningDataSets
     .map(s => ({ s, rows: s.data.filter(rowHasData) }))
     .filter(x => x.rows.length > 0)
-    .map(({ s, rows }) => `<h3>${escapeHtml(turningTitle(s))}</h3>${table(TURNING_HEADER, rows.map(turningRow))}`)
+    .map(({ s, rows }) => `<h3>${escapeHtml(turningTitle(s))}</h3>${table(TURNING_HEADER, rows.map(turningRow))}${turningPlotSvg(rows)}`)
     .join('') || '<p class="none">No turning data recorded.</p>';
+  const special: Partial<Record<(typeof RECORD_SECTIONS)[number][1], (s: Ship) => string>> = { fishtails: fishtailsHtml, emLogCalibration: emLogHtml, compassSwing: compassHtml };
   const records = RECORD_SECTIONS.map(([title, key]) =>
-    `<h2>${escapeHtml(title)}</h2>${ship[key].length ? table(RECORD_HEADER, recordRows(ship[key])) : '<p class="none">No records.</p>'}`).join('');
+    `<h2>${escapeHtml(title)}</h2>${special[key] ? special[key]!(ship) : ship[key].length ? table(RECORD_HEADER, recordRows(ship[key])) : '<p class="none">No records.</p>'}`).join('');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(ship.name)} - Cursed Pilot report</title>
@@ -114,6 +116,7 @@ export function vesselReportHtml(ship: Ship, date: Date = new Date()): string {
   h1{margin:0 0 2px;font-size:22px} h2{margin:22px 0 6px;font-size:15px;border-bottom:1px solid #cbd5e1;padding-bottom:3px} h3{margin:14px 0 4px;font-size:13px}
   .sub{color:#64748b;margin-bottom:10px} .none{color:#94a3b8;font-style:italic}
   table{border-collapse:collapse;width:100%;margin-bottom:6px} th,td{border:1px solid #cbd5e1;padding:3px 6px;text-align:left}
+  .plot{width:100%;max-width:340px;display:block;margin:6px 0 10px} h3{break-after:avoid}
   th{background:#f1f5f9;font-size:11px} td{font-variant-numeric:tabular-nums}
   @media print{body{margin:12mm} h2,h3{break-after:avoid} table{break-inside:auto} tr{break-inside:avoid}}
 </style></head><body>
