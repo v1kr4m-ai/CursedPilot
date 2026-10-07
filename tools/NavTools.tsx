@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
-import { ArrowLeftRight, Calculator, Clock, Compass, Eye, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Waves } from 'lucide-react';
+import { ArrowLeftRight, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
 import * as nav from './navMath';
 import { PREF, toolMemory } from './toolMemory';
+import { RescueTurn, Side, TURNS, rescue, turnsFor as mobTurnsFor } from './manOverboard';
 
 // ---- shared bits ------------------------------------------------------------------------------
 
@@ -178,10 +179,10 @@ const CpaTool: React.FC = () => {
   return (
     <Panel title="CPA / TCPA" note="True bearing, true courses, speeds through the ground. Assumes both vessels hold course and speed.">
       <Grid>
-        <Field label="Own course" unit="\u00B0T" {...f.bind('oc')} />
+        <Field label="Own course" unit="\°T" {...f.bind('oc')} />
         <Field label="Own speed" unit="kn" {...f.bind('os')} />
-        <Field label="Target bearing" unit="\u00B0T" {...f.bind('brg')} />
-        <Field label="Target course" unit="\u00B0T" {...f.bind('tc')} />
+        <Field label="Target bearing" unit="\°T" {...f.bind('brg')} />
+        <Field label="Target course" unit="\°T" {...f.bind('tc')} />
         <Field label="Target speed" unit="kn" {...f.bind('ts')} />
       </Grid>
       <LengthField label="Target range" unit={unit} onUnit={setUnit} {...f.bind('rng')} />
@@ -208,9 +209,9 @@ const CtsTool: React.FC = () => {
   return (
     <Panel title="Course to steer (set and drift)" note="Speed is through the water. Set is the direction the current flows towards.">
       <Grid>
-        <Field label="Track to make good" unit="\u00B0T" {...f.bind('track')} />
+        <Field label="Track to make good" unit="\°T" {...f.bind('track')} />
         <Field label="Ship speed" unit="kn" {...f.bind('speed')} />
-        <Field label="Set" unit="\u00B0T" {...f.bind('set')} />
+        <Field label="Set" unit="\°T" {...f.bind('set')} />
         <Field label="Drift" unit="kn" {...f.bind('drift')} />
       </Grid>
       <LengthField label="Distance to run (optional)" unit={unit} onUnit={setUnit} {...f.bind('dist')} />
@@ -241,7 +242,7 @@ const DistanceOffTool: React.FC = () => {
     <div className="space-y-3">
       <Panel title="Distance off by vertical sextant angle" note="Object height is above the water level used for the angle. Ignores curvature and refraction, so use for short ranges.">
         <LengthField label="Object height" unit={vHeightUnit} onUnit={setVHeightUnit} {...vsa.bind('h')} />
-        <Field label="Sextant angle" unit="\u00B0" hint="e.g. 1.5" {...vsa.bind('a')} />
+        <Field label="Sextant angle" unit="\°" hint="e.g. 1.5" {...vsa.bind('a')} />
         <UnitPick label="Distance off in" unit={vUnit} onChange={setVUnit} />
         {hm !== null && a !== null && hm > 0 && a > 0 && a < 90 && (
           <Result rows={[['Distance off', fromNm(nav.distanceOffVSA(hm, a), vUnit)]]} />
@@ -301,7 +302,7 @@ const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
   return (
     <Panel title="Wheel-over point" note="Approximate: takes advance and transfer at the heading change and assumes the ship is on the new track by the end of the turn. Confirm against your ship's own turning trials and standing orders.">
-      <Field label="Course alteration" unit="\u00B0" hint="1 to 179, either side" {...f.bind('turn')} />
+      <Field label="Course alteration" unit="\°" hint="1 to 179, either side" {...f.bind('turn')} />
       {tables.length > 0 && (
         <label className="block space-y-1">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Turning data</span>
@@ -326,7 +327,69 @@ const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
           ...(unit !== 'yards' ? [['', `${Math.round(dist)} yd`] as [string, string]] : []),
         ]} />
       )}
-      {turn !== null && (Math.abs(turn) < 1 || Math.abs(turn) >= 180) && <Warn>Enter an alteration between 1\u00B0 and 179\u00B0.</Warn>}
+      {turn !== null && (Math.abs(turn) < 1 || Math.abs(turn) >= 180) && <Warn>Enter an alteration between 1\° and 179\°.</Warn>}
+    </Panel>
+  );
+};
+
+const MobTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const [unit, setUnit] = useUnit('mob:unit');
+  const rows = useMemo(() => (ship ? shipToFishtailRows(ship) : []), [ship]);
+  const tables = useMemo(() => {
+    const m = new Map<string, { label: string; rows: typeof rows }>();
+    rows.forEach(r => {
+      const key = `${r.ownSpeed}|${r.rudder}|${r.side}`;
+      if (!m.has(key)) m.set(key, { label: `${r.ownSpeed} kn, ${r.rudder}° wheel, ${r.side === 'port' ? 'port' : 'starboard'}`, rows: [] });
+      m.get(key)!.rows.push(r);
+    });
+    return [...m.entries()];
+  }, [rows]);
+  const [tableKey, setTableKey] = useMemory('mob:table', '');
+  const [kind, setKind] = useMemory<RescueTurn>('mob:kind', 'williamson');
+  const [side, setSide] = useMemory<Side>('mob:side', 'Starboard');
+  const picked = tables.find(([k]) => k === tableKey) ?? tables[0];
+  const table = picked?.[1];
+  const maxTurn = table ? Math.max(...table.rows.map(r => r.heading)) : 0;
+  const needed = Math.max(...mobTurnsFor(kind, side).map(Math.abs));
+  const out = table ? rescue(kind, side, a => interpolateData(a, table.rows)) : null;
+  const show = (yd: number) => nav.formatLength(nav.convertLength(Math.abs(yd), 'yards', unit), unit);
+  const mm = (s: number) => `${Math.floor(s / 60)}m ${String(Math.round(s % 60)).padStart(2, '0')}s`;
+  const greenRed = (b: number) => (b <= 180 ? `Green ${String(Math.round(b)).padStart(3, '0')}` : `Red ${String(Math.round(360 - b)).padStart(3, '0')}`);
+
+  return (
+    <Panel title="Man overboard turn" note="Worked from the ship's own turning data, taking the man as not drifting and the ship as steady on each new heading at the end of its turn. An aid only: follow the ship's standing orders and the situation, and use the quickest method for the circumstances.">
+      {!ship || tables.length === 0 ? <Warn>This needs turning data for the selected ship. Add or import it under Calibration Data, Turning Trials.</Warn> : (
+        <>
+          <Seg value={kind} onChange={v => setKind(v as RescueTurn)} options={[['williamson', 'Williamson'], ['scharnow', 'Scharnow']]} />
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Man fell overboard on the</span>
+            <div className="flex gap-1">
+              {(['Port', 'Starboard'] as const).map(sd => (
+                <button key={sd} onClick={() => setSide(sd)} className={`flex-1 py-3 rounded-xl text-xs font-bold border ${side === sd ? (sd === 'Port' ? 'bg-red-600 border-red-600' : 'bg-green-600 border-green-600') + ' text-white' : 'bg-white text-slate-500 border-slate-200'}`}>{sd}</button>
+              ))}
+            </div>
+          </div>
+          <label className="block space-y-1">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Turning data</span>
+            <select value={picked?.[0] ?? ''} onChange={e => setTableKey(e.target.value)} className={`${SELECT} w-full`}>
+              {tables.map(([k, t]) => <option key={k} value={k}>{ship.name}: {t.label}</option>)}
+            </select>
+          </label>
+          <UnitPick label="Distances in" unit={unit} onChange={setUnit} />
+          <p className="text-xs text-slate-600 font-medium leading-relaxed">{TURNS[kind].how(side)}</p>
+          {maxTurn < needed && <Warn>This table only goes to {maxTurn}° of turn, and the manoeuvre needs {needed}°. The largest recorded figures are used for the rest, so the result is not reliable.</Warn>}
+          {out && (
+            <Result tone={maxTurn < needed ? 'warn' : 'ok'} rows={[
+              ['Time to complete', mm(out.seconds)],
+              ['Ship\'s head at the end', 'reciprocal (180° from the original)'],
+              ['Man bears', `${greenRed(out.manRelativeBearing)} from the ship`],
+              ['Off the original track', `${show(out.lateral)} to ${out.lateral >= 0 ? 'starboard' : 'port'}`],
+              ['Run back to the man', out.toRun >= 0 ? `${show(out.toRun)} to go` : `${show(out.toRun)} past him`],
+              ['Distance from the man', show(out.distance)],
+            ]} />
+          )}
+        </>
+      )}
     </Panel>
   );
 };
@@ -518,8 +581,8 @@ const HsaDistancePanel: React.FC = () => {
   return (
     <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object. The answer is in the same unit as the distance between the objects.">
       <LengthField label="Distance between the objects" unit={unit} onUnit={setUnit} {...f.bind('base')} />
-      <Field label="Horizontal sextant angle" unit="\u00B0" text hint="26.57 or 26 34.2" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
-      {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0\u00B0 and 180\u00B0.</Warn>}
+      <Field label="Horizontal sextant angle" unit="\°" text hint="26.57 or 26 34.2" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
+      {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0\° and 180\°.</Warn>}
       {d !== null && r !== null && <Result rows={[['Distance off the line', show(d)], ['Position circle radius', show(r)]]} />}
     </Panel>
   );
@@ -536,11 +599,11 @@ const HsaLengthPanel: React.FC = () => {
   return (
     <Panel title="Length of an object from its end bearings" note="Take the bearing to each end of the object and the distance to its middle. The angle between the two bearings, with the distance, gives the length across the line of sight. If the object lies at an angle to your line of sight it is longer than this.">
       <Grid>
-        <Field label="Bearing, one end" unit="\u00B0" {...f.bind('b1')} />
-        <Field label="Bearing, other end" unit="\u00B0" {...f.bind('b2')} />
+        <Field label="Bearing, one end" unit="\°" {...f.bind('b1')} />
+        <Field label="Bearing, other end" unit="\°" {...f.bind('b2')} />
       </Grid>
       <LengthField label="Distance to the object" unit={unit} onUnit={setUnit} {...f.bind('dist')} />
-      {ready && !r && <Warn>Needs a distance above zero and two different bearings (less than 180\u00B0 apart).</Warn>}
+      {ready && !r && <Warn>Needs a distance above zero and two different bearings (less than 180\° apart).</Warn>}
       {r && (
         <Result rows={[
           ['Angle between bearings', `${r.angle.toFixed(2)}\u00B0`],
@@ -565,6 +628,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Distance Off & Horizon', short: 'Dist off', desc: 'Vertical sextant angle, visibility, radar range', icon: <Eye size={18} className="text-emerald-500" />, Component: DistanceOffTool },
   { name: 'Horizontal Sextant Angle (HSA)', short: 'HSA', desc: 'Position fix from two horizontal angles, and distance off', icon: <MapPin size={18} className="text-rose-500" />, Component: HsaTool },
   { name: 'Wheel-over Point', short: 'Wheel-over', desc: 'Where to put the wheel over for a turn', icon: <RotateCw size={18} className="text-indigo-500" />, Component: WheelOverTool },
+  { name: 'Man Overboard Turn', short: 'MOB', desc: 'Williamson and Scharnow turns worked from the ship\'s turning data', icon: <LifeBuoy size={18} className="text-red-500" />, Component: MobTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
   { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },
   { name: 'Unit Converter', short: 'Units', desc: 'Distance and speed units, cables, fathoms', icon: <ArrowLeftRight size={18} className="text-slate-500" />, Component: UnitTool },

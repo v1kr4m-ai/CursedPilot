@@ -98,6 +98,17 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['Wheel-over distance = Advance − Transfer / tan(turn)', 'For a 90° turn this is simply the advance'],
     limits: ['An approximation: it assumes the ship is on the new track by the end of the turn (steadying out takes a little longer).', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.', 'Valid for alterations from 1° to 179°, either side.', 'Interpolation is linear between the recorded turn amounts; a larger alteration than the table holds uses the largest recorded figures and is flagged.', 'Always confirm against the ship\'s own trials and standing orders.'],
   },
+  'Man Overboard Turn': {
+    concept: 'The Williamson and Scharnow turns bring the ship back onto the reciprocal of her original track after a man falls overboard. This tool works out where each one leaves your ship, using the ship\'s own recorded turning data.',
+    steps: [
+      'Williamson: turn 60° towards the side the man fell, then the opposite way through 240° so the ship ends on the reciprocal. Scharnow: turn 240° towards that side, then 60° the other way.',
+      'For each turn, advance and transfer are taken from the chosen turning table for that amount of turn (linear between recorded values).',
+      'Each leg moves the ship by the advance along her head and the transfer to the side she is turning to; her head then changes by the turn. The man is the origin.',
+      'The end position gives the time taken, the offset from the original track, the run still to go to be abeam of the man, and his bearing from the ship.',
+    ],
+    formulas: ['Williamson: +60°, then −240° (to starboard first; mirrored to port)', 'Scharnow: +240°, then −60°', 'x += Adv·sin(h) + Tr·sin(h ± 90°),  y += Adv·cos(h) + Tr·cos(h ± 90°)', 'h += turn'],
+    limits: ['The man is taken as not drifting, and wind and current on the ship are ignored.', 'The ship is taken as steady on each new heading at the end of her turn, as in the Fishtail calculator; a real turn needs more room.', 'The table must reach 240° of turn for these manoeuvres; if it stops short the largest figures are used and the result is flagged.', 'Distances can be shown in cables (the default), nautical miles, metres, yards and others; the tool remembers the unit you used last.', 'An aid only. Follow standing orders and the situation, and use the method that suits the circumstances.'],
+  },
   'Compass Conversion': {
     concept: 'A compass course differs from the true course by the ship\'s deviation (her own magnetism) and the local variation. Easterly corrections are added when going from compass to true.',
     steps: [
