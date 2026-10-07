@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowLeft, Bot, Eraser, Info, Mic, Minimize2, Send } from 'lucide-react';
+import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Send } from 'lucide-react';
 import { Ship } from '../types';
 import { NAV_TOOLS, NavTool } from '../tools/NavTools';
 import ToolInfoCard from './ToolInfoCard';
 import { toolMemory } from '../tools/toolMemory';
+import { isLengthUnit } from '../tools/navMath';
+import { shipToFishtailRows } from '../fishtail/shipBridge';
+import { TurnTable, interpret } from './commands';
+import { Listening, startListening, voiceMaybeSupported } from './voice';
 import { ICON, Pos, centredPanel, clampPos, defaultPos, growOrigin, isDrag, moved, parsePos } from './layout';
 
 const STORE = 'cursedpilot.navyeo.v1';
@@ -103,6 +107,53 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const openInfoFor = (t: NavTool, info: boolean) => { setTool(t); setShowInfo(info); };
   const panel = centredPanel(vp.w, vp.h);
 
+  const [text, setText] = useState('');
+  const [said, setSaid] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const mic = useRef<Listening | null>(null);
+
+  const toggleMic = async () => {
+    if (listening) { mic.current?.stop(); return; }
+    setSaid(null);
+    setListening(true);
+    mic.current = await startListening(
+      t => { setText(t); askRef.current(t); },
+      problem => { setListening(false); mic.current = null; if (problem) setSaid(problem); },
+    );
+  };
+
+  /** Answers from the selected ship's own turning data, in the unit last used for distances. */
+  const ask = (spoken?: string) => {
+    const q = (spoken ?? text).trim();
+    if (!q) return;
+    const tables = new Map<string, TurnTable>();
+    (ship ? shipToFishtailRows(ship) : []).forEach(r => {
+      const side = r.side === 'port' ? 'Port' : 'Starboard';
+      const key = `${r.ownSpeed}|${r.rudder}|${side}`;
+      if (!tables.has(key)) tables.set(key, { speed: r.ownSpeed, wheel: parseFloat(r.rudder), side, rows: [] });
+      tables.get(key)!.rows.push({ turn: r.heading, advance: r.advance, transfer: r.transfer, time: r.time });
+    });
+    const unit = toolMemory.get<string>('pref:wheel:unit', 'cables');
+    const reply = interpret(q, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables' });
+    if (reply.kind === 'open') {
+      const target = NAV_TOOLS.find(t => t.name === reply.tool);
+      if (target) {
+        if (reply.form) {
+          const key = `${reply.form.id}:fields`;
+          toolMemory.set(key, { ...toolMemory.get<Record<string, string>>(key, {}), ...reply.form.values });
+        }
+        Object.entries(reply.memory ?? {}).forEach(([k, v]) => toolMemory.set(k, v));
+        openInfoFor(target, false);
+      }
+    }
+    setSaid(reply.say);
+    setText('');
+  };
+  // the voice callback outlives the render it was made in, so it calls the latest ask
+  const askRef = useRef(ask);
+  askRef.current = ask;
+
+
   return (
     <>
       <button
@@ -169,13 +220,22 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
               )}
             </div>
 
-            {/* Assistant input: not wired up yet. Text and voice replies (prefed data, local or online AI) go here. */}
-            <div className="p-3 border-t border-slate-50 bg-slate-50/50 shrink-0">
-              <div className="flex items-center gap-2 p-1.5 px-4 bg-white rounded-full border border-slate-200">
-                <input disabled type="text" placeholder="Ask NavYeo (coming soon)" className="flex-1 min-w-0 bg-transparent border-none text-xs font-medium outline-none" />
-                <button disabled aria-label="Voice (coming soon)" className="p-2 text-blue-600/30"><Mic size={16} /></button>
-                <button disabled aria-label="Send (coming soon)" className="p-2 text-blue-600/30"><Send size={16} /></button>
-              </div>
+            {/* Typed requests: keyword matching only (see commands.ts). Voice, and local or online AI, plug in here later. */}
+            <div className="p-3 border-t border-slate-50 bg-slate-50/50 shrink-0 space-y-2">
+              {said && (
+                <div role="status" className="relative p-3 pr-8 bg-blue-50 border border-blue-100 rounded-2xl text-xs font-medium text-slate-700 leading-relaxed max-h-32 overflow-y-auto">
+                  {said}
+                  <button onClick={() => setSaid(null)} aria-label="Dismiss" className="absolute top-1.5 right-2 text-slate-400 hover:text-slate-600 text-base leading-none">&times;</button>
+                </div>
+              )}
+              <form onSubmit={e => { e.preventDefault(); ask(); }} className="flex items-center gap-2 p-1.5 px-4 bg-white rounded-full border border-slate-200">
+                <input type="text" value={text} onChange={e => setText(e.target.value)} aria-label="Ask NavYeo" placeholder="Type or tap the mic: tactical diameter at 15 kn" className="flex-1 min-w-0 bg-transparent border-none text-xs font-medium text-slate-900 outline-none" />
+                {voiceMaybeSupported() && (
+                  <button type="button" onClick={toggleMic} aria-pressed={listening} aria-label={listening ? 'Stop listening' : 'Speak to NavYeo'} title={listening ? 'Listening... tap to stop' : 'Speak'}
+                    className={`p-2 rounded-full transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'text-blue-600 hover:bg-blue-50'}`}>{listening ? <MicOff size={16} /> : <Mic size={16} />}</button>
+                )}
+                <button type="submit" disabled={!text.trim()} aria-label="Send" className="p-2 text-blue-600 disabled:text-blue-600/30"><Send size={16} /></button>
+              </form>
             </div>
           </div>
         </div>

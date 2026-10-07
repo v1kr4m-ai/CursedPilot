@@ -116,7 +116,7 @@ export function vesselReportHtml(ship: Ship, date: Date = new Date()): string {
   h1{margin:0 0 2px;font-size:22px} h2{margin:22px 0 6px;font-size:15px;border-bottom:1px solid #cbd5e1;padding-bottom:3px} h3{margin:14px 0 4px;font-size:13px}
   .sub{color:#64748b;margin-bottom:10px} .none{color:#94a3b8;font-style:italic}
   table{border-collapse:collapse;width:100%;margin-bottom:6px} th,td{border:1px solid #cbd5e1;padding:3px 6px;text-align:left}
-  .plot{width:100%;max-width:340px;display:block;margin:6px 0 10px} h3{break-after:avoid}
+  .plot{width:100%;max-width:340px;display:block;margin:6px 0 10px} .fig{display:inline-block;width:240px;margin:6px 10px 6px 0;vertical-align:top;break-inside:avoid} .fig figcaption{font-size:11px;color:#64748b} h3{break-after:avoid}
   th{background:#f1f5f9;font-size:11px} td{font-variant-numeric:tabular-nums}
   @media print{body{margin:12mm} h2,h3{break-after:avoid} table{break-inside:auto} tr{break-inside:avoid}}
 </style></head><body>

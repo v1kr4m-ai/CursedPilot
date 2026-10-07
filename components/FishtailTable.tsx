@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Compass, Trash2 } from 'lucide-react';
+import { ChartLine, Compass, Trash2 } from 'lucide-react';
 import { SimpleRecord } from '../types';
 import { FISHTAIL_SORTS, FishtailSort, fishtailRow, sortFishtails } from '../data/fishtails';
+import { decodePlot, plotSvg } from '../data/fishtailPlot';
 
 /** Fishtails saved from the calculator: kind, angle, speed, wheel, station, side, lateral separation and drop, sortable. */
 const FishtailTable: React.FC<{ items: SimpleRecord[]; onCalculator: () => void; onDelete: (id: string) => void }> = ({ items, onCalculator, onDelete }) => {
   const [by, setBy] = useState<FishtailSort>('date');
+  const [shown, setShown] = useState<string | null>(null);
   const rows = sortFishtails(items.map(fishtailRow), by);
   const th = 'px-2 py-2 text-left text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap';
   const td = 'px-2 py-2.5 text-xs font-bold text-slate-900 whitespace-nowrap';
@@ -23,7 +25,7 @@ const FishtailTable: React.FC<{ items: SimpleRecord[]; onCalculator: () => void;
       </div>
 
       {rows.length === 0 ? (
-        <p className="text-xs text-slate-400 italic">No fishtails saved. Work one out in the calculator and save it here.</p>
+        <p className="text-xs text-slate-400 italic">No fishtails saved. Work one out in the calculator and save it here; saved ones with a graph open when tapped.</p>
       ) : (
         <div className="overflow-x-auto bg-white rounded-xl border border-slate-100">
           <table className="w-full">
@@ -34,9 +36,10 @@ const FishtailTable: React.FC<{ items: SimpleRecord[]; onCalculator: () => void;
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {rows.map(r => (
-                <tr key={r.id}>
-                  <td className={td}>{r.kind}</td>
+              {rows.map(r => { const plot = decodePlot(r.graph); return (
+                <React.Fragment key={r.id}>
+                <tr onClick={plot ? () => setShown(shown === r.id ? null : r.id) : undefined} className={plot ? 'cursor-pointer hover:bg-blue-50/40' : undefined} aria-expanded={plot ? shown === r.id : undefined}>
+                  <td className={td}>{plot && <ChartLine size={12} className="inline mr-1 text-blue-500" aria-label="Has a saved graph" />}{r.kind}</td>
                   <td className={td}>{r.angle ? `${r.angle}°` : '-'}</td>
                   <td className={td}>{r.speed === null ? '-' : `${r.speed} kn`}</td>
                   <td className={td}>{r.wheel === null ? '-' : `${r.wheel}°`}</td>
@@ -44,9 +47,16 @@ const FishtailTable: React.FC<{ items: SimpleRecord[]; onCalculator: () => void;
                   <td className={td}>{r.side ? (r.side === 'Port' ? 'Port' : 'Stbd') : '-'}</td>
                   <td className={td}>{r.lateral === null ? '-' : `${r.lateral} yd`}</td>
                   <td className={td}>{r.drop === null ? '-' : `${r.drop} yd`}</td>
-                  <td className="pr-2"><button onClick={() => onDelete(r.id)} aria-label="Delete fishtail" className="p-1 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button></td>
+                  <td className="pr-2"><button onClick={e => { e.stopPropagation(); onDelete(r.id); }} aria-label="Delete fishtail" className="p-1 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button></td>
                 </tr>
-              ))}
+                {plot && shown === r.id && (
+                  <tr><td colSpan={9} className="p-3 bg-slate-50/60">
+                    <div className="max-w-xs mx-auto bg-white rounded-xl border border-slate-100 p-2" dangerouslySetInnerHTML={{ __html: plotSvg(plot) }} />
+                    <p className="text-[10px] text-slate-400 font-medium text-center mt-1">Own track (blue) against the guide (green), as calculated. Axes in yards, equal scale.</p>
+                  </td></tr>
+                )}
+                </React.Fragment>
+              ); })}
             </tbody>
           </table>
         </div>

@@ -25,6 +25,7 @@ export interface FishtailInput {
   lateral: number;       // yards
   drop: number;          // yards, positive when own ship ends astern of the guide
   finalX: number;        // own ship's final x from where it started (yards, to starboard)
+  plot?: string;         // the track, from encodePlot, so the card can draw it
 }
 
 /** The values kept on the record so the card can show and sort them without parsing text. */
@@ -35,12 +36,15 @@ export function fishtailFields(i: FishtailInput): Record<string, string> {
     kind: i.kind, angle: shown.map(a => `${Math.abs(Math.round(a))}`).join('/'), speed: String(i.speed), wheel: i.wheel,
     side: i.angles[0] >= 0 ? 'Starboard' : 'Port', station: st.name, stationIdx: String(st.index),
     lateral: String(Math.round(i.lateral)), drop: String(Math.round(i.drop)),
+    ...(i.plot ? { graph: i.plot } : {}),
   };
 }
 
 export interface FishtailRow {
   id: string; date: string; kind: string; angle: string;
   speed: number | null; wheel: number | null; side: string; station: string; stationIdx: number; lateral: number | null; drop: number | null;
+  /** the saved track (see fishtailPlot.ts), when the fishtail was saved with one */
+  graph?: string;
 }
 
 const n = (v: string | undefined): number | null => { const x = parseFloat(v ?? ''); return Number.isFinite(x) ? x : null; };
@@ -49,7 +53,7 @@ const n = (v: string | undefined): number | null => { const x = parseFloat(v ?? 
 export function fishtailRow(r: SimpleRecord): FishtailRow {
   const f = r.fields;
   if (f && f.kind) {
-    return { id: r.id, date: r.date, kind: f.kind, angle: f.angle ?? '', speed: n(f.speed), wheel: n(f.wheel), side: f.side ?? '', station: f.station || '-', stationIdx: n(f.stationIdx) ?? 99, lateral: n(f.lateral), drop: n(f.drop) };
+    return { id: r.id, date: r.date, kind: f.kind, angle: f.angle ?? '', speed: n(f.speed), wheel: n(f.wheel), side: f.side ?? '', station: f.station || '-', stationIdx: n(f.stationIdx) ?? 99, lateral: n(f.lateral), drop: n(f.drop), graph: f.graph || undefined };
   }
   if (f && (f.speed || f.rudder)) {
     return { id: r.id, date: r.date, kind: '-', angle: '', speed: n(f.speed), wheel: n(f.rudder), side: '', station: '-', stationIdx: 99, lateral: null, drop: null };

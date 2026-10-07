@@ -2,6 +2,7 @@
 // EM log table. Pure; returns HTML text. Checked by `node services/vesselReport.check.ts`.
 import type { Ship, TurningDataRow } from '../types.ts';
 import { fishtailRow } from '../data/fishtails.ts';
+import { decodePlot, plotSvg } from '../data/fishtailPlot.ts';
 import { coefficients, deviationTable, formatDev, readDeviations, worst } from '../tools/compassSwing.ts';
 import { logPoints, signedKn } from '../tools/emLog.ts';
 
@@ -27,7 +28,8 @@ export function fishtailsHtml(ship: Ship): string {
   if (!ship.fishtails.length) return '<p class="none">No records.</p>';
   const rows = ship.fishtails.map(fishtailRow).sort((a, b) => b.date.localeCompare(a.date));
   return tbl(['Date', 'Kind', 'Angle', 'Speed (kn)', 'Wheel (°)', 'Station', 'Side', 'Lateral (yd)', 'Drop (yd)'],
-    rows.map(r => [r.date, r.kind, r.angle ? `${r.angle}°` : '-', r.speed ?? '-', r.wheel ?? '-', r.station, r.side || '-', r.lateral ?? '-', r.drop ?? '-']));
+    rows.map(r => [r.date, r.kind, r.angle ? `${r.angle}°` : '-', r.speed ?? '-', r.wheel ?? '-', r.station, r.side || '-', r.lateral ?? '-', r.drop ?? '-']))
+    + rows.filter(r => decodePlot(r.graph)).map(r => `<figure class="fig">${plotSvg(decodePlot(r.graph)!, 240)}<figcaption>${esc(r.date)}: ${esc(r.kind)} ${esc(r.angle)}&deg;, ${esc(r.speed ?? '-')} kn, ${esc(r.wheel ?? '-')}&deg; wheel</figcaption></figure>`).join('');
 }
 
 export function emLogHtml(ship: Ship): string {

@@ -15,6 +15,11 @@ assert.equal(dis.angle, '50/40'); assert.equal(dis.side, 'Port'); assert.equal(d
 
 const rec = (id: string, date: string, fields?: Record<string, string>, description = '', value?: string) => ({ id, date, description, value, fields });
 
+// the track rides along when there is one
+const withPlot = f.fishtailFields({ kind: 'Half', angles: [60, -60], speed: 12, wheel: '15', lateral: 1, drop: 1, finalX: 1, plot: '{"p":[[0,0],[1,1]],"g":2}' });
+assert.equal(withPlot.graph, '{"p":[[0,0],[1,1]],"g":2}'); assert.ok(!('graph' in fields));
+assert.equal(f.fishtailRow({ id: 'g', date: '2026-10-01', description: '', fields: withPlot }).graph, '{"p":[[0,0],[1,1]],"g":2}');
+
 // new records read straight from their values
 const a = f.fishtailRow(rec('a', '2026-10-01', fields));
 assert.deepEqual([a.kind, a.angle, a.speed, a.wheel, a.side, a.station, a.lateral, a.drop], ['Half', '60', 12, 15, 'Starboard', 'Abeam Stbd', 400, 0]);

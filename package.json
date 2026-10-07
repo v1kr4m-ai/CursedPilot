@@ -15,11 +15,12 @@
     "check": "npm run check:nav && npm run check:export && npm run check:tables && npm run check:fleet && npm run check:lookup && npm run check:navyeo && npm run check:data && npm run check:files",
     "check:fleet": "node data/fleet.check.ts",
     "check:lookup": "node services/shipLookup.check.ts",
-    "check:navyeo": "node navyeo/layout.check.ts && node tools/toolMemory.check.ts && node tools/toolInfo.check.ts",
-    "check:data": "node data/summaries.check.ts && node data/customFields.check.ts && node data/fishtails.check.ts",
+    "check:navyeo": "node navyeo/layout.check.ts && node tools/toolMemory.check.ts && node tools/toolInfo.check.ts && node navyeo/commands.check.ts",
+    "check:data": "node data/summaries.check.ts && node data/customFields.check.ts && node data/fishtails.check.ts && node data/fishtailPlot.check.ts",
     "check:files": "node services/docx.check.ts && node services/turningRoundTrip.check.ts"
   },
   "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
     "@capacitor/android": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor/filesystem": "^8.1.4",

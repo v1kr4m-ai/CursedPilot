@@ -9,6 +9,7 @@ import TargetMatchSolver from './components/TargetMatchSolver';
 import TurningImport, { ImportMessage } from '../components/TurningImport';
 import { shipToFishtailRows } from './shipBridge';
 import { fishtailFields } from '../data/fishtails';
+import { encodePlot } from '../data/fishtailPlot';
 import { saveFile } from '../services/backup';
 import { Ship, SimpleRecord, TurningDataSet } from '../types';
 import './fishtail.css';
@@ -151,6 +152,7 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
       fields: fishtailFields({
         kind: TYPE_LABEL[lastParams.type as ManeuverType].split(' ')[0], angles: lastParams.angles, speed: lastParams.tableId.speed, wheel: String(lastParams.tableId.rudder),
         lateral: result.lateral_separation, drop: result.drop_distance, finalX: result.final_position.x,
+        plot: encodePlot(result.corner_points, result.guide_distance),
       }),
       value: `${TYPE_LABEL[lastParams.type as ManeuverType]} ${angles} · guide ${lastParams.guideSpeed} kn · drop ${Math.round(result.drop_distance)} yd, lateral ${Math.round(result.lateral_separation)} yd`,
     };
