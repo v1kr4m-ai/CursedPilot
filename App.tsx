@@ -47,6 +47,7 @@ import FleetRegistry from './components/FleetRegistry';
 import BottomBar from './components/BottomBar';
 import MyShipHero from './components/MyShipHero';
 import ShipInfoPanel from './components/ShipInfoPanel';
+import FishtailTable from './components/FishtailTable';
 import ShipInfoForm from './components/ShipInfoForm';
 import CalibrationData from './components/CalibrationData';
 import CustomFieldsEditor from './components/CustomFieldsEditor';
@@ -60,6 +61,8 @@ import { CATEGORIES, FleetMeta, MAX_PINS, loadMeta, mergeCatalog, pruneMeta, rec
 
 const WHEEL_OPTIONS = [5, 10, 15, 20, 25];
 const SPEED_OPTIONS = [8, 12, 15, 18, 20];
+/** The usual choices plus any value the ship's own (for example imported) tables use, so those tables can be opened and edited. */
+const withUsed = (base: number[], used: number[]) => [...new Set([...base, ...used])].sort((a, b) => a - b);
 const PREFILLED_TURN_AMOUNTS = [0, 15, 30, 45, 60, 90, 105, 120, 135, 150, 165, 180, 195, 210, 225, 240, 255, 270, 285, 300, 315, 330, 345];
 
 const generateInitialTurningSheet = () => {
@@ -163,6 +166,9 @@ const App: React.FC = () => {
   const [meta, setMeta] = useState<FleetMeta>(loadMeta);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [calOpen, setCalOpen] = useState<string | null>(null);
+  /** which top-level sections of the ship screen are expanded; all start collapsed */
+  const [shipSections, setShipSections] = useState<{ particulars: boolean; calibration: boolean }>({ particulars: false, calibration: false });
+  const toggleSection = (k: 'particulars' | 'calibration') => setShipSections(s => ({ ...s, [k]: !s[k] }));
   const [toast, setToast] = useState<string | null>(null);
   const restoreInput = useRef<HTMLInputElement>(null);
 
@@ -328,14 +334,18 @@ const App: React.FC = () => {
     setLocalTurningData(prev => prev.map(row => {
       if (row.id !== id) return row;
       const updatedRow = { ...row, [field]: value };
-      
-      if (field === 'bearingMob') updatedRow.angle = parseFloat(value) || 0;
-      if (field === 'rangeCables') updatedRow.rangeYards = (parseFloat(value) || 0) * 200;
-      
-      const rad = (updatedRow.angle * Math.PI) / 180;
-      updatedRow.advance = updatedRow.rangeYards * Math.cos(rad);
-      updatedRow.transfer = updatedRow.rangeYards * Math.sin(rad);
-      
+
+      // Advance and transfer follow bearing and range only when those are what was edited; typed or imported
+      // advance/transfer are kept as entered.
+      if (field === 'advance' || field === 'transfer') updatedRow[field] = parseFloat(value) || 0;
+      if (field === 'bearingMob' || field === 'rangeCables') {
+        if (field === 'bearingMob') updatedRow.angle = parseFloat(value) || 0;
+        if (field === 'rangeCables') updatedRow.rangeYards = (parseFloat(value) || 0) * 200;
+        const rad = (updatedRow.angle * Math.PI) / 180;
+        updatedRow.advance = updatedRow.rangeYards * Math.cos(rad);
+        updatedRow.transfer = updatedRow.rangeYards * Math.sin(rad);
+      }
+
       return updatedRow;
     }));
   };
@@ -437,7 +447,7 @@ const App: React.FC = () => {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1">Speed (knots)</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {SPEED_OPTIONS.map(opt => (
+                  {withUsed(SPEED_OPTIONS, [...selectedShip.turningDataSets.map(s => s.testSpeed), formSpeed]).map(opt => (
                     <button key={opt} onClick={() => setFormSpeed(opt)} className={`py-2 rounded-xl text-sm font-bold border transition-all ${formSpeed === opt ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{opt}</button>
                   ))}
                 </div>
@@ -446,7 +456,7 @@ const App: React.FC = () => {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-slate-500 uppercase ml-1">Wheel Angle</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {WHEEL_OPTIONS.map(opt => (
+                  {withUsed(WHEEL_OPTIONS, [...selectedShip.turningDataSets.map(s => s.wheelAngle), formWheel]).map(opt => (
                     <button key={opt} onClick={() => setFormWheel(opt)} className={`py-2 rounded-xl text-sm font-bold border transition-all ${formWheel === opt ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{opt}°</button>
                   ))}
                 </div>
@@ -494,7 +504,8 @@ const App: React.FC = () => {
                     <th className="px-3 py-4 border-b border-r border-slate-200 text-center">Advance (Yds)</th>
                     <th className="px-3 py-4 border-b border-r border-slate-200 text-center">Dist. New</th>
                     <th className="px-3 py-4 border-b border-r border-slate-200 text-center">Time</th>
-                    <th className="px-3 py-4 border-b text-center">Speed</th>
+                    <th className="px-3 py-4 border-b border-r border-slate-200 text-center">Speed</th>
+                    <th className="px-3 py-4 border-b w-8" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -506,7 +517,7 @@ const App: React.FC = () => {
                           onChange={(e) => handleUpdateTurningRow(row.id, 'turnAmount', parseInt(e.target.value))}
                           className="w-full p-1 bg-transparent border-none outline-none font-bold text-slate-950 text-center appearance-none"
                         >
-                          {PREFILLED_TURN_AMOUNTS.map(v => <option key={v} value={v}>{v}°</option>)}
+                          {(PREFILLED_TURN_AMOUNTS.includes(row.turnAmount) ? PREFILLED_TURN_AMOUNTS : [...PREFILLED_TURN_AMOUNTS, row.turnAmount].sort((a, b) => a - b)).map(v => <option key={v} value={v}>{v}°</option>)}
                         </select>
                       </td>
                       <td className="px-1 py-1 border-r border-slate-100 bg-yellow-50/30">
@@ -517,21 +528,25 @@ const App: React.FC = () => {
                         <input type="number" step="0.01" value={row.rangeCables || ''} onChange={(e) => handleUpdateTurningRow(row.id, 'rangeCables', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" placeholder="0.0" />
                       </td>
                       <td className="px-3 py-2 border-r border-slate-100 font-bold text-slate-800 text-center">{row.rangeYards.toFixed(0)}</td>
-                      <td className="px-3 py-2 border-r border-slate-100 text-slate-900 font-bold text-center">{row.transfer.toFixed(2)}</td>
-                      <td className="px-3 py-2 border-r border-slate-100 text-slate-900 font-bold text-center">{row.advance.toFixed(2)}</td>
+                      <td className="px-1 py-1 border-r border-slate-100"><input type="number" step="any" aria-label="Transfer" value={Number(row.transfer.toFixed(2))} onChange={(e) => handleUpdateTurningRow(row.id, 'transfer', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" /></td>
+                      <td className="px-1 py-1 border-r border-slate-100"><input type="number" step="any" aria-label="Advance" value={Number(row.advance.toFixed(2))} onChange={(e) => handleUpdateTurningRow(row.id, 'advance', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" /></td>
                       <td className="px-1 py-1 border-r border-slate-100 bg-yellow-50/30">
                          <input type="number" value={row.distToNewCourse || ''} onChange={(e) => handleUpdateTurningRow(row.id, 'distToNewCourse', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" placeholder="0" />
                       </td>
                       <td className="px-1 py-1 border-r border-slate-100 bg-yellow-50/30">
                          <input type="text" value={row.time} onChange={(e) => handleUpdateTurningRow(row.id, 'time', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" placeholder="MM:SS" />
                       </td>
-                      <td className="px-1 py-1 bg-yellow-50/30">
+                      <td className="px-1 py-1 border-r border-slate-100 bg-yellow-50/30">
                          <input type="text" value={row.speed} onChange={(e) => handleUpdateTurningRow(row.id, 'speed', e.target.value)} className="w-full p-2 bg-white/60 border border-transparent focus:border-blue-300 outline-none text-center font-bold text-slate-950 rounded" placeholder="--" />
                       </td>
+                      <td className="px-1 py-1"><button onClick={() => setLocalTurningData(prev => prev.filter(r => r.id !== row.id))} aria-label="Delete row" className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"><Trash2 size={14} /></button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="p-3 border-t border-slate-100">
+              <button onClick={() => setLocalTurningData(prev => [...prev, { id: Math.random().toString(36).slice(2, 11), turnAmount: 0, bearingMob: 0, angle: 0, rangeCables: 0, rangeYards: 0, transfer: 0, advance: 0, distToNewCourse: 0, time: '', speed: '' }])} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg active:scale-95 transition-all"><Plus size={14} />Add row</button>
             </div>
           </div>
         </div>
@@ -547,6 +562,14 @@ const App: React.FC = () => {
       s.turnSide === detailSide
     );
   }, [selectedShip, detailSpeed, detailWheel, detailSide]);
+
+  const deleteTurningTable = () => {
+    if (!selectedShip || !activeDataSet) return;
+    if (!confirm(`Delete the ${activeDataSet.testSpeed} kn, ${activeDataSet.wheelAngle}° ${activeDataSet.turnSide} turning table?`)) return;
+    const { testSpeed, wheelAngle, turnSide } = activeDataSet;
+    setShips(prev => prev.map(sh => sh.id === selectedShip.id ? { ...sh, turningDataSets: sh.turningDataSets.filter(s => !(s.testSpeed === testSpeed && s.wheelAngle === wheelAngle && s.turnSide === turnSide)) } : sh));
+    setDetailSide(null);
+  };
 
   const importTurningSets = (shipId: string, sets: TurningDataSet[]) =>
     setShips(prev => prev.map(sh => sh.id === shipId ? { ...sh, turningDataSets: mergeTurningSets(sh.turningDataSets, sets) } : sh));
@@ -571,8 +594,8 @@ const App: React.FC = () => {
           <button onClick={() => setTurningExportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg active:scale-95 transition-all"><Download size={14} />Export</button>
         </div>
       </div>
-            <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="p-4 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex items-center gap-2">
                   <select 
                     value={detailSpeed || ''} 
@@ -584,7 +607,7 @@ const App: React.FC = () => {
                     className="text-[10px] font-bold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none text-slate-900 focus:border-blue-300"
                   >
                     <option value="" disabled>Speed</option>
-                    {SPEED_OPTIONS.map(o => <option key={o} value={o}>{o} kts</option>)}
+                    {withUsed(SPEED_OPTIONS, selectedShip.turningDataSets.map(s => s.testSpeed)).map(o => <option key={o} value={o}>{o} kts</option>)}
                   </select>
 
                   <select 
@@ -597,7 +620,7 @@ const App: React.FC = () => {
                     className="text-[10px] font-bold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 outline-none text-slate-900 focus:border-blue-300 disabled:opacity-50"
                   >
                     <option value="" disabled>Wheel</option>
-                    {WHEEL_OPTIONS.map(o => <option key={o} value={o}>{o}°</option>)}
+                    {withUsed(WHEEL_OPTIONS, selectedShip.turningDataSets.map(s => s.wheelAngle)).map(o => <option key={o} value={o}>{o}°</option>)}
                   </select>
 
                   <select 
@@ -618,10 +641,17 @@ const App: React.FC = () => {
                     if (detailSide) setFormSide(detailSide);
                     setView('turning_data_form');
                   }} 
+                  aria-label="Add or edit this turning table"
                   className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                 >
                   <Plus size={20} />
                 </button>
+                {activeDataSet && (
+                  <>
+                    <button onClick={() => { setFormSpeed(activeDataSet.testSpeed); setFormWheel(activeDataSet.wheelAngle); setFormSide(activeDataSet.turnSide); setView('turning_data_form'); }} className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg active:scale-95 transition-all"><Pencil size={14} />Edit</button>
+                    <button onClick={deleteTurningTable} aria-label="Delete this turning table" className="p-2 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"><Trash2 size={18} /></button>
+                  </>
+                )}
               </div>
             </div>
             <div className="overflow-x-auto">
@@ -675,7 +705,7 @@ const App: React.FC = () => {
       { id: 'accel', title: 'Acceleration and Deceleration', icon: <Activity size={18} className="text-orange-500" />, count: sum.accel.count, latest: sum.accel.latest,
         content: <DetailCard embedded title="Acceleration and Deceleration data" icon={null} items={ship.accelDecelData} onAdd={() => openRecordForm('accelDecelData')} onEdit={item => openRecordForm('accelDecelData', item)} onDelete={id => deleteRecord(ship.id, 'accelDecelData', id)} /> },
       { id: 'fishtails', title: 'Fishtails', icon: <Wind size={18} className="text-cyan-500" />, count: sum.fishtails.count, latest: sum.fishtails.latest,
-        content: <DetailCard embedded title="Fishtails" icon={null} items={ship.fishtails} action={{ label: 'Calculator', icon: <Compass size={14} />, onClick: openFishtailCalc }} onAdd={() => openRecordForm('fishtails')} onEdit={item => openRecordForm('fishtails', item)} onDelete={id => deleteRecord(ship.id, 'fishtails', id)} /> },
+        content: <FishtailTable items={ship.fishtails} onCalculator={openFishtailCalc} onDelete={id => deleteRecord(ship.id, 'fishtails', id)} /> },
       { id: 'em', title: 'EM Log Calibration', icon: <Settings size={18} className="text-indigo-500" />, count: sum.em.count, latest: sum.em.latest,
         content: <DetailCard embedded title="EM Log Calibration" icon={null} items={ship.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={item => openRecordForm('emLogCalibration', item)} onDelete={id => deleteRecord(ship.id, 'emLogCalibration', id)} /> },
       { id: 'compass', title: 'Compass Swing', icon: <Compass size={18} className="text-amber-500" />, count: sum.compass.count, latest: sum.compass.latest,
@@ -707,14 +737,17 @@ const App: React.FC = () => {
             onPhoto={photo => setShips(prev => prev.map(sh => sh.id === selectedShip.id ? { ...sh, photo } : sh))}
           />
           <section className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Ruler size={20} className="text-blue-500" /> Ship Particulars</h2>
-              <div className="flex items-center gap-2">
+            <div className={`flex flex-wrap items-center justify-between gap-2 ${shipSections.particulars ? 'mb-6' : ''}`}>
+              <button onClick={() => toggleSection('particulars')} aria-expanded={shipSections.particulars} className="flex-1 flex items-center gap-2 text-left whitespace-nowrap">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><Ruler size={20} className="text-blue-500" /> Ship Particulars</h2>
+                <ChevronDown size={20} className={`text-slate-400 transition-transform ${shipSections.particulars ? 'rotate-180' : ''}`} />
+              </button>
+              {shipSections.particulars && <div className="flex items-center gap-2">
               <button onClick={() => setView('particulars_form')} className="flex items-center gap-1.5 text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100"><Pencil size={14} /> Edit</button>
               <button onClick={() => aiGenerateParticulars(selectedShip)} className="flex items-center gap-2 text-xs font-bold bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-200 disabled:opacity-50" disabled={loading}><Sparkles size={14} /> {loading ? 'Estimating...' : 'AI Suggest Data'}</button>
-              </div>
+              </div>}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+            {shipSections.particulars && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
               {[
                 { l: 'Length Overall', v: selectedShip.particulars.lengthOverall, u: 'm' },
                 { l: 'Breadth Overall', v: selectedShip.particulars.breadthOverall, u: 'm' },
@@ -727,10 +760,10 @@ const App: React.FC = () => {
               ].map((item, idx) => (
                 <div key={idx} className="flex justify-between items-center py-3 border-b border-slate-50 last:border-0"><span className="text-slate-500 text-sm font-medium">{item.l}</span><span className="font-bold text-slate-950">{item.v} {item.u}</span></div>
               ))}
-            </div>
+            </div>}
           </section>
 
-          <CalibrationData sections={calibrationSections(selectedShip)} open={calOpen} onToggle={id => setCalOpen(o => (o === id ? null : id))} />
+          <CalibrationData sections={calibrationSections(selectedShip)} open={calOpen} onToggle={id => setCalOpen(o => (o === id ? null : id))} expanded={shipSections.calibration} onExpand={() => toggleSection('calibration')} />
 
         </div>
       </div>

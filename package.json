@@ -16,7 +16,7 @@
     "check:fleet": "node data/fleet.check.ts",
     "check:lookup": "node services/shipLookup.check.ts",
     "check:navyeo": "node navyeo/layout.check.ts && node tools/toolMemory.check.ts && node tools/toolInfo.check.ts",
-    "check:data": "node data/summaries.check.ts && node data/customFields.check.ts",
+    "check:data": "node data/summaries.check.ts && node data/customFields.check.ts && node data/fishtails.check.ts",
     "check:files": "node services/docx.check.ts && node services/turningRoundTrip.check.ts"
   },
   "dependencies": {

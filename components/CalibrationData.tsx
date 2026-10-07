@@ -14,16 +14,19 @@ export interface CalibrationSection {
 
 /** One home for the vessel's calibration and trial records: turning trials, accel/decel, fishtails, EM log, compass swing. */
 /** `open` and `onToggle` are controlled by the caller so the open section survives leaving the screen and coming back. */
-const CalibrationData: React.FC<{ sections: CalibrationSection[]; open: string | null; onToggle: (id: string) => void }> = ({ sections, open, onToggle }) => {
+const CalibrationData: React.FC<{ sections: CalibrationSection[]; open: string | null; onToggle: (id: string) => void; expanded: boolean; onExpand: () => void }> = ({ sections, open, onToggle, expanded, onExpand }) => {
   const total = sections.reduce((n, s) => n + s.count, 0);
 
   return (
     <section className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-      <div className="p-6 pb-3 flex items-center justify-between">
+      <button onClick={onExpand} aria-expanded={expanded} className="w-full p-6 flex items-center justify-between gap-3 text-left">
         <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2"><SlidersHorizontal size={20} className="text-blue-500" /> Calibration Data</h2>
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{total} {total === 1 ? 'record' : 'records'}</span>
-      </div>
-      <div className="divide-y divide-slate-100 border-t border-slate-100">
+        <span className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{total} {total === 1 ? 'record' : 'records'}</span>
+          <ChevronDown size={20} className={`text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </span>
+      </button>
+      {expanded && <div className="divide-y divide-slate-100 border-t border-slate-100">
         {sections.map(s => {
           const isOpen = open === s.id;
           return (
@@ -38,7 +41,7 @@ const CalibrationData: React.FC<{ sections: CalibrationSection[]; open: string |
             </div>
           );
         })}
-      </div>
+      </div>}
     </section>
   );
 };

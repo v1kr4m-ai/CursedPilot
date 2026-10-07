@@ -8,6 +8,7 @@ import ManeuverVisualizer, { ManeuverVisualizerHandle } from './components/Maneu
 import TargetMatchSolver from './components/TargetMatchSolver';
 import TurningImport, { ImportMessage } from '../components/TurningImport';
 import { shipToFishtailRows } from './shipBridge';
+import { fishtailFields } from '../data/fishtails';
 import { saveFile } from '../services/backup';
 import { Ship, SimpleRecord, TurningDataSet } from '../types';
 import './fishtail.css';
@@ -147,6 +148,10 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
       id: Math.random().toString(36).slice(2, 11),
       date: new Date().toISOString().slice(0, 10),
       description: `Calculated ${TYPE_LABEL[lastParams.type as ManeuverType].toLowerCase()} (${lastParams.tableId.speed} kn, ${lastParams.tableId.rudder}° wheel, ${lastParams.tableId.side})`,
+      fields: fishtailFields({
+        kind: TYPE_LABEL[lastParams.type as ManeuverType].split(' ')[0], angles: lastParams.angles, speed: lastParams.tableId.speed, wheel: String(lastParams.tableId.rudder),
+        lateral: result.lateral_separation, drop: result.drop_distance, finalX: result.final_position.x,
+      }),
       value: `${TYPE_LABEL[lastParams.type as ManeuverType]} ${angles} · guide ${lastParams.guideSpeed} kn · drop ${Math.round(result.drop_distance)} yd, lateral ${Math.round(result.lateral_separation)} yd`,
     };
     onSaveRecord(ship.id, record);
