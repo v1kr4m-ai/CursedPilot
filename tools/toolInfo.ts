@@ -109,6 +109,29 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['Williamson: +60°, then −240° (to starboard first; mirrored to port)', 'Scharnow: +240°, then −60°', 'x += Adv·sin(h) + Tr·sin(h ± 90°),  y += Adv·cos(h) + Tr·cos(h ± 90°)', 'h += turn'],
     limits: ['The man is taken as not drifting, and wind and current on the ship are ignored.', 'The ship is taken as steady on each new heading at the end of her turn, as in the Fishtail calculator; a real turn needs more room.', 'The table must reach 240° of turn for these manoeuvres; if it stops short the largest figures are used and the result is flagged.', 'Distances can be shown in cables (the default), nautical miles, metres, yards and others; the tool remembers the unit you used last.', 'An aid only. Follow standing orders and the situation, and use the method that suits the circumstances.'],
   },
+  'Sun Run Sun (SRS)': {
+    concept: 'Two sights of the Sun a few hours apart, with the ship\'s run between them, give an observed position. Each sight gives a line of position; the first line is carried forward by the course and distance run and crossed with the second.',
+    steps: [
+      'The Sun\'s GHA and declination are worked out for the time of each sight (UT = zone time minus the zone).',
+      'The sextant altitude is corrected for index error, dip (from height of eye), refraction (scaled for temperature and pressure), parallax and the Sun\'s semi-diameter (lower limb added, upper limb taken off), giving the true altitude Ho.',
+      'The calculated altitude Hc and azimuth Zn come from the DR (for the second sight, the DR carried on by the run): sin Hc = sin Lat sin Dec + cos Lat cos Dec cos LHA.',
+      'Intercept = (Ho − Hc) in minutes of arc, towards the Sun if Ho is larger. The position line is at right angles to Zn at the point that far from the DR.',
+      'The first line is moved by the run along the course (Mercator sailing); where it crosses the second line is the observed position, at the time of the second sight.',
+    ],
+    formulas: ['LHA = GHA + East longitude', 'sin Hc = sin φ sin δ + cos φ cos δ cos LHA', 'Intercept (′) = (Ho − Hc) × 60', 'Run = speed × time between sights', 'Dip = −1.758′ √(height of eye in m)'],
+    limits: ['The Sun is worked out on the device (about 0.01° or a minute of arc), not read from the Nautical Almanac; compare with the almanac when it matters.', 'Weak when the two azimuths differ by less than about 30°, and the tool says so. Sights below 10° or above 80° are unreliable.', 'Assumes the ship steered the course at the speed given: set and drift are not allowed for.', 'The DR must be the position at the time of the first sight.', 'Refraction and dip use the Sun Run workbook\'s own formulas.'],
+  },
+  'Sun Run Merpass (SRM)': {
+    concept: 'A Sun sight some hours before noon, carried forward by the run to meridian passage, is crossed with the latitude from the meridian altitude. The meridian altitude gives latitude directly; the earlier sight supplies the longitude.',
+    steps: [
+      'The first sight is reduced as in Sun run Sun, giving a position line.',
+      'The time of meridian passage depends on the longitude the ship will have then, so it is worked out on the moving DR until it settles (zone time at which the Sun\'s LHA is zero). Take the highest altitude around that time.',
+      'The meridian altitude is corrected to a true altitude. Zenith distance = 90° − Ho, and the latitude is the Sun\'s declination plus the zenith distance when the Sun bears south of the ship (the ship is north of it), or minus it when the Sun bears north.',
+      'The first line is carried forward by the run to meridian passage and cut by that parallel of latitude, giving the longitude.',
+    ],
+    formulas: ['Lat = Dec + (90° − Ho)  (Sun south of the ship)', 'Lat = Dec − (90° − Ho)  (Sun north of the ship)', 'Longitude from the transferred line: Δλ = −Δφ · cos Zn / (sin Zn · cos φ)'],
+    limits: ['The Sun is worked out on the device (about 0.01°), not read from the Nautical Almanac.', 'The first sight should be well off the meridian: with the Sun nearly due north or south its line gives no longitude, and the tool says so.', 'If you enter the time you observed the maximum altitude it is used for the run; otherwise the worked-out time is.', 'Assumes the course and speed were held; set and drift are not allowed for.', 'The latitude is reported at the time of meridian passage.'],
+  },
   'Compass Conversion': {
     concept: 'A compass course differs from the true course by the ship\'s deviation (her own magnetism) and the local variation. Easterly corrections are added when going from compass to true.',
     steps: [

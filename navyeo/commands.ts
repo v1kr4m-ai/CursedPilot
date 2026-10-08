@@ -149,6 +149,8 @@ function tsdCommand(t: string): Reply | null {
 }
 
 const OPEN_ONLY: [RegExp, string][] = [
+  [/\b(?:srs|sun run sun|sunrunsun)\b/, 'Sun Run Sun (SRS)'],
+  [/\b(?:srm|sun run mer(?:ridian)?(?: ?pass(?:age)?)?|sunrunmerpass|merpass|meridian passage)\b/, 'Sun Run Merpass (SRM)'],
   [/\b(?:man overboard|mob|williamson|scharnow)\b/, 'Man Overboard Turn'],
   [/\b(?:hsa|horizontal sextant)\b/, 'Horizontal Sextant Angle (HSA)'],
   [/\b(?:wheel[- ]?over)\b/, 'Wheel-over Point'],

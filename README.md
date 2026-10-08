@@ -19,6 +19,8 @@
 
 - A floating navigator's assistant (a text and voice assistant is planned). Drag the icon anywhere; it remembers its place. Tap it and a window opens in the centre of the screen, growing out of the icon and fitted to the screen, so every feature is reachable wherever the icon is. Tap outside, press the collapse button or Esc and it shrinks back into the icon. It works on every screen.
 - Eleven offline tools: bearings, time/speed/distance, CPA/TCPA, ATB (angle on the bow), course to steer for set and drift, distance off and horizon, HSA (horizontal sextant angles: position fix from two angles between three objects, distance off from one angle, and the length of an object from the bearings of its two ends), wheel-over point (typed or from the vessel's turning data), compass conversion and units. The **(i)** on each tool explains the concept, the method and the formulas.
+- Also: man overboard turns (Williamson and Scharnow, worked from the vessel's turning data), and **Sun Run Sun** and **Sun Run Merpass**, which give an observed position from two Sun sights, or a Sun sight and the meridian altitude, with the run between them. The Sun's position is worked out on the device (to about a minute of arc, not the Nautical Almanac), so nothing needs looking up. Based on the SRS and SRM workbook, with the Sun, altitude corrections and fix checked against an exact solution of the altitude circles.
+- Type a request in the box at the bottom (or tap the microphone): it matches keywords, so "tactical diameter at 15 kn 20 wheel" answers from the vessel's turning data and "cpa own course 090 ..." opens CPA filled in. It is not an AI.
 - Lengths can be entered and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers its own last unit. What you last entered stays until you press the clear-all icon (units are kept).
 
 **General**
@@ -87,7 +89,7 @@ React 19, TypeScript, Vite, Tailwind CSS 4 (bundled locally), lucide-react, Capa
 | `types.ts` | Ship, particulars and record types |
 | `data/` | The fleet catalogue (`indianNavy.ts`), registry logic (`fleet.ts`), calibration summaries and custom fields; each with a `.check.ts` |
 | `navyeo/` | The floating assistant: `NavYeo.tsx`, window placement maths and the tool explanations' card |
-| `tools/` | NavYeo tools: `navMath.ts` (pure maths), `NavTools.tsx` (UI), `toolInfo.ts` (how each works), `toolMemory.ts` (remembered entries) |
+| `tools/` | NavYeo tools: `navMath.ts` (pure maths), `NavTools.tsx` and `SunTools.tsx` (UI), `kit.tsx` (shared form pieces), `sunEphemeris.ts` and `sunSights.ts` (the Sun and the two fixes), `toolInfo.ts` (how each works), `toolMemory.ts` (remembered entries) |
 | `components/` | Fleet Registry, bottom bar, My Ship card, ship info panel and form, calibration group, import control |
 | `services/` | Gemini call, backup/restore, per-vessel export (`vesselReport.ts` the pure export builders, `docx.ts` a small Word reader/writer, `turningExport.ts`, `shipLookup.ts` the Wikipedia lookup). `npm run check` runs all the self-checks (maths, conversions, round trips through every file format, registry logic, layout) |
 | `fishtail/` | Fishtail calculator screen, plot/solver components, and import/conversion of turning data (`tableConvert.ts`, checked with `npm run check:tables`) |

@@ -63,6 +63,10 @@ assert.equal(c.normaliseSpoken('range one cable'), 'range 1 cable'); assert.equa
 assert.equal(say('reciprocal of two seven zero'), 'Reciprocal of 270 is 090.');
 r = open('cpa own course zero nine zero own speed one two bearing zero four five range six nm'); assert.deepEqual(r.form!.values, { oc: '90', os: '12', rng: '6', brg: '45' });
 
+// the Sun sight tools
+assert.equal(open('sun run sun').tool, 'Sun Run Sun (SRS)'); assert.equal(open('open srs').tool, 'Sun Run Sun (SRS)');
+assert.equal(open('SunRunMerpass').tool, 'Sun Run Merpass (SRM)'); assert.equal(open('sun run merpass').tool, 'Sun Run Merpass (SRM)'); assert.equal(open('meridian passage').tool, 'Sun Run Merpass (SRM)');
+
 // nonsense: says so
 assert.match(say('what is the meaning of life'), /did not understand/); assert.match(say('   '), /Type a request/);
 
