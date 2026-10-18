@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as f from './sightForm.ts';
 import * as t from './sunSights.ts';
 import { sunAt } from './sunEphemeris.ts';
+import { bodyAt } from './bodies.ts';
 import { sightFormsHtml } from '../services/sightFormHtml.ts';
 
 const near = (a: number, b: number, tol: number, what = '') => assert.ok(Math.abs(a - b) <= tol, `${what} ${a} is not within ${tol} of ${b}`);
@@ -109,6 +110,31 @@ assert.match(row(mf, 32).label, /Zenith distance/);
 assert.ok(sm.set.fixForm); near(f.distNm(sm.set.fixForm!, trueM), 0, 0.5, 'merpass form fix error (nm)');
 near(f.distNm(sm.set.fixForm!, sm.set.fixDirect!), 0, 0.4, 'merpass form against direct (nm)');
 assert.deepEqual(sm.set.warnings, []);
+
+// ---- planets and the Moon on the form
+{
+  const bodies = ['Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon'] as const;
+  const bj = t.zoneToJd(2018, 9, 10, 18, 29, 30, 5.5);                  // 13:00 UT less half a minute
+  for (const name of bodies) {
+    const out = f.sunSightForm({ header, dr: c.dr, course: 100, speed: 10, cond, zone: 5.5, jd: bj, sextantDeg: 30, runNm: null, title: name, bodyName: name });
+    const k = out.calc, rows = out.form.rows, rw = (n: number) => rows.find(r => r.n === n)!;
+    assert.equal(rw(3).value, name === 'Moon' ? 'Moon L.L.' : name);
+    const lha = ((k.gha + k.ap.lon) % 360 + 360) % 360;
+    near(lha - Math.round(lha), 0, 1e-9, `${name} LHA whole`); near(Math.abs(k.hcCorr - k.hcExact) * 60, 0, 0.25, `${name} tabulated altitude against the exact one (minutes)`);
+    assert.match(rw(12).value, /^[+−]\d+\.\d'$/); assert.match(rw(12).note!, /^v [+−]\d+\.\d'$/);       // v correction
+    assert.match(rw(17).value2!, /^d [+−]\d+\.\d'$/); assert.match(rw(18).value, /^[+−]\d+\.\d'$/);   // d and its correction
+    assert.equal(rw(30).value2, name === 'Moon' ? rw(30).value2 : undefined);
+    if (name === 'Moon') { assert.match(rw(30).value2!, /^H\.P\. 5\d\.\d'$|^H\.P\. 6\d\.\d'$/); assert.equal(rw(30).note, 'refraction, parallax, semi-diameter'); } else assert.equal(rw(30).note, 'refraction, parallax');
+    // GHA on the form follows the ephemeris to about a tenth of a minute
+    const ex = bodyAt(name, bj);
+    near(((k.gha - ex.gha + 540) % 360) - 180, 0, 0.05, `${name} GHA on the form against the ephemeris (degrees)`);
+    near(k.dec, ex.dec, 0.02, `${name} declination on the form`);
+  }
+  // the Moon's upper limb takes the semi-diameter off
+  const mll = f.sunSightForm({ header, dr: c.dr, course: 0, speed: 0, cond, zone: 5.5, jd: bj, sextantDeg: 30, runNm: null, title: 'm', bodyName: 'Moon' }).calc;
+  const mul = f.sunSightForm({ header, dr: c.dr, course: 0, speed: 0, cond: { ...cond, limb: 'UL' }, zone: 5.5, jd: bj, sextantDeg: 30, runNm: null, title: 'm', bodyName: 'Moon' }).calc;
+  near((mll.ho - mul.ho) * 60, 2 * bodyAt('Moon', bj).sd * 60, 0.5, 'Moon: lower less upper limb is twice the semi-diameter');
+}
 
 // ---- deck watch: lines 7 and 8
 {

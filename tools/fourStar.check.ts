@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import * as q from './fourStar.ts';
 import * as t from './sunSights.ts';
 import { gast, julianDay, sunAt } from './sunEphemeris.ts';
-import { starAt, starByName } from './stars.ts';
+import { starByName } from './stars.ts';
+import { bodyTarget, starTarget, targetName, targetPlace, targetTrueAltitude } from './targets.ts';
 import { distNm } from './sightForm.ts';
 import { sightFormsHtml } from '../services/sightFormHtml.ts';
+import { rapidFormHtml } from '../services/rapidFormHtml.ts';
 
 const near = (a: number, b: number, tol: number, what = '') => assert.ok(Math.abs(a - b) <= tol, `${what} ${a} is not within ${tol} of ${b}`);
 const wrap180 = (d: number) => ((((d + 180) % 360) + 360) % 360) - 180;
@@ -30,7 +32,7 @@ for (const kind of ['morning', 'evening'] as const) {
   near((plan.t0Jd - plan.zeroJd) * 1440, 2, 1e-4, 'zero time is two minutes before');
   assert.ok(Math.abs(plan.t0Jd - plan.startJd) * 1440 < 4.5, 'within a couple of minutes of the start time');
   assert.equal(plan.suggested.length, 4);
-  for (const c of plan.suggested) { assert.ok(c.hc >= 30 && c.hc <= 70, `${c.star.name} altitude ${c.hc}`); assert.ok(c.star.v <= 2.5); }
+  for (const c of plan.suggested) { assert.ok(c.hc >= 30 && c.hc <= 70, `${targetName(c.target)} altitude ${c.hc}`); assert.ok(c.mag <= 2.5); assert.ok(!(c.target.kind === 'body' && c.target.name === 'Moon')); }
   const az = plan.suggested.map(c => c.zn).sort((a, b) => a - b), gaps = az.map((x, i) => (i === 3 ? az[0] + 360 - x : az[i + 1] - x));
   assert.ok(Math.min(...gaps) >= 40, `suggested bearings ${az.map(x => x.toFixed(0))} are well spread`);
   assert.ok(plan.candidates.every(c => c.hc > 5));
@@ -39,10 +41,10 @@ for (const kind of ['morning', 'evening'] as const) {
 assert.ok(q.planFourStar(dr, noon, 'evening')!.t0Jd > q.planFourStar(dr, noon, 'morning')!.t0Jd);
 
 // picking stars: spread beats brightness
-const mk = (name: string, hc: number, zn: number) => ({ star: starByName(name)!, hc, zn });
+const mk = (name: string, hc: number, zn: number) => ({ target: starTarget(starByName(name)!), hc, zn, mag: starByName(name)!.v });
 const sug = q.suggestStars([mk('Sirius', 40, 10), mk('Canopus', 40, 20), mk('Vega', 40, 100), mk('Altair', 40, 190), mk('Rigel', 40, 280), mk('Capella', 40, 15)]);
-assert.equal(sug.length, 4); assert.ok(sug.every(x => x.star.name !== 'Canopus' || sug.length === 4));
-assert.deepEqual(q.suggestStars([mk('Sirius', 40, 10), mk('Vega', 40, 100)]).map(x => x.star.name), ['Sirius', 'Vega']);   // fewer than four available: as many as there are
+assert.equal(sug.length, 4); assert.ok(new Set(sug.map(x => targetName(x.target))).size === 4);
+assert.deepEqual(q.suggestStars([mk('Sirius', 40, 10), mk('Vega', 40, 100)]).map(x => targetName(x.target)), ['Sirius', 'Vega']);   // fewer than four available: as many as there are
 assert.deepEqual(q.suggestStars([mk('Sirius', 85, 10), mk('Vega', 12, 100)]), []);                                       // nothing in the usable band
 
 // ---- crossing several lines
@@ -57,7 +59,7 @@ assert.equal(q.crossMany([{ point: p0, zn: 10 }]), null);
 
 // ---- simulated morning fix: a ship on a known track, DR some miles out, sights at stopwatch times
 const cond: t.Conditions = { hoeM: 12, ieMin: 1.5, offArc: true, limb: 'LL', tempC: 28, pressMb: 1008 };
-function sextantFor(ho: number): number { let s = ho; for (let i = 0; i < 6; i++) s += ho - t.starTrueAltitude(s, cond).ho; return s; }
+function sextantFor(ho: number, target: q.TargetSight['target'], jd: number): number { let s = ho; for (let i = 0; i < 6; i++) s += ho - targetTrueAltitude(target, s, cond, jd).ho; return s; }
 for (const [lat, lon, kind] of [[15.3, 78.55, 'morning'], [-34.0, 151.2, 'evening'], [48.5, -5.2, 'evening'], [8.0, 73.0, 'morning']] as const) {
   const here: t.Pos = { lat, lon };
   const mid = t.zoneToJd(2018, 9, 10, 12, 0, 0, lon / 15);
@@ -69,8 +71,8 @@ for (const [lat, lon, kind] of [[15.3, 78.55, 'morning'], [-34.0, 151.2, 'evenin
   const sights: q.StarSightIn[] = plan.suggested.map((c, i) => {
     const jd = plan.zeroJd + readings[i];
     const at = t.rhumb(here, course, speed * readings[i] * 24);
-    const p = starAt(c.star, jd);
-    return { star: c.star, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, at).hc) };
+    const p = targetPlace(c.target, jd);
+    return { target: c.target, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, at).hc, c.target, jd) };
   });
   const drPos: t.Pos = { lat: lat + 0.07, lon: lon - 0.1 };
   const out = q.fourStarFix({ dr: drPos, course, speed, cond }, plan.zeroJd, sights, 0, { from: 'A', to: 'B' }, 'zero');
@@ -79,6 +81,23 @@ for (const [lat, lon, kind] of [[15.3, 78.55, 'morning'], [-34.0, 151.2, 'evenin
   near(distNm(out.result.direct!, here), 0, 0.4, `direct fix error at ${lat},${lon} (nm)`);
   assert.ok(out.result.maxResidual < 0.6, `lines meet well (${out.result.maxResidual.toFixed(2)} nm)`);
   assert.deepEqual(out.result.warnings.filter(w => !/largest gap/.test(w)), []);   // a thin sky can leave a wide empty sector; that warning is fair
+  // the rapid method: one chosen position for all four stars, rotation corrected to t0, gives the same fix
+  {
+    const rp = q.rapidFix({ dr: drPos, course, speed, cond }, plan.t0Jd, sights, plan.zeroJd);
+    assert.ok(rp.fix, `${lat},${lon} rapid fix`);
+    near(distNm(rp.fix!, here), 0, 0.5, `rapid fix error at ${lat},${lon} (nm)`);
+    near(distNm(rp.fix!, out.result.fix!), 0, 0.4, 'rapid against the star-by-star fix (nm)');
+    assert.equal(rp.ap.lat, Math.round(drPos.lat)); near(rp.chosenLhaAries, (gast(plan.t0Jd) + rp.ap.lon + 720) % 360, 1e-6); assert.equal(rp.lines.length, 4);
+    for (const l of rp.lines) near(Math.abs(l.rotation), Math.abs(l.dtSec) * 0.250685 * Math.cos(rp.ap.lat * Math.PI / 180) * Math.abs(Math.sin(l.zn * Math.PI / 180)), 0.3, 'time correction against the first-order formula, 0.25 minute of arc a second x cos Lat x sin Zn');
+    // a star in the east, sighted after t0, was higher then than at t0, so its altitude is brought down
+    const east = rp.lines.find(l => l.zn > 30 && l.zn < 150 && l.dtSec > 10);
+    if (east) assert.ok(east.rotation < 0);
+    assert.deepEqual(rp.warnings.filter(w => !/largest gap/.test(w)), []);
+    const rh = rapidFormHtml(rp, { header: { from: '<A> & "B"', to: 'C', co: '100°', spd: '12', he: '12 m' }, zone: 0, zeroJd: plan.zeroJd, dr: drPos, ship: 'INS <T>' }, new Date('2018-09-10T10:00:00Z'));
+    assert.ok(rh.includes('&lt;A&gt; &amp; &quot;B&quot;') && !rh.includes('<A>') && rh.includes('INS &lt;T&gt;') && rh.includes('Prepared 2018-09-10'));
+    assert.equal((rh.match(/<tr><td>\d<\/td><td>/g) ?? []).length, 4);
+    for (const l of rp.lines) assert.ok(rh.includes(l.name));
+  }
   assert.equal(out.set.forms.length, 4); assert.equal(out.set.plot.length, 4);
   for (const f of out.set.forms) assert.deepEqual(f.rows.map(r => r.n), Array.from({ length: 37 }, (_, i) => i + 1));
   // star lines on the form: body, SHA and the Aries GHA, no d correction, refraction only
@@ -92,13 +111,40 @@ for (const [lat, lon, kind] of [[15.3, 78.55, 'morning'], [-34.0, 151.2, 'evenin
   assert.equal((html.match(/<section class="form">/g) ?? []).length, 4); assert.ok(html.includes('Fix misses the line by'));
 }
 
+// planets: four of them are up together in the evening of 10 September 2018 from 15N 78E, and give a fix too
+{
+  const here: t.Pos = { lat: 15.33, lon: 78.58 };
+  const j0 = t.zoneToJd(2018, 9, 10, 13, 0, 0, 0);
+  const targets = (['Mars', 'Saturn', 'Jupiter', 'Venus'] as const).map(bodyTarget);
+  const sights: q.StarSightIn[] = targets.map((target, i) => {
+    const jd = j0 + (60 * i) / 86400, p = targetPlace(target, jd);
+    return { target, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, here).hc, target, jd) };
+  });
+  const out = q.fourStarFix({ dr: { lat: here.lat + 0.05, lon: here.lon - 0.06 }, course: 0, speed: 0, cond }, j0, sights, 5.5, { from: '', to: '' });
+  assert.ok(out.result.fix, out.result.warnings.join(' | '));
+  near(distNm(out.result.fix!, here), 0, 0.4, 'fix from four planets (nm)'); near(distNm(out.result.direct!, here), 0, 0.4, 'direct fix from four planets (nm)');
+  assert.deepEqual(out.result.lines.map(l => l.name), ['Mars', 'Saturn', 'Jupiter', 'Venus']);
+  assert.equal(out.set.forms[0].rows[2].value, 'Mars'); assert.match(out.set.forms[3].rows[11].value, /^[+−]/);   // a planet has a v correction where a star has an SHA
+  // planets are offered in the plan, the Moon is left for you to choose
+  const plan = q.planFourStar(here, t.zoneToJd(2018, 9, 10, 12, 0, 0, 5.5), 'evening', 10)!;
+  assert.ok(plan.candidates.some(c => c.target.kind === 'body'), 'planets are among the candidates');
+  assert.ok(plan.suggested.every(c => !(c.target.kind === 'body' && c.target.name === 'Moon')));
+  // a mixed set (a star, two planets and the Moon) goes through as well
+  const mixed: q.StarSightIn[] = [starTarget(starByName('Arcturus')!), bodyTarget('Jupiter'), bodyTarget('Saturn'), bodyTarget('Mars')].map((target, i) => {
+    const jd = j0 + (60 * i) / 86400, p = targetPlace(target, jd);
+    return { target, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, here).hc, target, jd) };
+  });
+  const m = q.fourStarFix({ dr: here, course: 0, speed: 0, cond }, j0, mixed, 5.5, { from: '', to: '' });
+  near(distNm(m.result.fix!, here), 0, 0.3, 'mixed star and planets fix (nm)');
+}
+
 // a wrong star (mis-identified) shows up as a big miss
 {
   const here: t.Pos = { lat: 15.3, lon: 78.55 };
   const mid = t.zoneToJd(2018, 9, 10, 12, 0, 0, 5.5), plan = q.planFourStar(here, mid, 'evening', 10)!;
   const sights: q.StarSightIn[] = plan.suggested.map((c, i) => {
-    const jd = plan.zeroJd + (30 + 60 * i) / 86400, p = starAt(c.star, jd);
-    return { star: c.star, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, here).hc + (i === 2 ? 0.25 : 0)) };   // one altitude 15' out
+    const jd = plan.zeroJd + (30 + 60 * i) / 86400, p = targetPlace(c.target, jd);
+    return { target: c.target, jd, sextantDeg: sextantFor(t.reduce({ gha: p.gha, dec: p.dec }, here).hc + (i === 2 ? 0.25 : 0), c.target, jd) };   // one altitude 15' out
   });
   const out = q.fourStarFix({ dr: here, course: 0, speed: 0, cond }, plan.zeroJd, sights, 5.5, { from: '', to: '' });
   assert.ok(out.result.maxResidual > 3, `a 15' error in one altitude shows (${out.result.maxResidual.toFixed(1)} nm)`);

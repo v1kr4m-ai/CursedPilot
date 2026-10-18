@@ -83,6 +83,24 @@ export function starTrueAltitude(sextantDeg: number, c: Conditions): { apparent:
   return { apparent, ho: sextantDeg + total / 60, corr: { ie, dip, refraction, parallax: 0, semiDiameter: 0, total } };
 }
 
+/**
+ * True altitude of a planet or the Moon from a sextant reading: index error, dip, refraction, parallax in altitude
+ * (horizontal parallax times cos altitude) and, for the Moon, the semi-diameter increased for altitude, added for the
+ * lower limb and taken off for the upper.
+ */
+export function bodyTrueAltitude(sextantDeg: number, c: Conditions, p: { hp: number; sd: number; moon: boolean }): { apparent: number; ho: number; corr: AltitudeCorrections } {
+  const ie = c.offArc ? c.ieMin : -c.ieMin;
+  const dip = dipMinutes(c.hoeM);
+  const apparent = sextantDeg + (ie + dip) / 60;
+  const refraction = refractionMinutes(apparent, c.tempC, c.pressMb);
+  const h = rad(apparent + refraction / 60);                       // close enough to the true altitude for the parallax
+  const parallax = p.hp * 60 * Math.cos(h);
+  const sdAug = p.moon ? p.sd * 60 * (1 + Math.sin(rad(p.hp)) * Math.sin(h)) : 0;
+  const semiDiameter = p.moon ? (c.limb === 'LL' ? sdAug : -sdAug) : 0;
+  const total = ie + dip + refraction + parallax + semiDiameter;
+  return { apparent, ho: sextantDeg + total / 60, corr: { ie, dip, refraction, parallax, semiDiameter, total } };
+}
+
 // ---- Reduction ---------------------------------------------------------------------------------------------------
 
 export interface Reduction { gha: number; dec: number; lha: number; hc: number; zn: number }

@@ -81,7 +81,7 @@ export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'requ
 
   const ui = (
     <>
-      <Panel title="Ship and date" note="The DR is the ship's estimated position at the time of the first sight. The zone is hours from UT, east positive (India +5:30). Temperature and pressure are used for refraction; leave blank for 10°C and 1010 mb.">
+      <Panel title="Ship and date" note="The DR is the ship's estimated position: at the time of the first sight for the Sun fixes, at zero time for the star fix. The zone is hours from UT, east positive (India +5:30). Temperature and pressure are used for refraction; leave blank for 10°C and 1010 mb.">
         <Grid>
           <DateField value={f.v.date} onChange={f.bind('date').onChange} />
           <Field label="Zone (h from UT)" hint="+5:30" text invalid={f.v.zone.trim() !== '' && zone === null} {...f.bind('zone')} />

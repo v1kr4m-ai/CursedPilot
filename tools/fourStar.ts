@@ -2,9 +2,9 @@
 // four star sights on the Sight Form and crossing the position lines carried to one time. Pure; checked by
 // `node tools/fourStar.check.ts`.
 import { gast, sunAt } from './sunEphemeris.ts';
-import { STARS, starAt } from './stars.ts';
-import type { Star } from './stars.ts';
-import { meridianPassageJd, positionLine, reduce, rhumb, starTrueAltitude } from './sunSights.ts';
+import { ALL_TARGETS, targetName, targetPlace, targetTrueAltitude } from './targets.ts';
+import type { Target } from './targets.ts';
+import { meridianPassageJd, positionLine, reduce, rhumb } from './sunSights.ts';
 import type { Common, Pos } from './sunSights.ts';
 import { distNm, sunSightForm } from './sightForm.ts';
 import type { FormSet } from './sightForm.ts';
@@ -30,7 +30,8 @@ export function civilTwilightJd(pos: Pos, jdNoon: number, morning: boolean): num
   return (lo + hi) / 2;
 }
 
-export interface Candidate { star: Star; hc: number; zn: number }
+/** something that could be shot: its altitude and bearing at the planned time, and its brightness */
+export interface Candidate { target: Target; hc: number; zn: number; mag: number }
 
 export interface StarPlan {
   twilightJd: number;
@@ -44,20 +45,21 @@ export interface StarPlan {
   suggested: Candidate[];
 }
 
-/** Four stars with the bearings best spread round the horizon (no wide empty sector), altitudes of 30 to 70 degrees, and the brighter ones. */
-export function suggestStars(c: Candidate[], want = 4): Candidate[] {
-  const pick = (hcMin: number, hcMax: number, vMax: number) => c.filter(x => x.hc >= hcMin && x.hc <= hcMax && x.star.v <= vMax);
+/** Four with the bearings best spread round the horizon (no wide empty sector), altitudes of 30 to 70 degrees, and the brighter ones. Stars and planets; the Moon is left for you to choose. */
+export function suggestStars(all: Candidate[], want = 4): Candidate[] {
+  const c = all.filter(x => !(x.target.kind === 'body' && x.target.name === 'Moon'));
+  const pick = (hcMin: number, hcMax: number, vMax: number) => c.filter(x => x.hc >= hcMin && x.hc <= hcMax && x.mag <= vMax);
   let pool = pick(30, 70, 2.5);
   if (pool.length < want) pool = pick(20, 80, 3.0);
   if (pool.length <= want) return [...pool].sort((a, b) => a.zn - b.zn);
-  pool = [...pool].sort((a, b) => a.star.v - b.star.v).slice(0, 18);
+  pool = [...pool].sort((a, b) => a.mag - b.mag).slice(0, 18);
   let best: Candidate[] = [], bestScore = -Infinity;
   const n = pool.length;
   for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c2 = b + 1; c2 < n; c2++) for (let d = c2 + 1; d < n; d++) {
     const set = [pool[a], pool[b], pool[c2], pool[d]];
     const az = set.map(x => x.zn).sort((p, q) => p - q);
     const gaps = az.map((x, i) => (i === 3 ? az[0] + 360 - x : az[i + 1] - x));
-    const score = Math.min(...gaps) * 10 - Math.max(...gaps) * 5 - set.reduce((s, x) => s + x.star.v, 0);   // even spread first, then no big empty sector, then brightness
+    const score = Math.min(...gaps) * 10 - Math.max(...gaps) * 5 - set.reduce((s, x) => s + x.mag, 0);   // even spread first, then no big empty sector, then brightness
     if (score > bestScore) { bestScore = score; best = set; }
   }
   return best.sort((a, b) => a.zn - b.zn);
@@ -72,16 +74,21 @@ export function planFourStar(dr: Pos, jdNoon: number, kind: 'morning' | 'evening
   let t0 = startJd;
   for (let i = 0; i < 8; i++) t0 += wrap180(target - gast(t0)) / ARIES_RATE / 24;
   const candidates: Candidate[] = [];
-  for (const star of STARS) {
-    const p = starAt(star, t0), r = reduce({ gha: p.gha, dec: p.dec }, dr);
-    if (r.hc > 5) candidates.push({ star, hc: r.hc, zn: r.zn });
+  for (const target of ALL_TARGETS) {
+    const p = targetPlace(target, t0), r = reduce({ gha: p.gha, dec: p.dec }, dr);
+    if (r.hc > 5) candidates.push({ target, hc: r.hc, zn: r.zn, mag: p.mag });
   }
   return { twilightJd, startJd, chosenLhaAries: chosen, t0Jd: t0, zeroJd: t0 - 2 / 1440, candidates, suggested: suggestStars(candidates) };
 }
 
 // ---- the fix -----------------------------------------------------------------------------------------------------
 
-export interface StarSightIn { star: Star; jd: number; sextantDeg: number }
+/** a sight of a star, planet or the Moon: what, when (UT) and the sextant altitude */
+export interface TargetSight { target: Target; jd: number; sextantDeg: number }
+export type StarSightIn = TargetSight;
+
+/** the arguments the Sight Form wants for a target */
+const formTarget = (t: Target) => (t.kind === 'star' ? { star: t.star } : { bodyName: t.name });
 
 /** Best crossing of several position lines (each through a point, at right angles to an azimuth) by least squares. */
 export function crossMany(lines: { point: Pos; zn: number }[]): { pos: Pos; residuals: number[] } | null {
@@ -112,7 +119,7 @@ export function crossMany(lines: { point: Pos; zn: number }[]): { pos: Pos; resi
 
 export interface FourStarResult {
   /** per star: the sight's reduction, and how far the fix lies from its line (nm, + towards the star) */
-  lines: { star: Star; jd: number; dr: Pos; intercept: number; zn: number; ho: number; run: number; residual: number }[];
+  lines: { target: Target; name: string; jd: number; dr: Pos; intercept: number; zn: number; ho: number; run: number; residual: number }[];
   fixJd: number;
   fix: Pos | null;
   /** the direct (DR) method for comparison */
@@ -128,9 +135,9 @@ export function fourStarFix(c: Common, refJd: number, sights: StarSightIn[], zon
   const prepared = sights.map((s, i) => {
     const dr = rhumb(c.dr, c.course, c.speed * (s.jd - refJd) * 24);
     const run = c.speed * (fixJd - s.jd) * 24;
-    const out = sunSightForm({ ...base, dr, jd: s.jd, sextantDeg: s.sextantDeg, runNm: run, title: `Star ${i + 1} of ${sights.length}: ${s.star.name}`, star: s.star });
-    const place = starAt(s.star, s.jd);
-    const exact = positionLine(dr, starTrueAltitude(s.sextantDeg, c.cond).ho, reduce({ gha: place.gha, dec: place.dec }, dr));
+    const out = sunSightForm({ ...base, dr, jd: s.jd, sextantDeg: s.sextantDeg, runNm: run, title: `Sight ${i + 1} of ${sights.length}: ${targetName(s.target)}`, ...formTarget(s.target) });
+    const place = targetPlace(s.target, s.jd);
+    const exact = positionLine(dr, targetTrueAltitude(s.target, s.sextantDeg, c.cond, s.jd).ho, reduce({ gha: place.gha, dec: place.dec }, dr));
     return { s, dr, run, out, exact };
   });
 
@@ -143,33 +150,92 @@ export function fourStarFix(c: Common, refJd: number, sights: StarSightIn[], zon
   // the position goes on the last form
   const last = prepared.length - 1;
   const forms = prepared.map((p, i) => (i === last && fx
-    ? sunSightForm({ ...base, dr: p.dr, jd: p.s.jd, sextantDeg: p.s.sextantDeg, runNm: p.run, title: `Star ${i + 1} of ${sights.length}: ${p.s.star.name}`, star: p.s.star, observed: { pos: fx.pos, jd: fixJd } })
+    ? sunSightForm({ ...base, dr: p.dr, jd: p.s.jd, sextantDeg: p.s.sextantDeg, runNm: p.run, title: `Sight ${i + 1} of ${sights.length}: ${targetName(p.s.target)}`, ...formTarget(p.s.target), observed: { pos: fx.pos, jd: fixJd } })
     : p.out).form);
 
-  if (sights.length < 2) warnings.push('Take at least two stars; three or four give a check.');
-  if (!fx && sights.length >= 2) warnings.push('The bearings are too alike for the lines to cross. Take stars well apart in bearing.');
+  if (sights.length < 2) warnings.push('Take at least two bodies; three or four give a check.');
+  if (!fx && sights.length >= 2) warnings.push('The bearings are too alike for the lines to cross. Take bodies well apart in bearing.');
   if (sights.length >= 3) {
     const az = prepared.map(p => p.out.calc.zn).sort((a, b) => a - b);
     const gap = Math.max(...az.map((x, i) => (i === az.length - 1 ? az[0] + 360 - x : az[i + 1] - x)));
-    if (gap > 150) warnings.push(`The largest gap between the star bearings is ${gap.toFixed(0)}°. Stars spread round the horizon give a better fix.`);
+    if (gap > 150) warnings.push(`The largest gap between the bearings is ${gap.toFixed(0)}°. Bodies spread round the horizon give a better fix.`);
   }
-  if (fx && maxResidual > 2) warnings.push(`The lines miss the fix by up to ${maxResidual.toFixed(1)} nm. Check the stars were identified correctly and the times and altitudes.`);
+  if (fx && maxResidual > 2) warnings.push(`The lines miss the fix by up to ${maxResidual.toFixed(1)} nm. Check the bodies were identified correctly and the times and altitudes.`);
   prepared.forEach((p, i) => {
     // the form's intercept is from the chosen position (up to 30' from the DR by construction), so judge the sight by its distance from the DR
-    if (Math.abs(p.exact.intercept) > 30) warnings.push(`Star ${i + 1} (${p.s.star.name}): the intercept from the DR is ${Math.abs(p.exact.intercept).toFixed(0)} miles. Check the time, date and altitude.`);
-    if (p.out.calc.ho < 10 || p.out.calc.ho > 80) warnings.push(`Star ${i + 1} (${p.s.star.name}): altitude ${p.out.calc.ho.toFixed(1)}° is outside the 10° to 80° where sights are reliable.`);
+    if (Math.abs(p.exact.intercept) > 30) warnings.push(`Sight ${i + 1} (${targetName(p.s.target)}): the intercept from the DR is ${Math.abs(p.exact.intercept).toFixed(0)} miles. Check the time, date and altitude.`);
+    if (p.out.calc.ho < 10 || p.out.calc.ho > 80) warnings.push(`Sight ${i + 1} (${targetName(p.s.target)}): altitude ${p.out.calc.ho.toFixed(1)}° is outside the 10° to 80° where sights are reliable.`);
   });
   if (fx && dx && distNm(fx.pos, dx.pos) > 1) warnings.push(`The form method and the direct method differ by ${distNm(fx.pos, dx.pos).toFixed(1)} nm. Check the entries.`);
 
   return {
     result: {
-      lines: prepared.map((p, i) => ({ star: p.s.star, jd: p.s.jd, dr: p.dr, intercept: p.out.calc.intercept, zn: p.out.calc.zn, ho: p.out.calc.ho, run: p.run, residual: residuals[i] })),
+      lines: prepared.map((p, i) => ({ target: p.s.target, name: targetName(p.s.target), jd: p.s.jd, dr: p.dr, intercept: p.out.calc.intercept, zn: p.out.calc.zn, ho: p.out.calc.ho, run: p.run, residual: residuals[i] })),
       fixJd, fix: fx?.pos ?? null, direct: dx?.pos ?? null, maxResidual, warnings,
     },
     set: {
       forms,
-      plot: prepared.map((p, i) => ({ label: `${p.s.star.name} (transfer by the run)`, ap: p.out.calc.ap, zn: p.out.calc.zn, intercept: p.out.calc.intercept, point: p.out.calc.line.point, residual: residuals[i] })),
+      plot: prepared.map((p, i) => ({ label: `${targetName(p.s.target)} (transfer by the run)`, ap: p.out.calc.ap, zn: p.out.calc.zn, intercept: p.out.calc.intercept, point: p.out.calc.line.point, residual: residuals[i] })),
       fixForm: fx?.pos ?? null, fixDirect: dx?.pos ?? null, warnings,
     },
   };
+}
+
+// ---- the rapid method: one chosen position for every star ------------------------------------------------------------
+
+export interface RapidLine {
+  target: Target; name: string; jd: number;
+  /** tabulated altitude and bearing of the star at the chosen position at t0 */
+  tabHc: number; zn: number;
+  /** true altitude as observed, the correction for the time from t0 (arcminutes, + adds) and the altitude at t0 */
+  ho: number; rotation: number; hoT0: number;
+  /** seconds from t0 (negative before it) */
+  dtSec: number;
+  /** intercept in arcminutes, + towards the star */
+  intercept: number;
+  run: number;
+  residual: number;
+}
+
+export interface RapidResult {
+  /** the one chosen position: whole-degree latitude, longitude giving the whole LHA Aries at t0 */
+  ap: Pos; chosenLhaAries: number; t0Jd: number; fixJd: number;
+  lines: RapidLine[];
+  fix: Pos | null;
+  maxResidual: number;
+  warnings: string[];
+}
+
+/**
+ * The rapid method: all stars are reduced at the one time t0 (LHA Aries a whole number of degrees) from one chosen
+ * position, each observed altitude being corrected for the time it was taken before or after t0. Lines are plotted
+ * from the common chosen position and carried to the time of the fix by the course and speed.
+ */
+export function rapidFix(c: Common, t0Jd: number, sights: StarSightIn[], fixJd: number): RapidResult {
+  const warnings: string[] = [];
+  const lat = Math.round(c.dr.lat);
+  const lhaExact = mod360(gast(t0Jd) + c.dr.lon);
+  const chosenLha = Math.round(lhaExact) % 360;
+  const ap: Pos = { lat, lon: wrap180(chosenLha - gast(t0Jd)) };
+  const lines = sights.map(s => {
+    const p = targetPlace(s.target, t0Jd), r = reduce({ gha: p.gha, dec: p.dec }, ap);
+    const ho = targetTrueAltitude(s.target, s.sextantDeg, c.cond, s.jd).ho;
+    const dtSec = (s.jd - t0Jd) * 86400;
+    // how much lower or higher the body was at t0 than when it was sighted, from the chosen position: a body in the east is rising, so after t0 it was higher than at t0
+    const pi = targetPlace(s.target, s.jd);
+    const rotation = (r.hc - reduce({ gha: pi.gha, dec: pi.dec }, ap).hc) * 60;
+    const hoT0 = ho + rotation / 60;
+    const intercept = (hoT0 - r.hc) * 60;
+    return { target: s.target, name: targetName(s.target), jd: s.jd, tabHc: r.hc, zn: r.zn, ho, rotation, hoT0, dtSec, intercept, run: c.speed * (fixJd - s.jd) * 24, residual: 0 };
+  });
+  const lineSet = lines.map(l => ({ point: rhumb(rhumb(ap, l.intercept >= 0 ? l.zn : l.zn + 180, Math.abs(l.intercept)), c.course, l.run), zn: l.zn }));
+  const x = crossMany(lineSet);
+  const res = x?.residuals ?? lines.map(() => 0);
+  lines.forEach((l, i) => { l.residual = res[i]; });
+  const maxResidual = Math.max(0, ...res.map(Math.abs));
+  if (sights.length < 2) warnings.push('Take at least two bodies; three or four give a check.');
+  if (!x && sights.length >= 2) warnings.push('The bearings are too alike for the lines to cross. Take bodies well apart in bearing.');
+  if (x && maxResidual > 2) warnings.push(`The lines miss the fix by up to ${maxResidual.toFixed(1)} nm. Check the bodies were identified correctly and the times and altitudes.`);
+  lines.forEach((l, i) => { if (Math.abs(l.dtSec) > 300) warnings.push(`Sight ${i + 1} (${l.name}) was taken ${Math.round(Math.abs(l.dtSec) / 60)} minutes from t0; the rapid method suits sights within about 4 minutes.`); });
+  return { ap, chosenLhaAries: chosenLha, t0Jd, fixJd, lines, fix: x?.pos ?? null, maxResidual, warnings };
 }

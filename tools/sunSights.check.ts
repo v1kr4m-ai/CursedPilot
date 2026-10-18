@@ -107,6 +107,22 @@ assert.ok(north.lat > 5 && north.drMp.lat < north.merSun.dec);   // sun at +23 d
 const noon = t.srm({ dr: dr0, course: 90, speed: 5, cond }, { jd: mp - 0.001, sextantDeg: 74 }, 74);
 assert.equal(noon.fix, null); assert.ok(noon.warnings.some(w => /due north or south/.test(w)));
 
+// planets and the Moon: parallax in altitude and, for the Moon, the semi-diameter increased for altitude
+{
+  const c0 = { hoeM: 0, ieMin: 0, offArc: true, limb: 'LL' as const, tempC: 10, pressMb: 1010 };
+  const moon = { hp: 57 / 60, sd: 15.5 / 60, moon: true };
+  const ll = t.bodyTrueAltitude(45, c0, moon), ul = t.bodyTrueAltitude(45, { ...c0, limb: 'UL' }, moon);
+  near(ll.corr.parallax, 57 * Math.cos(45 * Math.PI / 180), 0.05, 'Moon parallax in altitude');
+  near(ll.corr.semiDiameter, 15.5 * (1 + Math.sin(57 / 60 * Math.PI / 180) * Math.sin(45 * Math.PI / 180)), 0.005, 'augmented semi-diameter');
+  near(ll.ho - ul.ho, 2 * ll.corr.semiDiameter / 60, 1e-9, 'lower limb less upper limb');
+  // the Moon's lower limb at 45 degrees: about +57' x cos 45 - 1.0' refraction + 15.6' = +55', as in the almanac's Moon table
+  near(ll.corr.total, 40.3 - 0.97 + 15.6, 0.3, 'Moon altitude correction');
+  const venus = t.bodyTrueAltitude(30, c0, { hp: 0.3 / 60, sd: 0, moon: false });
+  near(venus.corr.parallax, 0.3 * Math.cos(30 * Math.PI / 180), 0.01, 'planet parallax'); assert.equal(venus.corr.semiDiameter, 0);
+  // a star has neither
+  assert.equal(t.starTrueAltitude(30, c0).corr.parallax, 0);
+}
+
 // ---- typed values
 assert.equal(t.parseClock('09:15'), 9 * 3600 + 15 * 60); assert.equal(t.parseClock('9 15 30'), 9 * 3600 + 15 * 60 + 30); assert.equal(t.parseClock('091530'), 33330);
 assert.equal(t.parseClock('11:40:25'), 11 * 3600 + 40 * 60 + 25); assert.equal(t.parseClock('0915'), 9 * 3600 + 15 * 60);

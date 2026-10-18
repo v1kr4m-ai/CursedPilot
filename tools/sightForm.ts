@@ -9,9 +9,11 @@
 // Every figure is kept to the tenth of a minute, as on the form, so the lines add up as they do on paper.
 import { calendarOf, julianDay, sunAt } from './sunEphemeris.ts';
 import { starAt } from './stars.ts';
+import { bodyAt } from './bodies.ts';
+import type { BodyName } from './bodies.ts';
 import type { Star } from './stars.ts';
 import type { Common, Conditions, Pos, SightInput, SrmResult, SrsResult } from './sunSights.ts';
-import { crossLines, longitudeOnLine, positionLine, rhumb, srm, srs, starTrueAltitude, trueAltitude, zoneToJd } from './sunSights.ts';
+import { bodyTrueAltitude, crossLines, longitudeOnLine, positionLine, rhumb, srm, srs, starTrueAltitude, trueAltitude, zoneToJd } from './sunSights.ts';
 
 const rad = (d: number) => (d * Math.PI) / 180;
 const deg = (r: number) => (r * 180) / Math.PI;
@@ -99,6 +101,8 @@ export interface SunFormInput {
   title: string;
   /** a star instead of the Sun: the GHA of Aries and the star's SHA are used, and only refraction is applied to the altitude */
   star?: Star;
+  /** a planet or the Moon: GHA and declination from its own ephemeris, with the almanac's v and d corrections, parallax (and for the Moon semi-diameter) in the altitude */
+  bodyName?: BodyName;
 }
 
 export interface SunFormCalc {
@@ -125,13 +129,19 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
   const sec = gmt.m * 60 + gmt.s;
 
   // 10-13: GHA
-  const star = i.star;
-  const hourSun = sunAt(jdHour), nextSun = sunAt(jdHour + 1 / 24);
+  const star = i.star, bodyName = i.bodyName;
+  const placeAt = (jd: number) => (bodyName ? bodyAt(bodyName, jd) : sunAt(jd));
+  const hourSun = placeAt(jdHour), nextSun = placeAt(jdHour + 1 / 24);
   const starNow = star ? starAt(star, i.jd) : null, starHour = star ? starAt(star, jdHour) : null;
   const gTab10 = Math.round((starHour ? starHour.ariesGha : hourSun.gha) * T);
-  const inc10 = Math.round(sec * (star ? 2.506845 : 2.5));    // the Sun: 15 degrees an hour (2.5 tenths of a minute a second); Aries: 15.0411
+  // increments run at 15 degrees an hour for the Sun and planets (2.5 tenths of a minute a second), 15.0411 for Aries, 14 19.0' for the Moon
+  const nominalHour10 = bodyName === 'Moon' ? 8590 : 9000;
+  const inc10 = Math.round(sec * (star ? 2.506845 : nominalHour10 / 3600));
   const sha10 = starNow ? Math.round(starNow.sha * T) : 0;
-  const gha10 = mod(gTab10 + inc10 + sha10, FULL);
+  // v: how much faster a planet's or the Moon's GHA runs than the increment, tenths of a minute an hour, and its correction for the minutes and seconds
+  const v10 = bodyName ? Math.round(mod(nextSun.gha - hourSun.gha, 360) * T) - nominalHour10 : 0;
+  const vcorr10 = bodyName ? Math.round((v10 * sec) / 3600) : 0;
+  const gha10 = mod(gTab10 + inc10 + sha10 + vcorr10, FULL);
 
   // 14-16: chosen longitude so the LHA is a whole number of degrees, nearest the DR
   const drLon10 = Math.round(i.dr.lon * T);
@@ -173,7 +183,10 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
   const zAngle = apLat >= 0 ? (zn <= 180 ? zn : 360 - zn) : (zn <= 180 ? 180 - zn : zn - 180);
 
   // 26-31: altitude
-  const alt = star ? starTrueAltitude(i.sextantDeg, i.cond) : trueAltitude(i.sextantDeg, i.cond, sunAt(i.jd));
+  const bodyNow = bodyName ? bodyAt(bodyName, i.jd) : null;
+  const alt = star ? starTrueAltitude(i.sextantDeg, i.cond)
+    : bodyNow ? bodyTrueAltitude(i.sextantDeg, i.cond, { hp: bodyNow.hp, sd: bodyNow.sd, moon: bodyName === 'Moon' })
+      : trueAltitude(i.sextantDeg, i.cond, sunAt(i.jd));
   const sext10 = Math.round(i.sextantDeg * T);
   const ie10 = Math.round(alt.corr.ie * 10), dip10 = Math.round(alt.corr.dip * 10);
   const eff10 = ie10 + dip10;
@@ -188,7 +201,7 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
   const rows: FormRow[] = [
     { n: 1, label: 'D.R. Position', value: latText(i.dr.lat), value2: lonText(i.dr.lon) },
     { n: 2, label: 'Chosen Lat.', value: `${Math.abs(chosenLat)}° ${latNorth ? 'N' : 'S'}` },
-    { n: 3, label: 'Body observed', value: star ? `${star.name} (*${star.no})` : `Sun ${i.cond.limb === 'LL' ? 'L.L.' : 'U.L.'}` },
+    { n: 3, label: 'Body observed', value: star ? `${star.name} (*${star.no})` : bodyName === 'Moon' ? `Moon ${i.cond.limb === 'LL' ? 'L.L.' : 'U.L.'}` : bodyName ?? `Sun ${i.cond.limb === 'LL' ? 'L.L.' : 'U.L.'}` },
     { n: 4, label: 'Date and Z.T.', value: `${pad(zt.d)} ${MONTHS[zt.mo - 1]} ${zt.y}`, value2: `${pad(zt.h)}h ${pad(zt.m)}m`, note: 'd  h  m' },
     { n: 5, label: 'Zone', value: zoneDescription(i.zone) },
     { n: 6, label: 'Greenwich Date', value: `${pad(gmt.d)} ${MONTHS[gmt.mo - 1]} ${gmt.y}`, value2: `${pad(gmt.h)}h ${pad(gmt.m)}m` },
@@ -196,7 +209,7 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
     { n: 9, label: 'G.M.T.', value: hms(gmt.h, gmt.m, gmt.s) },
     { n: 10, label: 'Tabulated G.H.A.', value: dm10(gTab10), note: star ? `Aries, ${pad(gmt.h)}h` : `${pad(gmt.h)}h` },
     { n: 11, label: 'Increment', value: dm10(inc10), note: `${pad(gmt.m)}m ${pad(gmt.s)}s` },
-    { n: 12, label: 'v corr. or S.H.A.', value: star ? dm10(sha10) : '—', note: star ? 'S.H.A. of the star' : 'none for the Sun' },
+    { n: 12, label: 'v corr. or S.H.A.', value: star ? dm10(sha10) : bodyName ? sgn10(vcorr10) : '—', note: star ? 'S.H.A. of the star' : bodyName ? `v ${v10 < 0 ? '−' : '+'}${(Math.abs(v10) / 10).toFixed(1)}'` : 'none for the Sun' },
     { n: 13, label: 'G.H.A.', value: dm10(gha10) },
     { n: 14, label: 'Chosen Long.', value: dm10(Math.abs(lon10)), value2: lon10 >= 0 ? 'E (+)' : 'W (−)' },
     { n: 15, label: 'L.H.A.', value: `${lha}°` },
@@ -214,7 +227,7 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
     { n: 27, label: 'I.E. / Dip (−)', value: sgn10(ie10), value2: sgn10(dip10) },
     { n: 28, label: 'I.E. − Dip', value: sgn10(eff10) },
     { n: 29, label: 'Apparent Alt.', value: dm10(app10) },
-    { n: 30, label: 'Corrections to altitude', value: sgn10(apparentCorr10), note: star ? 'refraction' : 'refraction, parallax, semi-diameter' },
+    { n: 30, label: 'Corrections to altitude', value: sgn10(apparentCorr10), value2: bodyName === 'Moon' && bodyNow ? `H.P. ${(bodyNow.hp * 60).toFixed(1)}'` : undefined, note: star ? 'refraction' : bodyName === 'Moon' ? 'refraction, parallax, semi-diameter' : bodyName ? 'refraction, parallax' : 'refraction, parallax, semi-diameter' },
     { n: 31, label: 'True Alt.', value: dm10(true10) },
     { n: 32, label: 'Corr. Tab. Alt.', value: dm10(corrTab10) },
     { n: 33, label: 'Intercept', value: `${(Math.abs(intercept10) / 10).toFixed(1)}'`, value2: towards ? 'to' : 'from' },
