@@ -59,6 +59,22 @@ export function gmst(jdUT: number): number {
   return mod360(280.46061837 + 360.98564736629 * (jdUT - 2451545) + 0.000387933 * T * T - (T * T * T) / 38710000);
 }
 
+/** Greenwich apparent sidereal time, degrees: the GHA of the First Point of Aries. */
+export function gast(jdUT: number, dt?: number): number {
+  const [year] = calendarOf(jdUT);
+  const T = ((jdUT + (dt ?? deltaT(year)) / 86400) - 2451545) / 36525;
+  const { dpsi, deps } = nutation(T);
+  return mod360(gmst(jdUT) + (dpsi * Math.cos(rad(meanObliquity(T) + deps / 3600))) / 3600);
+}
+
+/** The Sun's true geometric longitude (degrees) at T Julian centuries from J2000, for the aberration of the stars. */
+export function sunTrueLongitude(T: number): number {
+  const L0 = mod360(280.46646 + 36000.76983 * T + 0.0003032 * T * T);
+  const M = mod360(357.52911 + 35999.05029 * T - 0.0001537 * T * T);
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(rad(M)) + (0.019993 - 0.000101 * T) * Math.sin(rad(2 * M)) + 0.000289 * Math.sin(rad(3 * M));
+  return mod360(L0 + C);
+}
+
 export interface SunPosition {
   /** Greenwich hour angle, degrees west of Greenwich, 0-360 */
   gha: number;

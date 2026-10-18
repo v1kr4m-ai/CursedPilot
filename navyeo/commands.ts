@@ -149,6 +149,7 @@ function tsdCommand(t: string): Reply | null {
 }
 
 const OPEN_ONLY: [RegExp, string][] = [
+  [/\b(?:4|four) ?star|rapid sight|star fix|star sights?\b/, 'Four Star Fix'],
   [/\b(?:srs|sun run sun|sunrunsun)\b/, 'Sun Run Sun (SRS)'],
   [/\b(?:srm|sun run mer(?:ridian)?(?: ?pass(?:age)?)?|sunrunmerpass|merpass|meridian passage)\b/, 'Sun Run Merpass (SRM)'],
   [/\b(?:man overboard|mob|williamson|scharnow)\b/, 'Man Overboard Turn'],

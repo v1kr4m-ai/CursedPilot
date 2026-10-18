@@ -15,14 +15,14 @@ import { Common, Conditions, SightInput, SightResult, parseClock, parseIsoDate, 
 const FIELDS = ['date', 'zone', 'lat', 'lon', 'course', 'speed', 'hoe', 'ie', 'temp', 'press', 'from', 'to'] as const;
 
 /** "52°27.2'" */
-const dm = (d: number, digits = 1) => {
+export const dm = (d: number, digits = 1) => {
   let deg = Math.floor(Math.abs(d)), min = +(((Math.abs(d) - deg) * 60).toFixed(digits));
   if (min >= 60) { deg += 1; min = 0; }
   return `${d < 0 ? '-' : ''}${deg}°${min.toFixed(digits)}'`;
 };
 
 /** Zone time of a Julian day (UT) as "HH:MM:SS". */
-const clock = (jd: number, zone: number) => {
+export const clock = (jd: number, zone: number) => {
   const [, , , f] = calendarOf(jd + zone / 24 + 0.5 / 86400);
   const s = Math.floor(f * 86400);
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(n => String(n).padStart(2, '0')).join(':');
@@ -37,7 +37,7 @@ const DateField: React.FC<{ value: string; onChange: (s: string) => void }> = ({
 );
 
 /** The ship, the date, and the sextant and weather: shared by both tools, so it is entered once. */
-function useSetup() {
+export function useSetup(opts: { limb?: boolean } = {}) {
   const f = useForm('sun', FIELDS);
   const [offArc, setOffArc] = useMemory('sun:offarc', true);
   const [limb, setLimb] = useMemory<'LL' | 'UL'>('sun:limb', 'LL');
@@ -81,7 +81,7 @@ function useSetup() {
           <Field label="Index error" unit="′" hint="0" {...f.bind('ie')} />
         </Grid>
         <Seg value={offArc ? 'off' : 'on'} onChange={v => setOffArc(v === 'off')} options={[['off', 'Off the arc (add)'], ['on', 'On the arc (subtract)']]} />
-        <Seg value={limb} onChange={v => setLimb(v as 'LL' | 'UL')} options={[['LL', 'Lower limb'], ['UL', 'Upper limb']]} />
+        {opts.limb !== false && <Seg value={limb} onChange={v => setLimb(v as 'LL' | 'UL')} options={[['LL', 'Lower limb'], ['UL', 'Upper limb']]} />}
         <Grid>
           <Field label="Temperature" unit="°C" hint="10" {...f.bind('temp')} />
           <Field label="Pressure" unit="mb" hint="1010" {...f.bind('press')} />
@@ -110,7 +110,7 @@ const SightDetail: React.FC<{ title: string; s: SightResult; zone: number }> = (
 );
 
 /** Saves the filled Sight Forms (NP 98) as a printable page. */
-const FormsButton: React.FC<{ set: FormSet; title: string; file: string; ship?: Ship }> = ({ set, title, file, ship }) => {
+export const FormsButton: React.FC<{ set: FormSet; title: string; file: string; ship?: Ship }> = ({ set, title, file, ship }) => {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const save = async () => {
@@ -135,7 +135,7 @@ const crossRows = (set: FormSet): [string, string][] =>
     ['Difference from the direct figure', `${distNm(set.fixForm, set.fixDirect).toFixed(2)} nm`],
   ] : [];
 
-const NOTE = 'An aid for checking your own working. The Sun is worked out on the device to about a minute of arc, not taken from the Nautical Almanac, so compare with the almanac for anything that matters.';
+export const NOTE = 'An aid for checking your own working. The Sun is worked out on the device to about a minute of arc, not taken from the Nautical Almanac, so compare with the almanac for anything that matters.';
 
 export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const setup = useSetup();

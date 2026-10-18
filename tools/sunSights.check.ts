@@ -115,4 +115,8 @@ assert.deepEqual(t.parseIsoDate('2018-09-10'), [2018, 9, 10]); assert.equal(t.pa
 assert.equal(t.parseZone('5.5'), 5.5); assert.equal(t.parseZone('+5:30'), 5.5); assert.equal(t.parseZone('-3'), -3); assert.equal(t.parseZone('5'), 5); assert.equal(t.parseZone('0'), 0);
 assert.equal(t.parseZone('20'), null); assert.equal(t.parseZone('abc'), null); assert.equal(t.parseZone(''), null);
 
+// stopwatch readings
+assert.equal(t.parseStopwatch('3:40'), 220); assert.equal(t.parseStopwatch('0:20'), 20); assert.equal(t.parseStopwatch('3 40'), 220); assert.equal(t.parseStopwatch('3m40s'), 220); assert.equal(t.parseStopwatch('220'), 220); assert.equal(t.parseStopwatch('12:05.5'), 725.5);
+for (const bad of ['', 'x', '3:75', '-1']) assert.equal(t.parseStopwatch(bad), null, bad);
+
 console.log('sunSights: all checks passed');

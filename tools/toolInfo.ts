@@ -132,6 +132,18 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['Lat = Dec + (90° − Ho)  (Sun south of the ship)', 'Lat = Dec − (90° − Ho)  (Sun north of the ship)', 'Longitude from the transferred line: Δλ = −Δφ · cos Zn / (sin Zn · cos φ)'],
     limits: ['The Sun is worked out on the device (about 0.01°), not read from the Nautical Almanac.', 'The first sight should be well off the meridian: with the Sun nearly due north or south its line gives no longitude, and the tool says so.', 'If you enter the time you observed the maximum altitude it is used for the run; otherwise the worked-out time is.', 'Assumes the course and speed were held; set and drift are not allowed for.', 'The latitude is reported at the time of meridian passage.'],
   },
+  'Four Star Fix': {
+    concept: 'Four stars taken in quick succession at twilight, while the horizon and the stars can both be seen, give four position lines that cross close together. The tool says when to start the stopwatch and which stars to take, and then works the fix.',
+    steps: [
+      'Planning: civil twilight is when the Sun\'s centre is 6° below the horizon. Observations start the chosen number of minutes before it. LHA Aries at that time is rounded to a whole number of degrees, and the time that gives it is found; the stopwatch starts two minutes earlier, so the stars are taken about two minutes after zero.',
+      'Stars: the stars above the horizon at that time are worked out, and four of altitude 30° to 70° with their bearings spread round the horizon are suggested, the brighter ones preferred.',
+      'Each sight is at zero time plus its stopwatch reading. The star\'s GHA is the GHA of Aries plus its SHA, with SHA and declination worked out for the date from the star catalogue (proper motion, precession, nutation and aberration).',
+      'The sextant altitude is corrected for index error, dip and refraction (a star has no parallax or semi-diameter correction here), and reduced on the Sight Form from its own chosen position.',
+      'Each position line is carried to the time of the fix by the course and speed, and the best crossing of all the lines (least squares) is the observed position. How far the fix lies from each line shows how well the sights agree.',
+    ],
+    formulas: ['GHA star = GHA Aries + SHA', 'LHA Aries at t0 = a whole number of degrees; t0 = zero time + 2 min', 'sin Hc = sin φ sin δ + cos φ cos δ cos LHA', 'Intercept (′) = (Ho − Hc) × 60', 'Fix: minimise Σ (miss from line)² over the lines'],
+    limits: ['The star positions are from the Hipparcos catalogue (epoch 1991.25), moved to the date; they agree with the Nautical Almanac to a few seconds of arc, but they are calculated, not read from it.', 'A wrong star (misidentified) shows as a large miss from its line, and the tool warns when any line misses the fix by more than 2 nm.', 'Star bearings should be spread round the horizon; the tool warns when there is a sector of more than 150° with no star.', 'The DR is taken as the position at zero time and the course and speed as held; set and drift are not allowed for.', 'The time of the fix is zero time, as in the rapid method, or the last sight if you choose. The filled Sight Forms use the star lines of the form (SHA, Aries increment, no d correction).'],
+  },
   'Compass Conversion': {
     concept: 'A compass course differs from the true course by the ship\'s deviation (her own magnetism) and the local variation. Easterly corrections are added when going from compass to true.',
     steps: [

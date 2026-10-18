@@ -73,12 +73,22 @@ export function trueAltitude(sextantDeg: number, c: Conditions, sun: Pick<SunPos
   return { apparent, ho: sextantDeg + total / 60, corr: { ie, dip, refraction, parallax, semiDiameter, total } };
 }
 
+/** True altitude of a star from a sextant reading: index error, dip and refraction only (no parallax or semi-diameter). */
+export function starTrueAltitude(sextantDeg: number, c: Conditions): { apparent: number; ho: number; corr: AltitudeCorrections } {
+  const ie = c.offArc ? c.ieMin : -c.ieMin;
+  const dip = dipMinutes(c.hoeM);
+  const apparent = sextantDeg + (ie + dip) / 60;
+  const refraction = refractionMinutes(apparent, c.tempC, c.pressMb);
+  const total = ie + dip + refraction;
+  return { apparent, ho: sextantDeg + total / 60, corr: { ie, dip, refraction, parallax: 0, semiDiameter: 0, total } };
+}
+
 // ---- Reduction ---------------------------------------------------------------------------------------------------
 
 export interface Reduction { gha: number; dec: number; lha: number; hc: number; zn: number }
 
 /** Calculated altitude and azimuth of the Sun for an observer at `at`. */
-export function reduce(sun: SunPosition, at: Pos): Reduction {
+export function reduce(sun: Pick<SunPosition, 'gha' | 'dec'>, at: Pos): Reduction {
   const lha = mod360(sun.gha + at.lon);
   const lat = rad(at.lat), dec = rad(sun.dec), l = rad(lha);
   const hc = Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(l));
@@ -278,4 +288,13 @@ export function parseZone(text: string): number | null {
   const frac = m[3] === undefined ? 0 : text.includes(':') ? +m[3] / 60 : +`0.${m[3]}`;
   const v = +m[2] + frac;
   return v > 14 ? null : m[1] === '-' ? -v : v;
+}
+
+/** A stopwatch reading: "3:40", "3 40", "3m40s", or plain seconds ("220"). Returns seconds, or null. */
+export function parseStopwatch(text: string): number | null {
+  const t = text.trim();
+  const p = /^(\d{1,3})\s*(?:[:\s.m'])\s*(\d{1,2}(?:\.\d+)?)\s*[s"]?$/i.exec(t);
+  if (p) return +p[2] >= 60 ? null : +p[1] * 60 + +p[2];
+  const plain = /^(\d{1,4}(?:\.\d+)?)$/.exec(t);
+  return plain ? +plain[1] : null;
 }

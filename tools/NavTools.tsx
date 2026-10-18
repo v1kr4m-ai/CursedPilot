@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ArrowLeftRight, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { ArrowLeftRight, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Star as StarIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -7,6 +7,7 @@ import * as nav from './navMath';
 import { RescueTurn, Side, TURNS, rescue, turnsFor as mobTurnsFor } from './manOverboard';
 
 import { SunRunMerpassTool, SunRunSunTool } from './SunTools';
+import { FourStarTool } from './StarTools';
 import { Field, Grid, LengthField, Panel, Result, SELECT, Seg, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
 
 // ---- tools -------------------------------------------------------------------------------------
@@ -529,6 +530,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Man Overboard Turn', short: 'MOB', desc: 'Williamson and Scharnow turns worked from the ship\'s turning data', icon: <LifeBuoy size={18} className="text-red-500" />, Component: MobTool },
   { name: 'Sun Run Sun (SRS)', short: 'Sun Run Sun', desc: 'Observed position from two Sun sights and the run between them', icon: <Sun size={18} className="text-amber-500" />, Component: SunRunSunTool },
   { name: 'Sun Run Merpass (SRM)', short: 'Sun Run Merpass', desc: 'Observed position from a Sun sight, the run, and the meridian altitude', icon: <Sun size={18} className="text-orange-600" />, Component: SunRunMerpassTool },
+  { name: 'Four Star Fix', short: '4 Star Fix', desc: 'Plan the stars and fix the position from four star sights (rapid method)', icon: <StarIcon size={18} className="text-yellow-500" />, Component: FourStarTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
   { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },
   { name: 'Unit Converter', short: 'Units', desc: 'Distance and speed units, cables, fathoms', icon: <ArrowLeftRight size={18} className="text-slate-500" />, Component: UnitTool },

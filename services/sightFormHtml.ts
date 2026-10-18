@@ -36,7 +36,8 @@ const deg = (v: number, kind: 'lat' | 'lon') => {
 
 export function sightFormsHtml(set: FormSet, meta: { title: string; ship?: string }, date: Date = new Date()): string {
   const day = date.toISOString().slice(0, 10);
-  const plot = set.plot.map(p => `<tr><td>${esc(p.label)}</td><td>${esc(deg(p.ap.lat, 'lat'))} ${esc(deg(p.ap.lon, 'lon'))}</td><td>${p.zn.toFixed(1)}° T</td><td>${Math.abs(p.intercept).toFixed(1)}' ${p.intercept >= 0 ? 'towards' : 'away'}</td><td>${esc(deg(p.point.lat, 'lat'))} ${esc(deg(p.point.lon, 'lon'))}</td></tr>`).join('');
+  const hasMiss = set.plot.some(p => p.residual !== undefined);
+  const plot = set.plot.map(p => `<tr><td>${esc(p.label)}</td><td>${esc(deg(p.ap.lat, 'lat'))} ${esc(deg(p.ap.lon, 'lon'))}</td><td>${p.zn.toFixed(1)}° T</td><td>${Math.abs(p.intercept).toFixed(1)}' ${p.intercept >= 0 ? 'towards' : 'away'}</td><td>${esc(deg(p.point.lat, 'lat'))} ${esc(deg(p.point.lon, 'lon'))}</td>${hasMiss ? `<td>${p.residual === undefined ? '' : `${Math.abs(p.residual).toFixed(2)} nm`}</td>` : ''}</tr>`).join('');
   const cross = set.fixForm && set.fixDirect
     ? `<tr><td>By the sight forms (chosen positions)</td><td>${esc(deg(set.fixForm.lat, 'lat'))} &nbsp; ${esc(deg(set.fixForm.lon, 'lon'))}</td></tr>
 <tr><td>By direct calculation from the DR (cross-check)</td><td>${esc(deg(set.fixDirect.lat, 'lat'))} &nbsp; ${esc(deg(set.fixDirect.lon, 'lon'))}</td></tr>
@@ -65,7 +66,7 @@ export function sightFormsHtml(set: FormSet, meta: { title: string; ship?: strin
 ${set.forms.map(f => formHtml(f)).join('')}
 <section class="plot">
 <h2>Plotting data and cross-check${meta.ship ? ` - ${esc(meta.ship)}` : ''}</h2>
-<table><thead><tr><th>Line</th><th>Chosen position</th><th>Azimuth</th><th>Intercept</th><th>Point on the position line</th></tr></thead><tbody>${plot}</tbody></table>
+<table><thead><tr><th>Line</th><th>Chosen position</th><th>Azimuth</th><th>Intercept</th><th>Point on the position line</th>${hasMiss ? '<th>Fix misses the line by</th>' : ''}</tr></thead><tbody>${plot}</tbody></table>
 <p class="fine">Plot each intercept from the chosen position along the azimuth, towards or away from the Sun, and draw the position line at right angles through that point. Carry the first line forward by the run.</p>
 <table><thead><tr><th>Observed position</th><th></th></tr></thead><tbody>${cross}</tbody></table>
 ${set.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join('')}

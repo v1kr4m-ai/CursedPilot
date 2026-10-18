@@ -67,6 +67,8 @@ r = open('cpa own course zero nine zero own speed one two bearing zero four five
 assert.equal(open('sun run sun').tool, 'Sun Run Sun (SRS)'); assert.equal(open('open srs').tool, 'Sun Run Sun (SRS)');
 assert.equal(open('SunRunMerpass').tool, 'Sun Run Merpass (SRM)'); assert.equal(open('sun run merpass').tool, 'Sun Run Merpass (SRM)'); assert.equal(open('meridian passage').tool, 'Sun Run Merpass (SRM)');
 
+assert.equal(open('four star fix').tool, 'Four Star Fix'); assert.equal(open('4 star').tool, 'Four Star Fix'); assert.equal(open('rapid sight').tool, 'Four Star Fix');
+
 // nonsense: says so
 assert.match(say('what is the meaning of life'), /did not understand/); assert.match(say('   '), /Type a request/);
 
