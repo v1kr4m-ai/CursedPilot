@@ -120,6 +120,15 @@ export function crossLines(a: { point: Pos; zn: number }, b: { point: Pos; zn: n
   return { pos, angle: sep };
 }
 
+/** Where a position line (through `point`, at right angles to azimuth `zn`) crosses a parallel of latitude. Null when the line runs north-south. */
+export function longitudeOnLine(line: { point: Pos; zn: number }, lat: number): Pos | null {
+  const sinZn = Math.sin(rad(line.zn));
+  if (Math.abs(sinZn) < 0.17) return null;
+  const p0 = line.point, k = 60 * Math.cos(rad((p0.lat + lat) / 2));
+  const dy = (lat - p0.lat) * 60;
+  return { lat, lon: p0.lon + (-dy * Math.cos(rad(line.zn)) / sinZn) / k };
+}
+
 // ---- Time ------------------------------------------------------------------------------------------------------
 
 /** Julian day (UT) of a zone date and time. `zoneHours` is the zone's offset from UT, east positive (India +5.5). */
@@ -152,7 +161,9 @@ function sight(s: SightInput, at: Pos, cond: Conditions): SightResult {
 
 export interface SrsResult {
   first: SightResult; second: SightResult;
-  runHours: number; run: number; dr2: Pos;
+  runHours: number; run: number;
+  /** DR for the second sight: the point on the first position line, carried on by the run */
+  dr2: Pos;
   /** the first position line carried forward by the run */
   transferred: { point: Pos; zn: number };
   /** observed position at the time of the second sight */
@@ -167,9 +178,11 @@ export function srs(c: Common, s1: SightInput, s2: SightInput): SrsResult {
   const runHours = (s2.jd - s1.jd) * 24;
   if (!(runHours > 0)) warnings.push('The second sight must be later than the first.');
   const run = c.speed * Math.max(0, runHours);
-  const dr2 = rhumb(c.dr, c.course, run);
-  const first = sight(s1, c.dr, c.cond), second = sight(s2, dr2, c.cond);
+  const first = sight(s1, c.dr, c.cond);
+  // As on the chart: the first position line is plotted, and the DR for the second sight is the point on it carried on by the run.
   const transferred = { point: rhumb(first.line.point, c.course, run), zn: first.line.zn };
+  const dr2 = transferred.point;
+  const second = sight(s2, dr2, c.cond);
   const x = crossLines(transferred, second.line);
   const cut = Math.min(Math.abs(wrap180(first.red.zn - second.red.zn)), 180 - Math.abs(wrap180(first.red.zn - second.red.zn)));
   if (!x) warnings.push('The two bearings are almost the same, so the lines do not cross. Take the sights further apart in time.');
@@ -207,9 +220,10 @@ export interface SrmResult {
 export function srm(c: Common, s1: SightInput, merSextantDeg: number, observedMpJd?: number): SrmResult {
   const warnings: string[] = [];
   // The ship moves, so the longitude at meridian passage depends on when it happens: iterate on the DR.
+  const first = sight(s1, c.dr, c.cond);
   let mp = meridianPassageJd(c.dr.lon, s1.jd + 0.25);
   for (let i = 0; i < 8; i++) {
-    const at = rhumb(c.dr, c.course, c.speed * Math.max(0, (mp - s1.jd) * 24));
+    const at = rhumb(first.line.point, c.course, c.speed * Math.max(0, (mp - s1.jd) * 24));
     mp = meridianPassageJd(at.lon, mp);
   }
   const usedObserved = observedMpJd !== undefined && Number.isFinite(observedMpJd);
@@ -217,24 +231,16 @@ export function srm(c: Common, s1: SightInput, merSextantDeg: number, observedMp
   const runHours = (tm - s1.jd) * 24;
   if (!(runHours > 0)) warnings.push('Meridian passage must be later than the first sight.');
   const run = c.speed * Math.max(0, runHours);
-  const drMp = rhumb(c.dr, c.course, run);
+  const drMp = rhumb(first.line.point, c.course, run);
 
-  const first = sight(s1, c.dr, c.cond);
   const merSun = sunAt(tm);
   const alt = trueAltitude(merSextantDeg, c.cond, merSun);
   const zd = 90 - alt.ho;
   const lat = drMp.lat >= merSun.dec ? merSun.dec + zd : merSun.dec - zd;
   const transferred = { point: rhumb(first.line.point, c.course, run), zn: first.line.zn };
 
-  // The transferred position line meets the parallel of the observed latitude: x = x0 - (y - y0) / tan(Zn).
-  let fix: Pos | null = null;
-  const sinZn = Math.sin(rad(transferred.zn));
-  if (Math.abs(sinZn) < 0.17) warnings.push('The first sight was nearly due north or south, so its position line gives no longitude. Take it earlier, with the Sun well off the meridian.');
-  else {
-    const p0 = transferred.point, k = 60 * Math.cos(rad((p0.lat + lat) / 2));
-    const dy = (lat - p0.lat) * 60;
-    fix = { lat, lon: p0.lon + (-dy * Math.cos(rad(transferred.zn)) / sinZn) / k };
-  }
+  const fix = longitudeOnLine(transferred, lat);
+  if (!fix) warnings.push('The first sight was nearly due north or south, so its position line gives no longitude. Take it earlier, with the Sun well off the meridian.');
   if (Math.abs(first.line.intercept) > 30) warnings.push(`The first intercept is ${Math.abs(first.line.intercept).toFixed(0)} miles. Check the time, date, altitude and DR.`);
   if (Math.abs(lat - drMp.lat) > 1) warnings.push(`The latitude from the meridian altitude is ${Math.abs(lat - drMp.lat).toFixed(1)}° from the DR. Check the altitude and the date.`);
   return { first, mpJd: mp, usedObservedTime: usedObserved, runHours, run, drMp, merSun, merApparent: alt.apparent, merHo: alt.ho, merCorr: alt.corr, lat, transferred, fix, warnings };

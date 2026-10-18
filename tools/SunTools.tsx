@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { FileText } from 'lucide-react';
+import { Ship } from '../types';
+import { saveFile } from '../services/backup';
+import { sightFormsHtml } from '../services/sightFormHtml';
 import * as nav from './navMath';
 import { Field, Grid, Panel, Result, SELECT, Seg, UnitPick, Warn, fromNm, toNum, useForm, useMemory, useUnit } from './kit';
 import { calendarOf } from './sunEphemeris';
-import { Common, Conditions, SightInput, SightResult, parseClock, parseIsoDate, parseZone, srm, srs, zoneToJd } from './sunSights';
+import { FormSet, distNm, srmForms, srsForms } from './sightForm';
+import { Common, Conditions, SightInput, SightResult, parseClock, parseIsoDate, parseZone, srm, zoneToJd } from './sunSights';
 
 // Sun Run Sun and Sun Run Merpass: the Sun-sight fixes of the Sun Run workbook, worked on the device.
 // The sums are in sunSights.ts and sunEphemeris.ts; this file is the entry forms and the way the answers are shown.
 
-const FIELDS = ['date', 'zone', 'lat', 'lon', 'course', 'speed', 'hoe', 'ie', 'temp', 'press'] as const;
+const FIELDS = ['date', 'zone', 'lat', 'lon', 'course', 'speed', 'hoe', 'ie', 'temp', 'press', 'from', 'to'] as const;
 
 /** "52°27.2'" */
 const dm = (d: number, digits = 1) => {
@@ -66,6 +71,8 @@ function useSetup() {
           <Field label="DR longitude" hint="78 35 E" text invalid={f.v.lon.trim() !== '' && lon === null} {...f.bind('lon')} />
           <Field label="Course" unit="°T" {...f.bind('course')} />
           <Field label="Speed" unit="kn" {...f.bind('speed')} />
+          <Field label="From (optional)" text hint="port" {...f.bind('from')} />
+          <Field label="To (optional)" text hint="port" {...f.bind('to')} />
         </Grid>
       </Panel>
       <Panel title="Sextant and weather">
@@ -102,17 +109,44 @@ const SightDetail: React.FC<{ title: string; s: SightResult; zone: number }> = (
   </details>
 );
 
+/** Saves the filled Sight Forms (NP 98) as a printable page. */
+const FormsButton: React.FC<{ set: FormSet; title: string; file: string; ship?: Ship }> = ({ set, title, file, ship }) => {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const save = async () => {
+    setBusy(true); setMsg(null);
+    try { await saveFile(`${file}-${new Date().toISOString().slice(0, 10)}.html`, { text: sightFormsHtml(set, { title, ship: ship?.name }) }, 'text/html', `${title} sight forms`); }
+    catch (e) { const m = e instanceof Error ? e.message : String(e); if (!/cancel/i.test(m)) setMsg(m); }
+    finally { setBusy(false); }
+  };
+  return (
+    <div className="space-y-1">
+      <button onClick={save} disabled={busy} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold active:scale-95 transition-all disabled:opacity-50"><FileText size={16} />Save the filled sight forms (print or PDF)</button>
+      {msg && <p className="text-[11px] text-red-500 font-medium">{msg}</p>}
+      <p className="text-[10px] text-slate-400 font-medium leading-relaxed">The Sight Form (NP 98) in the order of its 37 lines, with the figures worked out for the chosen position, ready to check against the Nautical Almanac and the Sight Reduction Tables. Open the file in a browser to print it.</p>
+    </div>
+  );
+};
+
+/** The position worked by the sight forms next to the direct calculation, so the two can be compared. */
+const crossRows = (set: FormSet): [string, string][] =>
+  set.fixForm && set.fixDirect ? [
+    ['By the sight forms', `${nav.formatCoord(set.fixForm.lat, 'lat')} ${nav.formatCoord(set.fixForm.lon, 'lon')}`],
+    ['Difference from the direct figure', `${distNm(set.fixForm, set.fixDirect).toFixed(2)} nm`],
+  ] : [];
+
 const NOTE = 'An aid for checking your own working. The Sun is worked out on the device to about a minute of arc, not taken from the Nautical Almanac, so compare with the almanac for anything that matters.';
 
-export const SunRunSunTool: React.FC = () => {
+export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const setup = useSetup();
   const { f, common, zone, jdOf } = setup;
   const g = useForm('srs', ['t1', 'a1', 't2', 'a2'] as const);
   const [unit, setUnit] = useUnit('srs:unit', 'nm');
   const j1 = jdOf(g.v.t1), j2 = j1 === null ? null : jdOf(g.v.t2, j1);
   const a1 = nav.parseAngle(g.v.a1), a2 = nav.parseAngle(g.v.a2);
-  const r = common && j1 !== null && j2 !== null && a1 !== null && a2 !== null
-    ? srs(common, { jd: j1, sextantDeg: a1 } as SightInput, { jd: j2, sextantDeg: a2 } as SightInput) : null;
+  const out = common && zone !== null && j1 !== null && j2 !== null && a1 !== null && a2 !== null
+    ? srsForms(common, { jd: j1, sextantDeg: a1 } as SightInput, { jd: j2, sextantDeg: a2 } as SightInput, zone, { from: f.v.from, to: f.v.to }) : null;
+  const r = out?.result ?? null;
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
   return (
@@ -138,8 +172,10 @@ export const SunRunSunTool: React.FC = () => {
               ['Time of fix', clock(r.second.jd, zone)],
               ['Run between sights', fromNm(r.run, unit)],
               ['Lines cross at', `${r.cut.toFixed(0)}°`],
+              ...(out ? crossRows(out.set) : []),
             ]} />
           )}
+          {out && <FormsButton set={out.set} title="Sun run Sun" file="sight-forms-srs" ship={ship} />}
           <SightDetail title="First sight" s={r.first} zone={zone} />
           <SightDetail title="Second sight" s={r.second} zone={zone} />
           <p className="text-[10px] text-slate-400 font-medium leading-relaxed">DR at the second sight: {nav.formatCoord(r.dr2.lat, 'lat')} {nav.formatCoord(r.dr2.lon, 'lon')}. The first position line is carried forward by the run and crossed with the second.</p>
@@ -149,7 +185,7 @@ export const SunRunSunTool: React.FC = () => {
   );
 };
 
-export const SunRunMerpassTool: React.FC = () => {
+export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const setup = useSetup();
   const { common, zone, jdOf } = setup;
   const g = useForm('srm', ['t1', 'a1', 'tm', 'am'] as const);
@@ -159,7 +195,8 @@ export const SunRunMerpassTool: React.FC = () => {
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
   // the expected time of passage is useful before the meridian altitude has been taken
   const early = common && j1 !== null && a1 !== null ? srm(common, { jd: j1, sextantDeg: a1 }, 45) : null;
-  const r = common && j1 !== null && a1 !== null && am !== null ? srm(common, { jd: j1, sextantDeg: a1 }, am, jm) : null;
+  const out = common && zone !== null && j1 !== null && a1 !== null && am !== null ? srmForms(common, { jd: j1, sextantDeg: a1 }, am, zone, { from: setup.f.v.from, to: setup.f.v.to }, jm) : null;
+  const r = out?.result ?? null;
 
   return (
     <div className="space-y-3">
@@ -191,8 +228,10 @@ export const SunRunMerpassTool: React.FC = () => {
               ['Meridian passage', `${clock(r.mpJd, zone)}${r.usedObservedTime ? ' (observed time used)' : ' (worked out)'}`],
               ['Run to meridian passage', fromNm(r.run, unit)],
               ['Meridian altitude Ho', dm(r.merHo)],
+              ...(out ? crossRows(out.set) : []),
             ]} />
           )}
+          {out && <FormsButton set={out.set} title="Sun run Merpass" file="sight-forms-srm" ship={ship} />}
           <SightDetail title="First sight" s={r.first} zone={zone} />
           <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Latitude = Sun's declination {dm(Math.abs(r.merSun.dec))} {r.merSun.dec >= 0 ? 'N' : 'S'} and zenith distance {dm(90 - r.merHo)}, taking the Sun {r.drMp.lat >= r.merSun.dec ? 'south' : 'north'} of the ship. The first position line is carried forward by the run and cut by that latitude.</p>
         </>

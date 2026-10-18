@@ -53,7 +53,7 @@ near(srs.run, 25, 1e-5); near(srs.runHours, 2.5, 1e-6); near(srs.cut, Math.abs(s
 
 // the same readings with the DR a long way off still give the right fix (the method corrects for it)
 const far = t.srs({ dr: { lat: true1.lat - 0.2, lon: true1.lon + 0.25 }, course, speed, cond }, { jd: j1, sextantDeg: sextantFor(altAt(true1, j1), j1) }, { jd: j2, sextantDeg: sextantFor(altAt(true2, j2), j2) });
-near(dist(far.fix!, true2), 0, 1.0, 'srs fix error with a poor DR (nm)');
+near(dist(far.fix!, true2), 0, 0.5, 'srs fix error with a poor DR (nm)');
 
 // the example from the Sun Run workbook, checked against an exact solution of the two altitude circles
 const wbDr: t.Pos = { lat: 15 + 20 / 60, lon: 78 + 35 / 60 };
@@ -96,13 +96,13 @@ const common = { dr, course, speed, cond };
 const withTime = t.srm(common, { jd: j1, sextantDeg: sextantFor(altAt(t1, j1), j1) }, sextantFor(merHo, tm), tm);
 assert.deepEqual(withTime.warnings, []); near(dist(withTime.fix!, trueM), 0, 0.3, 'srm fix error with the observed time (nm)');
 near(withTime.lat, trueM.lat, 0.003, 'latitude from the meridian altitude');
-// without an observed time the worked-out time is used; a DR out by 8' of longitude is only half a minute of time
+// without an observed time the worked-out time is used; it starts from the first position line, so a DR out by 8' of longitude does not spoil it
 const noTime = t.srm(common, { jd: j1, sextantDeg: sextantFor(altAt(t1, j1), j1) }, sextantFor(merHo, tm));
-assert.equal(noTime.usedObservedTime, false); near(Math.abs(noTime.mpJd - tm) * 86400, 32, 15, 'merpass time error (s)');
+assert.equal(noTime.usedObservedTime, false); near(Math.abs(noTime.mpJd - tm) * 86400, 0, 15, 'merpass time error (s)');
 near(dist(noTime.fix!, trueM), 0, 1.0, 'srm fix error without the observed time (nm)');
 // sun north of the observer: latitude = dec - zd
 const north = t.srm({ dr: { lat: 5, lon: 78.5 }, course: 90, speed: 10, cond }, { jd: t.zoneToJd(2018, 6, 21, 8, 30, 0, 5.5), sextantDeg: 45 }, 80);
-assert.ok(north.lat > 5 && north.drMp.lat === 5);   // sun at +23 declination, observer at 5N: zenith distance is to the north
+assert.ok(north.lat > 5 && north.drMp.lat < north.merSun.dec);   // sun at +23 declination, observer at 5N: zenith distance is to the north
 // a first sight made with the Sun nearly on the meridian gives no longitude
 const noon = t.srm({ dr: dr0, course: 90, speed: 5, cond }, { jd: mp - 0.001, sextantDeg: 74 }, 74);
 assert.equal(noon.fix, null); assert.ok(noon.warnings.some(w => /due north or south/.test(w)));
