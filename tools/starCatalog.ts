@@ -64,3 +64,6 @@ export const STAR_ROWS: readonly StarRow[] = [
   [56, 'Fomalhaut', 113368, 344.41177323, -29.62183701, 329.22, -164.22, 1.17],
   [57, 'Markab', 113963, 346.1900702, 15.20536786, 61.1, -42.56, 2.49],
 ];
+
+/** Polaris (HIP 11767), for the latitude from Polaris. Same source and epoch as the table above. */
+export const POLARIS_ROW: StarRow = [0, 'Polaris', 11767, 37.94614689, 89.26413805, 44.22, -11.74, 1.97];

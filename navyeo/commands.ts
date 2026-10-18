@@ -149,6 +149,8 @@ function tsdCommand(t: string): Reply | null {
 }
 
 const OPEN_ONLY: [RegExp, string][] = [
+  [/\bpolaris|pole star\b/, 'Polaris Latitude'],
+  [/\b(?:sunrise|sunset|rising|setting|twilight|amplitude|gyro error)\b/, 'Rise, Set and Twilight'],
   [/\b(?:4|four) ?star|rapid sight|star fix|star sights?\b/, 'Four Star Fix'],
   [/\b(?:srs|sun run sun|sunrunsun)\b/, 'Sun Run Sun (SRS)'],
   [/\b(?:srm|sun run mer(?:ridian)?(?: ?pass(?:age)?)?|sunrunmerpass|merpass|meridian passage)\b/, 'Sun Run Merpass (SRM)'],

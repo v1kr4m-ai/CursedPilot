@@ -51,6 +51,17 @@ const sgn10 = (v: number): string => `${v < 0 ? '−' : '+'}${(Math.abs(v) / 10)
 const hms = (h: number, m: number, s: number) => `${pad(h)}h ${pad(m)}m ${pad(s)}s`;
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** Lines 7 and 8: the deck watch and its error. With a watch error the watch reading is worked back from the GMT (GMT = D.W.T. + D.W.E., slow +). */
+function dwRows(gmt: { h: number; m: number; s: number }, dweSec?: number): FormRow[] {
+  if (dweSec === undefined) return [{ n: 7, label: 'D.W.T.', value: '', note: 'read from the deck watch' }, { n: 8, label: 'D.W.E.', value: 'nil', note: 'slow + / fast −' }];
+  const t = mod(gmt.h * 3600 + gmt.m * 60 + gmt.s - Math.round(dweSec), 86400);
+  const e = Math.round(dweSec);
+  return [
+    { n: 7, label: 'D.W.T.', value: hms(Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60), note: 'G.M.T. less the watch error' },
+    { n: 8, label: 'D.W.E.', value: e === 0 ? 'nil' : `${e > 0 ? '+' : '−'}${Math.abs(e)}s`, note: e === 0 ? 'slow + / fast −' : e > 0 ? 'slow' : 'fast' },
+  ];
+}
+
 export function zoneDescription(zoneHours: number): string {
   const d = -zoneHours, a = Math.abs(d), h = Math.floor(a + 1e-9), m = Math.round((a - h) * 60);
   return `${d < 0 ? '−' : '+'}${h}${m ? `:${pad(m)}` : ''}`;
@@ -78,7 +89,7 @@ function altitude(phi: number, ha: number, decRel: number): number {
 // ---- one Sun sight ---------------------------------------------------------------------------------------------
 
 export interface SunFormInput {
-  header: { from: string; to: string };
+  header: { from: string; to: string; dweSec?: number };
   dr: Pos; course: number; speed: number; cond: Conditions;
   zone: number; jd: number; sextantDeg: number;
   /** distance run from this sight to the time of the intended observed position, nm; null for none */
@@ -181,8 +192,7 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
     { n: 4, label: 'Date and Z.T.', value: `${pad(zt.d)} ${MONTHS[zt.mo - 1]} ${zt.y}`, value2: `${pad(zt.h)}h ${pad(zt.m)}m`, note: 'd  h  m' },
     { n: 5, label: 'Zone', value: zoneDescription(i.zone) },
     { n: 6, label: 'Greenwich Date', value: `${pad(gmt.d)} ${MONTHS[gmt.mo - 1]} ${gmt.y}`, value2: `${pad(gmt.h)}h ${pad(gmt.m)}m` },
-    { n: 7, label: 'D.W.T.', value: '', note: 'read from the deck watch' },
-    { n: 8, label: 'D.W.E.', value: 'nil', note: 'slow + / fast −' },
+    ...dwRows(gmt, i.header.dweSec),
     { n: 9, label: 'G.M.T.', value: hms(gmt.h, gmt.m, gmt.s) },
     { n: 10, label: 'Tabulated G.H.A.', value: dm10(gTab10), note: star ? `Aries, ${pad(gmt.h)}h` : `${pad(gmt.h)}h` },
     { n: 11, label: 'Increment', value: dm10(inc10), note: `${pad(gmt.m)}m ${pad(gmt.s)}s` },
@@ -220,7 +230,7 @@ export function sunSightForm(i: SunFormInput): { form: SightForm; calc: SunFormC
     rows,
     notes: [
       'Worked out by Cursed Pilot, not looked up: tabulated GHA, declination, altitude and differences are calculated to the tenth of a minute, so they can differ from the Nautical Almanac and the Sight Reduction Tables by about 0.1′.',
-      'D.W.T. is left for the watch reading; the zone time is taken as correct (D.W.E. nil).',
+      'D.W.T. is worked back from the G.M.T. and the watch error entered (blank and nil if none was given); the times are taken as correct.',
     ],
   };
   const line = positionLine({ lat: apLat, lon: apLon }, true10 / T, { gha: gha10 / T, dec: dec10 / T, lha, hc: corrTab10 / T, zn });
@@ -245,7 +255,7 @@ export interface FormSet {
 const distNm = (a: Pos, b: Pos) => Math.hypot((a.lat - b.lat) * 60, (a.lon - b.lon) * 60 * Math.cos(rad((a.lat + b.lat) / 2)));
 export { distNm };
 
-export function srsForms(c: Common, s1: SightInput, s2: SightInput, zone: number, header: { from: string; to: string }): { set: FormSet; result: SrsResult } {
+export function srsForms(c: Common, s1: SightInput, s2: SightInput, zone: number, header: { from: string; to: string; dweSec?: number }): { set: FormSet; result: SrsResult } {
   const result = srs(c, s1, s2);
   const base = { header, course: c.course, speed: c.speed, cond: c.cond, zone };
   const f1 = sunSightForm({ ...base, dr: c.dr, jd: s1.jd, sextantDeg: s1.sextantDeg, runNm: result.run, title: 'Sight 1 of 2 (Sun run Sun)' });
@@ -272,7 +282,7 @@ export function srsForms(c: Common, s1: SightInput, s2: SightInput, zone: number
 
 // ---- Sun run Merpass ---------------------------------------------------------------------------------------------
 
-export function srmForms(c: Common, s1: SightInput, merSextantDeg: number, zone: number, header: { from: string; to: string }, observedMpJd?: number): { set: FormSet; result: SrmResult } {
+export function srmForms(c: Common, s1: SightInput, merSextantDeg: number, zone: number, header: { from: string; to: string; dweSec?: number }, observedMpJd?: number): { set: FormSet; result: SrmResult } {
   const result = srm(c, s1, merSextantDeg, observedMpJd);
   const base = { header, course: c.course, speed: c.speed, cond: c.cond, zone };
   const f1 = sunSightForm({ ...base, dr: c.dr, jd: s1.jd, sextantDeg: s1.sextantDeg, runNm: result.run, title: 'Sight 1 of 2 (Sun run Merpass)' });
@@ -308,8 +318,7 @@ export function srmForms(c: Common, s1: SightInput, merSextantDeg: number, zone:
     { n: 4, label: 'Date and Z.T.', value: `${pad(zt.d)} ${MONTHS[zt.mo - 1]} ${zt.y}`, value2: `${pad(zt.h)}h ${pad(zt.m)}m`, note: 'd  h  m' },
     { n: 5, label: 'Zone', value: zoneDescription(zone) },
     { n: 6, label: 'Greenwich Date', value: `${pad(gmt.d)} ${MONTHS[gmt.mo - 1]} ${gmt.y}`, value2: `${pad(gmt.h)}h ${pad(gmt.m)}m` },
-    { n: 7, label: 'D.W.T.', value: '', note: 'read from the deck watch' },
-    { n: 8, label: 'D.W.E.', value: 'nil', note: 'slow + / fast −' },
+    ...dwRows(gmt, header.dweSec),
     { n: 9, label: 'G.M.T.', value: hms(gmt.h, gmt.m, gmt.s) },
     ...[10, 11, 12, 13, 14, 15, 16].map(n => ({ n, label: ['Tabulated G.H.A.', 'Increment', 'v corr. or S.H.A.', 'G.H.A.', 'Chosen Long.', 'L.H.A.', 'Tab. H.A.'][n - 10], value: dash, note: n === 15 ? 'L.H.A. 0° on the meridian' : undefined })),
     { n: 17, label: 'Tabulated Dec.', value: `${dm10(Math.abs(decTab10))} ${decTab10 >= 0 ? 'N' : 'S'}`, value2: `d ${d10 < 0 ? '−' : '+'}${(Math.abs(d10) / 10).toFixed(1)}'` },

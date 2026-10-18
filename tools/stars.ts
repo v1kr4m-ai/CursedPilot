@@ -1,7 +1,7 @@
 // Apparent places of the 57 navigational stars for any date and time: proper motion, precession, nutation and annual
 // aberration (Meeus, Astronomical Algorithms ch. 21 and 23), giving SHA and declination as the Nautical Almanac
 // tabulates them, to a few seconds of arc. Pure; `node tools/stars.check.ts` checks it against Meeus's worked example.
-import { STAR_ROWS } from './starCatalog.ts';
+import { POLARIS_ROW, STAR_ROWS } from './starCatalog.ts';
 import { deltaT, gast, meanObliquity, nutation, sunTrueLongitude } from './sunEphemeris.ts';
 
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -22,6 +22,8 @@ export interface Star {
 }
 
 export const STARS: readonly Star[] = STAR_ROWS.map(([no, name, hip, ra0, dec0, pmRa, pmDec, v]) => ({ no, name, hip, ra0, dec0, pmRa, pmDec, v }));
+/** Polaris, kept apart from the 57 stars (it is not one of the almanac's list and is only used for latitude). */
+export const POLARIS: Star = (([no, name, hip, ra0, dec0, pmRa, pmDec, v]) => ({ no, name, hip, ra0, dec0, pmRa, pmDec, v }))(POLARIS_ROW);
 export const starByName = (name: string): Star | undefined => STARS.find(s => s.name.toLowerCase() === name.trim().toLowerCase());
 
 /**

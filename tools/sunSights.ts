@@ -298,3 +298,16 @@ export function parseStopwatch(text: string): number | null {
   const plain = /^(\d{1,4}(?:\.\d+)?)$/.exec(t);
   return plain ? +plain[1] : null;
 }
+
+/** A deck watch error: "+12" or "12 slow" (slow, positive), "-5" or "5 fast" (fast, negative), "1:05" (a minute and 5 seconds slow). Seconds, or null. */
+export function parseWatchError(text: string): number | null {
+  const t = text.trim().toLowerCase();
+  const m = /^([+-]?)\s*(\d{1,2}):(\d{1,2})\s*(slow|fast)?$/.exec(t) ?? /^([+-]?)\s*(\d{1,4}(?:\.\d+)?)\s*(?:s|sec|secs|seconds)?\s*(slow|fast)?$/.exec(t);
+  if (!m) return null;
+  const mins = m.length === 5 && /:/.test(t);
+  const secs = mins ? +m[2] * 60 + +m[3] : +m[2];
+  const word = mins ? m[4] : m[3];
+  if (mins && +m[3] >= 60) return null;
+  const negative = m[1] === '-' || word === 'fast';
+  return negative ? -secs : secs;
+}

@@ -110,6 +110,19 @@ assert.ok(sm.set.fixForm); near(f.distNm(sm.set.fixForm!, trueM), 0, 0.5, 'merpa
 near(f.distNm(sm.set.fixForm!, sm.set.fixDirect!), 0, 0.4, 'merpass form against direct (nm)');
 assert.deepEqual(sm.set.warnings, []);
 
+// ---- deck watch: lines 7 and 8
+{
+  const slow = f.srsForms(c, { jd: j1, sextantDeg: 52 + 15 / 60 }, { jd: j2, sextantDeg: 79 + 30 / 60 }, 5, { ...header, dweSec: 12 }).set.forms[0];
+  assert.equal(row(slow, 7).value, '04h 14m 48s'); assert.equal(row(slow, 8).value, '+12s'); assert.equal(row(slow, 8).note, 'slow'); assert.equal(row(slow, 9).value, '04h 15m 00s');
+  const fast = f.srsForms(c, { jd: j1, sextantDeg: 52 + 15 / 60 }, { jd: j2, sextantDeg: 79 + 30 / 60 }, 5, { ...header, dweSec: -5 }).set.forms[0];
+  assert.equal(row(fast, 7).value, '04h 15m 05s'); assert.equal(row(fast, 8).value, '−5s'); assert.equal(row(fast, 8).note, 'fast');
+  const zero = f.srsForms(c, { jd: j1, sextantDeg: 52 + 15 / 60 }, { jd: j2, sextantDeg: 79 + 30 / 60 }, 5, { ...header, dweSec: 0 }).set.forms[1];
+  assert.equal(row(zero, 7).value, '06h 45m 00s'); assert.equal(row(zero, 8).value, 'nil');
+  assert.equal(row(f1, 7).value, ''); assert.equal(row(f1, 8).value, 'nil');                                 // no error given: blank watch, nil error
+  const over = f.srsForms({ ...c }, { jd: t.zoneToJd(2018, 9, 10, 5, 29, 58, 5.5), sextantDeg: 40 }, { jd: t.zoneToJd(2018, 9, 10, 7, 29, 58, 5.5), sextantDeg: 60 }, 5.5, { ...header, dweSec: 20 }).set.forms[0];
+  assert.equal(row(over, 7).value, '23h 59m 38s');                                                           // the watch reading wraps past midnight
+}
+
 // ---- the printable page
 const html = sightFormsHtml({ ...set, forms: set.forms.map(x => ({ ...x, header: { ...x.header, from: '<Evil> & "Co"' } })) }, { title: 'Sun run Sun', ship: 'INS <Test>' }, new Date('2018-09-10T10:00:00Z'));
 assert.ok(html.includes('&lt;Evil&gt; &amp; &quot;Co&quot;') && !html.includes('<Evil>') && !html.includes('<Test>') && html.includes('INS &lt;Test&gt;'));

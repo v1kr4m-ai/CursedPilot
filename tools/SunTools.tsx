@@ -5,14 +5,14 @@ import { saveFile } from '../services/backup';
 import { sightFormsHtml } from '../services/sightFormHtml';
 import * as nav from './navMath';
 import { Field, Grid, Panel, Result, SELECT, Seg, UnitPick, Warn, fromNm, toNum, useForm, useMemory, useUnit } from './kit';
-import { calendarOf } from './sunEphemeris';
+import { calendarOf, julianDay } from './sunEphemeris';
 import { FormSet, distNm, srmForms, srsForms } from './sightForm';
-import { Common, Conditions, SightInput, SightResult, parseClock, parseIsoDate, parseZone, srm, zoneToJd } from './sunSights';
+import { Common, Conditions, SightInput, SightResult, parseClock, parseIsoDate, parseWatchError, parseZone, srm, zoneToJd } from './sunSights';
 
 // Sun Run Sun and Sun Run Merpass: the Sun-sight fixes of the Sun Run workbook, worked on the device.
 // The sums are in sunSights.ts and sunEphemeris.ts; this file is the entry forms and the way the answers are shown.
 
-const FIELDS = ['date', 'zone', 'lat', 'lon', 'course', 'speed', 'hoe', 'ie', 'temp', 'press', 'from', 'to'] as const;
+const FIELDS = ['date', 'zone', 'lat', 'lon', 'course', 'speed', 'hoe', 'ie', 'temp', 'press', 'from', 'to', 'dwe'] as const;
 
 /** "52°27.2'" */
 export const dm = (d: number, digits = 1) => {
@@ -28,7 +28,7 @@ export const clock = (jd: number, zone: number) => {
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map(n => String(n).padStart(2, '0')).join(':');
 };
 
-const DateField: React.FC<{ value: string; onChange: (s: string) => void }> = ({ value, onChange }) => (
+export const DateField: React.FC<{ value: string; onChange: (s: string) => void }> = ({ value, onChange }) => (
   <label className="block space-y-1">
     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date (zone time)</span>
     <input type="date" value={value} onChange={e => onChange(e.target.value)} aria-label="Date"
@@ -37,7 +37,9 @@ const DateField: React.FC<{ value: string; onChange: (s: string) => void }> = ({
 );
 
 /** The ship, the date, and the sextant and weather: shared by both tools, so it is entered once. */
-export function useSetup(opts: { limb?: boolean } = {}) {
+/** `run: false` leaves out course and speed; `latitude: 'optional'` lets the DR latitude be left blank (the tool does not need it). */
+export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'required' | 'optional' } = {}) {
+  const needRun = opts.run !== false, needLat = opts.latitude !== 'optional';
   const f = useForm('sun', FIELDS);
   const [offArc, setOffArc] = useMemory('sun:offarc', true);
   const [limb, setLimb] = useMemory<'LL' | 'UL'>('sun:limb', 'LL');
@@ -45,18 +47,34 @@ export function useSetup(opts: { limb?: boolean } = {}) {
   const lat = nav.parseCoord(f.v.lat, 'lat'), lon = nav.parseCoord(f.v.lon, 'lon');
   const course = f.n('course'), speed = f.n('speed'), hoe = f.n('hoe');
   const ie = f.v.ie.trim() === '' ? 0 : f.n('ie'), temp = f.v.temp.trim() === '' ? 10 : f.n('temp'), press = f.v.press.trim() === '' ? 1010 : f.n('press');
-  const ready = !!date && zone !== null && lat !== null && lon !== null && course !== null && course >= 0 && course <= 360 && speed !== null && speed >= 0
+  const ready = !!date && zone !== null && lon !== null
+    && (needLat ? lat !== null : f.v.lat.trim() === '' || lat !== null)
+    && (!needRun || (course !== null && course >= 0 && course <= 360 && speed !== null && speed >= 0))
     && hoe !== null && hoe >= 0 && ie !== null && ie >= 0 && temp !== null && press !== null && press > 0;
   const common: Common | null = ready ? {
-    dr: { lat: lat!, lon: lon! }, course: course!, speed: speed!,
+    dr: { lat: lat ?? 0, lon: lon! }, course: course ?? 0, speed: speed ?? 0,
     cond: { hoeM: hoe!, ieMin: ie!, offArc, limb, tempC: temp!, pressMb: press! } as Conditions,
   } : null;
 
   /** zone clock text -> Julian day; a time earlier than `after` is taken as the next day */
+  const dwe = f.v.dwe.trim() === '' ? undefined : parseWatchError(f.v.dwe);
+  const [basis, setBasis] = useMemory<'zt' | 'dwt'>('sun:basis', 'zt');
+  /** zone clock text (or deck watch text) -> Julian day; a time earlier than `after` is taken as the next day */
   const jdOf = (text: string, after?: number): number | null => {
     const sec = parseClock(text);
     if (!date || zone === null || sec === null) return null;
-    let jd = zoneToJd(date[0], date[1], date[2], 0, 0, sec, zone);
+    let jd: number;
+    if (basis === 'dwt') {
+      // the watch keeps GMT: GMT = watch + error; the Greenwich date is the one that puts the zone time on the date entered
+      const gmtSec = sec + (dwe ?? 0);
+      jd = NaN;
+      for (const off of [0, -1, 1]) {
+        const cand = julianDay(date[0], date[1], date[2] + off, 0, 0, 0) + gmtSec / 86400;
+        const z = calendarOf(cand + zone / 24 + 1e-9);
+        if (z[0] === date[0] && z[1] === date[1] && z[2] === date[2]) { jd = cand; break; }
+      }
+      if (Number.isNaN(jd)) return null;
+    } else jd = zoneToJd(date[0], date[1], date[2], 0, 0, sec, zone);
     if (after !== undefined && jd < after) jd += 1;
     return jd;
   };
@@ -67,13 +85,17 @@ export function useSetup(opts: { limb?: boolean } = {}) {
         <Grid>
           <DateField value={f.v.date} onChange={f.bind('date').onChange} />
           <Field label="Zone (h from UT)" hint="+5:30" text invalid={f.v.zone.trim() !== '' && zone === null} {...f.bind('zone')} />
-          <Field label="DR latitude" hint="15 20 N" text invalid={f.v.lat.trim() !== '' && lat === null} {...f.bind('lat')} />
+          <Field label={needLat ? 'DR latitude' : 'DR latitude (optional)'} hint="15 20 N" text invalid={f.v.lat.trim() !== '' && lat === null} {...f.bind('lat')} />
           <Field label="DR longitude" hint="78 35 E" text invalid={f.v.lon.trim() !== '' && lon === null} {...f.bind('lon')} />
-          <Field label="Course" unit="°T" {...f.bind('course')} />
-          <Field label="Speed" unit="kn" {...f.bind('speed')} />
+          {needRun && <Field label="Course" unit="°T" {...f.bind('course')} />}
+          {needRun && <Field label="Speed" unit="kn" {...f.bind('speed')} />}
           <Field label="From (optional)" text hint="port" {...f.bind('from')} />
           <Field label="To (optional)" text hint="port" {...f.bind('to')} />
         </Grid>
+      </Panel>
+      <Panel title="Deck watch" note="Leave the watch error blank if the times you enter are already right. With a watch error the form shows the deck watch reading (G.M.T. less the error). Slow is positive, fast negative: +12, 5 fast, 1:05.">
+        <Seg value={basis} onChange={v => setBasis(v as 'zt' | 'dwt')} options={[['zt', 'Times are zone time'], ['dwt', 'Times are deck watch']]} />
+        <Field label="Watch error (seconds)" text hint="+12 slow / -5 fast" invalid={f.v.dwe.trim() !== '' && dwe === null} {...f.bind('dwe')} />
       </Panel>
       <Panel title="Sextant and weather">
         <Grid>
@@ -89,7 +111,7 @@ export function useSetup(opts: { limb?: boolean } = {}) {
       </Panel>
     </>
   );
-  return { f, common, zone, jdOf, ui, ready };
+  return { f, common, zone, jdOf, ui, ready, dweSec: dwe ?? undefined, basis, lat, lon, date };
 }
 
 const SightDetail: React.FC<{ title: string; s: SightResult; zone: number }> = ({ title, s, zone }) => (
@@ -145,7 +167,7 @@ export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const j1 = jdOf(g.v.t1), j2 = j1 === null ? null : jdOf(g.v.t2, j1);
   const a1 = nav.parseAngle(g.v.a1), a2 = nav.parseAngle(g.v.a2);
   const out = common && zone !== null && j1 !== null && j2 !== null && a1 !== null && a2 !== null
-    ? srsForms(common, { jd: j1, sextantDeg: a1 } as SightInput, { jd: j2, sextantDeg: a2 } as SightInput, zone, { from: f.v.from, to: f.v.to }) : null;
+    ? srsForms(common, { jd: j1, sextantDeg: a1 } as SightInput, { jd: j2, sextantDeg: a2 } as SightInput, zone, { from: f.v.from, to: f.v.to, dweSec: setup.dweSec }) : null;
   const r = out?.result ?? null;
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
@@ -195,7 +217,7 @@ export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
   // the expected time of passage is useful before the meridian altitude has been taken
   const early = common && j1 !== null && a1 !== null ? srm(common, { jd: j1, sextantDeg: a1 }, 45) : null;
-  const out = common && zone !== null && j1 !== null && a1 !== null && am !== null ? srmForms(common, { jd: j1, sextantDeg: a1 }, am, zone, { from: setup.f.v.from, to: setup.f.v.to }, jm) : null;
+  const out = common && zone !== null && j1 !== null && a1 !== null && am !== null ? srmForms(common, { jd: j1, sextantDeg: a1 }, am, zone, { from: setup.f.v.from, to: setup.f.v.to, dweSec: setup.dweSec }, jm) : null;
   const r = out?.result ?? null;
 
   return (

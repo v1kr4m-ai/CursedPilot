@@ -119,4 +119,9 @@ assert.equal(t.parseZone('20'), null); assert.equal(t.parseZone('abc'), null); a
 assert.equal(t.parseStopwatch('3:40'), 220); assert.equal(t.parseStopwatch('0:20'), 20); assert.equal(t.parseStopwatch('3 40'), 220); assert.equal(t.parseStopwatch('3m40s'), 220); assert.equal(t.parseStopwatch('220'), 220); assert.equal(t.parseStopwatch('12:05.5'), 725.5);
 for (const bad of ['', 'x', '3:75', '-1']) assert.equal(t.parseStopwatch(bad), null, bad);
 
+// watch error
+assert.equal(t.parseWatchError('+12'), 12); assert.equal(t.parseWatchError('12'), 12); assert.equal(t.parseWatchError('-5'), -5); assert.equal(t.parseWatchError('5 fast'), -5); assert.equal(t.parseWatchError('12 slow'), 12);
+assert.equal(t.parseWatchError('1:05'), 65); assert.equal(t.parseWatchError('-0:30'), -30); assert.equal(t.parseWatchError('0'), 0); assert.equal(t.parseWatchError('4.5s slow'), 4.5);
+for (const bad of ['', 'abc', '1:75', '5 late']) assert.equal(t.parseWatchError(bad), null, bad);
+
 console.log('sunSights: all checks passed');

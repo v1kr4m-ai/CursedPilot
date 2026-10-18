@@ -15,11 +15,12 @@ import { parseStopwatch } from './sunSights';
 const SLOTS = [1, 2, 3, 4] as const;
 const FIELDS = ['interval', 'k1', 'k2', 'k3', 'k4', 't1', 't2', 't3', 't4', 'a1', 'a2', 'a3', 'a4'] as const;
 
-const PlanBlock: React.FC<{ plan: StarPlan; zone: number; onUse: () => void }> = ({ plan, zone, onUse }) => (
+const PlanBlock: React.FC<{ plan: StarPlan; zone: number; dweSec?: number; onUse: () => void }> = ({ plan, zone, dweSec, onUse }) => (
   <div className="space-y-2">
     <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs font-bold text-blue-700 space-y-1">
       <div>Civil twilight {clock(plan.twilightJd, zone)}, start looking from {clock(plan.startJd, zone)}.</div>
       <div>Start the stopwatch at <span className="text-base">{clock(plan.zeroJd, zone)}</span> zone time (GMT {clock(plan.zeroJd, 0)}).</div>
+      {dweSec !== undefined && <div>Deck watch to start the stopwatch: <span className="text-base">{clock(plan.zeroJd - dweSec / 86400, 0)}</span> (watch error {dweSec >= 0 ? '+' : '−'}{Math.abs(dweSec)}s).</div>}
       <div>Take all four stars between 0:00 and 4:00 on the stopwatch, about 2:00 on average. LHA Aries {plan.chosenLhaAries}° at {clock(plan.t0Jd, zone)}.</div>
     </div>
     <table className="w-full text-xs">
@@ -70,7 +71,7 @@ export const FourStarTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
     if (star && alt !== null && jd !== null) sights.push({ star, jd, sextantDeg: alt });
   }
   const refJd = zeroJd ?? (sights.length ? Math.min(...sights.map(s => s.jd)) : null);
-  const out = common && zone !== null && refJd !== null && sights.length >= 2 ? fourStarFix(common, refJd, sights, zone, { from: sf.v.from, to: sf.v.to }, fixAt) : null;
+  const out = common && zone !== null && refJd !== null && sights.length >= 2 ? fourStarFix(common, refJd, sights, zone, { from: sf.v.from, to: sf.v.to, dweSec: setup.dweSec }, fixAt) : null;
   const r = out?.result ?? null;
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
@@ -82,7 +83,7 @@ export const FourStarTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         <Field label="Start this many minutes before twilight" unit="min" hint="10" {...g.bind('interval')} />
         {!ready && <p className="text-xs text-slate-400 font-medium">Fill in the date, zone, DR, course, speed and height of eye above.</p>}
         {noPlan && <Warn>There is no civil twilight at this latitude and date, so the stars cannot be planned. You can still enter sights with the zone time.</Warn>}
-        {plan && zone !== null && <PlanBlock plan={plan} zone={zone} onUse={useSuggested} />}
+        {plan && zone !== null && <PlanBlock plan={plan} zone={zone} dweSec={setup.dweSec} onUse={useSuggested} />}
       </Panel>
 
       <Panel title="Four star fix: sights" note={NOTE}>

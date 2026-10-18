@@ -144,6 +144,28 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['GHA star = GHA Aries + SHA', 'LHA Aries at t0 = a whole number of degrees; t0 = zero time + 2 min', 'sin Hc = sin φ sin δ + cos φ cos δ cos LHA', 'Intercept (′) = (Ho − Hc) × 60', 'Fix: minimise Σ (miss from line)² over the lines'],
     limits: ['The star positions are from the Hipparcos catalogue (epoch 1991.25), moved to the date; they agree with the Nautical Almanac to a few seconds of arc, but they are calculated, not read from it.', 'A wrong star (misidentified) shows as a large miss from its line, and the tool warns when any line misses the fix by more than 2 nm.', 'Star bearings should be spread round the horizon; the tool warns when there is a sector of more than 150° with no star.', 'The DR is taken as the position at zero time and the course and speed as held; set and drift are not allowed for.', 'The time of the fix is zero time, as in the rapid method, or the last sight if you choose. The filled Sight Forms use the star lines of the form (SHA, Aries increment, no d correction).'],
   },
+  'Polaris Latitude': {
+    concept: 'Polaris is within a degree of the north celestial pole, so its true altitude is nearly the observer\'s latitude. The small difference depends on where Polaris is in its little circle round the pole, which the hour angle gives.',
+    steps: [
+      'The time gives GHA Aries (from the sidereal time) and, with Polaris\'s SHA for the date, the GHA and then the LHA of Polaris for the DR longitude.',
+      'The sextant altitude is corrected for index error, dip and refraction to the true altitude Ho.',
+      'The latitude is the one at which the altitude formula gives Ho: sin Ho = sin Lat sin Dec + cos Lat cos Dec cos LHA. This is the exact form of Lat = Ho − 1° + a0 + a1 + a2.',
+      'The first-order part of the correction is −p cos LHA, and the second-order part is ½ p² sin² LHA tan Lat, where p is Polaris\'s polar distance (about 0.7°). The almanac\'s a0, a1 and a2 together equal the whole correction, split in the book\'s own way.',
+    ],
+    formulas: ['sin Ho = sin φ sin δ + cos φ cos δ cos LHA', 'φ ≈ Ho − p cos LHA + ½ p² sin² LHA tan φ', 'Lat = Ho − 1° + (a0 + a1 + a2)', 'LHA Polaris = GHA Aries + SHA + East longitude'],
+    limits: ['Polaris is seen only from the northern hemisphere, and the tool warns when it is under 5° (refraction is uncertain) or not above the horizon.', 'Only the DR longitude is used, for the hour angle: a degree of longitude error is under a minute of latitude.', 'Polaris\'s position is from the Hipparcos catalogue moved to the date; the worked example in your notes (8°41.9′N) is reproduced.', 'An aid only: compare the sum a0 + a1 + a2 with the almanac.'],
+  },
+  'Rise, Set and Twilight': {
+    concept: 'The times at which the Sun\'s centre reaches given altitudes for the position and date: rising and setting, and the three twilights. The true bearing of the Sun at rising and setting (the amplitude) gives the error of the gyro or compass.',
+    steps: [
+      'The meridian passage is found first (when the LHA of the Sun is 0°), and each event is searched for in the morning before it and the evening after it.',
+      'At each trial time the Sun\'s altitude is worked out from the position, and the time is found where it equals the wanted altitude: −50′ for rising and setting (34′ refraction and 16′ semi-diameter, as in the almanac, less the dip when seen from the height of eye), and −6°, −12°, −18° for civil, nautical and astronomical twilight.',
+      'The true bearing at that moment follows from the same spherical formula; the amplitude is its angle from east or west.',
+      'Gyro or compass error = true bearing − bearing observed. Positive means the compass reads too low (error east).',
+    ],
+    formulas: ['sin h = sin φ sin δ + cos φ cos δ cos LHA', 'Rising/setting: h = −50′ (−50′ − dip from the eye)', 'Twilight: h = −6°, −12°, −18°', 'Error = True − Observed'],
+    limits: ['The Sun is worked out on the device, so times are good to about a minute; the almanac and local refraction can differ by a minute or two.', 'Near the poles the Sun may not reach the altitude: the tool says so.', 'The DR position is used as it is; for a moving ship use the DR for that time.', 'A bearing is only as good as the observation: take it with the Sun just clear of the horizon and enter the time if not at rising or setting.'],
+  },
   'Compass Conversion': {
     concept: 'A compass course differs from the true course by the ship\'s deviation (her own magnetism) and the local variation. Easterly corrections are added when going from compass to true.',
     steps: [

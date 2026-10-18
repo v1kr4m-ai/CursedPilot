@@ -121,7 +121,7 @@ export interface FourStarResult {
   warnings: string[];
 }
 
-export function fourStarFix(c: Common, refJd: number, sights: StarSightIn[], zone: number, header: { from: string; to: string }, fixAt: 'zero' | 'last' = 'zero'): { set: FormSet; result: FourStarResult } {
+export function fourStarFix(c: Common, refJd: number, sights: StarSightIn[], zone: number, header: { from: string; to: string; dweSec?: number }, fixAt: 'zero' | 'last' = 'zero'): { set: FormSet; result: FourStarResult } {
   const warnings: string[] = [];
   const fixJd = fixAt === 'zero' ? refJd : Math.max(refJd, ...sights.map(s => s.jd));
   const base = { header, course: c.course, speed: c.speed, cond: c.cond, zone };
