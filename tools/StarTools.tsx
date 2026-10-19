@@ -84,7 +84,7 @@ const PlanBlock: React.FC<{ plan: StarPlan; zone: number; dweSec?: number; onUse
 );
 
 export const FourStarTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const setup = useSetup();   // the limb is shown for the Moon
+  const setup = useSetup({ ship });   // the limb is shown for the Moon
   const { f: sf, common, zone, jdOf, ready } = setup;
   const g = useForm('star', FIELDS);
   const [kind, setKind] = useMemory<'morning' | 'evening'>('star:kind', 'evening');
@@ -145,9 +145,9 @@ export const FourStarTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
               </select>
               <Grid>
                 {timeMode === 'watch'
-                  ? <Field label="Stopwatch" hint="0:40" text invalid={bad(g.v[t], parseStopwatch(g.v[t]) !== null)} {...g.bind(t)} />
-                  : <Field label="Zone time" hint="05:42:10" text invalid={bad(g.v[t], jdOf(g.v[t]) !== null)} {...g.bind(t)} />}
-                <Field label="Sextant altitude" unit="° ′" hint="46 12.5" text invalid={bad(g.v[a], parseAngle(g.v[a]) !== null)} {...g.bind(a)} />
+                  ? <Field label="Stopwatch" kind="stopwatch" invalid={bad(g.v[t], parseStopwatch(g.v[t]) !== null)} {...g.bind(t)} />
+                  : <Field label="Zone time" kind="time" invalid={bad(g.v[t], jdOf(g.v[t]) !== null)} {...g.bind(t)} />}
+                <Field label="Sextant altitude" unit="° ′" kind="angle" invalid={bad(g.v[a], parseAngle(g.v[a]) !== null)} {...g.bind(a)} />
               </Grid>
             </div>
           );

@@ -10,6 +10,21 @@ export const reciprocal = (h: number) => norm360(h + 180);
 /** Range-and-angle rule: angle subtended = distance / range, in degrees. */
 export const radianAngle = (distance: number, range: number) => deg(distance / range);
 
+/**
+ * Interpolates between two readings (x1, y1) and (x2, y2) to x, as from a table.
+ * 'linear' is the straight-line interpolation of the tables. 'inverse' suits the radian rule, where the angle varies
+ * inversely with the range (y = K / x): it interpolates 1/y, which is straight against x, so it is exact for that law.
+ * Returns null when the readings do not allow it (the two x equal, or an 'inverse' with a zero reading).
+ */
+export function interpolate(x1: number, y1: number, x2: number, y2: number, x: number, mode: 'linear' | 'inverse' = 'linear'): number | null {
+  if (x1 === x2) return null;
+  const t = (x - x1) / (x2 - x1);
+  if (mode === 'linear') return y1 + (y2 - y1) * t;
+  if (y1 === 0 || y2 === 0) return null;
+  const inv = 1 / y1 + (1 / y2 - 1 / y1) * t;
+  return inv === 0 ? null : 1 / inv;
+}
+
 // ---- Time / speed / distance -------------------------------------------------------------------
 
 export interface TSD { distance: number | null; speed: number | null; minutes: number | null }
@@ -62,6 +77,33 @@ export function cpa(i: CpaInput): CpaResult {
   if (t <= 0) return { cpa: i.range, tcpaMinutes: null, status: 'opening', relativeCourse, relativeSpeed, bearingAtCpa: norm360(i.bearing) };
   const q = { x: p.x + v.x * t, y: p.y + v.y * t };
   return { cpa: Math.hypot(q.x, q.y), tcpaMinutes: t * 60, status: 'closing', relativeCourse, relativeSpeed, bearingAtCpa: norm360(deg(Math.atan2(q.x, q.y))) };
+}
+
+export interface CpaGeometry {
+  /** which side of own ship the target passes at CPA; null when it passes right through (CPA ~ 0) or is not closing */
+  side: 'Port' | 'Starboard' | null;
+  /** where the target's relative track crosses own ship's course line, ahead (bow) or behind (stern); null if it never does in the future */
+  crossing: { where: 'bow' | 'stern'; rangeNm: number; minutes: number } | null;
+}
+
+/** Port or starboard pass, and the bow (or stern) crossing range and time, for a target on a steady relative track. */
+export function cpaGeometry(i: CpaInput): CpaGeometry {
+  const r = cpa(i);
+  const rel = norm360(r.bearingAtCpa - i.ownCourse);
+  const side = r.status === 'closing' && r.cpa >= 0.01 ? (rel < 180 ? 'Starboard' : 'Port') : null;
+  const p = { x: i.range * Math.sin(rad(i.bearing)), y: i.range * Math.cos(rad(i.bearing)) };
+  const v = {
+    x: i.targetSpeed * Math.sin(rad(i.targetCourse)) - i.ownSpeed * Math.sin(rad(i.ownCourse)),
+    y: i.targetSpeed * Math.cos(rad(i.targetCourse)) - i.ownSpeed * Math.cos(rad(i.ownCourse)),
+  };
+  const u = { x: Math.sin(rad(i.ownCourse)), y: Math.cos(rad(i.ownCourse)) };      // own ship's course line
+  const cross = (a: { x: number; y: number }, b: { x: number; y: number }) => a.x * b.y - a.y * b.x;
+  const denom = cross(v, u);
+  if (Math.abs(denom) < 1e-9) return { side, crossing: null };                     // relative track parallel to own course
+  const t = -cross(p, u) / denom;                                                  // hours at which P(t) lies on the line through own ship along u
+  if (t <= 0) return { side, crossing: null };
+  const ahead = (p.x + v.x * t) * u.x + (p.y + v.y * t) * u.y;                     // + ahead of own ship, - astern
+  return { side, crossing: { where: ahead >= 0 ? 'bow' : 'stern', rangeNm: Math.abs(ahead), minutes: t * 60 } };
 }
 
 // ---- Course to steer (tidal triangle) ---------------------------------------------------------

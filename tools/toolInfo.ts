@@ -13,6 +13,42 @@ export interface ToolInfo {
 }
 
 export const TOOL_INFO: Record<string, ToolInfo> = {
+  'Battenberg': {
+    concept: 'The course to steer to take up, or change, station on a Guide. The Guide moves, so the track you want is the track relative to her, and the course is found from the relative velocity triangle (BR 45(6) para 0423). The stations are shown on a Battenberg-style diagram with the Guide at the centre heading up, and the bearings on her bow, beam, quarter and astern marked.',
+    steps: [
+      'Enter the Guide\'s true course and speed and your own stationing speed (the speed you will use to close).',
+      'Give where you are now and the ordered station, each as the angle off the Guide\'s bow (0 to 180) on her port or starboard side and the distance. You can tap the diagram instead.',
+      'Your ground velocity is the Guide\'s velocity plus your velocity relative to her, and that relative velocity must lie along the line from where you are to the ordered station. The course is the direction of your ground velocity at the stationing speed.',
+      'When the stationing speed is below the Guide\'s, two courses can work; the quicker is given first, and the other is shown too.',
+      'Deceleration Distance = (stationing speed minus the Guide\'s speed) x loss of speed per knot (para 0424). Along the relative track it is scaled by relative speed over own speed and measured back from the station; there the Guide bears the bearing shown and you reduce to her speed.',
+    ],
+    formulas: ['Own velocity = Guide velocity + k x (unit vector from now to station)', '|own velocity| = stationing speed, solved for k > 0', 'Time = relative distance / k', 'Slow-down point = Deceleration Distance x (k / stationing speed) back from the station'],
+    limits: ['As in BR 45(6) para 0423, the course does not allow for the turn: add advance and transfer (see Wheel-over) and the loss of speed in the turn.', 'It takes the Guide on a steady course and speed. Alter and recalculate when she does.', 'The worked example 4-1 in the book is read from a plot; the exact solution of the triangle differs by a few degrees.', 'The loss of speed per knot comes from the selected ship\'s deceleration runs when they are recorded, and can be typed over.', 'An aid. Follow the OTC\'s signals and the ship\'s standing orders.'],
+  },
+  'Anchor': {
+    concept: 'How much cable to veer for the depth, and the circles the ship swings in at anchor: the Safety Swinging Circle (must be clear of the minimum LDL), the Bridge Swinging Circle (the anchor watch: a fix of the Bridge outside it means the ship is dragging), the Stern Swinging Circle, and the Minimum Swinging Radius used to space ships in an anchorage. All from BR 45(1)(2) Chapter 14.',
+    steps: [
+      'Cable: take the greatest depth expected, the charted depth plus the maximum height of tide. Forged steel needs 1½ times the square root of the depth in metres in shackles (2 times the square root of the depth in fathoms); aluminium bronze needs the square root of the depth in metres (the square root of 1.3 times the depth in fathoms). A shackle is 15 fathoms (27.4 m).',
+      'Safety Swinging Circle radius: the maximum cable that can be veered, plus the length of the ship, plus a safety margin (at least one cable to start with). It does not depend on the cable actually veered or on the MSR chosen.',
+      'Bridge Swinging Circle radius: the cable veered plus the distance from the stem to the standard compass (the Bridge). Stern Swinging Circle radius: the cable veered plus the length of the ship.',
+      'Normal MSR: the length of the ship plus the cable veered. Reduced MSR: the length of the ship plus 45 metres (50 yards).',
+      'For two ships, Double MSR is the two radii added; Single MSR is the larger of the two.',
+    ],
+    formulas: ['Cable, steel (shackles) = 1½ √depth (m) (14.1) or 2 √depth (fm) (14.2)', 'Cable, aluminium bronze = √depth (m) (14.3) or √(1.3 depth (fm)) (14.4)', 'Safety circle = max cable + ship + margin', 'Bridge circle = cable veered + stem to standard', 'Stern circle = Normal MSR = ship + cable veered (14.5)', 'Reduced MSR = ship + 45 m (14.7)', 'Double MSR = MSR1 + MSR2 (14.6, 14.8)'],
+    limits: ['The cable formulae are for a fine-hulled vessel in calm conditions with up to 5 kn of stream, and allow a slight margin; in strong wind or stream more cable will be needed. BR 45 notes the cable could be cut by 60% in 15 to 20 kn of wind with under 2 kn of stream, after which the margin falls quickly.', 'The two printed forms of the aluminium bronze formula (14.3 in metres, 14.4 in fathoms) do not give exactly the same answer; the tool uses each as printed, according to the depth unit chosen.', 'The Safety margin should be raised for a poor fix, a difficult approach, deep water or a bad holding ground (para 1410d).', 'An aid. Follow the ship\'s standing orders and the Captain\'s direction.'],
+  },
+  'Tides': {
+    concept: 'The sea does not rise and fall at an even rate between a high water and the next low water: it moves slowly at first, fastest in the middle, and slowly again at the end. Given the two tides either side of the time you want, the tool works out the height at that time (or the time a given height is reached), whether the tide is flooding or ebbing, and from the Moon\'s phase whether the tides are springs or neaps.',
+    steps: [
+      'Enter the high water and the following low water (or the low water and the next high water): their times and heights from the tide tables for the port.',
+      'The duration is the time between them and the range is the difference in height.',
+      'Rule of twelfths: the tide rises or falls 1, 2, 3, 3, 2, 1 twelfths of the range in the six equal parts of its duration. Half-cosine: the height follows a cosine curve between the two tides.',
+      'For a given time the height is the first tide\'s height plus the share of the range gone; for a given height the share is turned back into a time.',
+      'The Moon\'s longitude less the Sun\'s gives the phase. Within about 2.5 days of new or full Moon the tides are springs; within about 2.5 days of a quarter they are neaps; between, they are making towards springs or falling off towards neaps.',
+    ],
+    formulas: ['Rule of twelfths: cumulative share 0, 1/12, 3/12, 6/12, 9/12, 11/12, 1 at each sixth of the duration', 'Half-cosine: h = h1 + (h2 − h1) (1 − cos(π t / T)) / 2', 'Elongation = λMoon − λSun; spring near 0° or 180°, neap near 90° or 270°'],
+    limits: ['Both methods are approximations. They suit a normal semi-diurnal tide and are less exact in ports with a distorted tide curve, double high waters or river effects. Check the tide tables for the port.', 'Springs and neaps are taken from the Moon\'s phase: the highest springs come a day or two after new or full Moon, and weather and air pressure can change the height.', 'Heights are in the same unit and datum as the tide table (metres above chart datum).'],
+  },
   'Bearing Calculator': {
     concept: 'A reciprocal is the same line of sight seen from the other end. A relative bearing is measured clockwise from your own ship\'s head; adding your head turns it into a true bearing.',
     steps: [
@@ -65,14 +101,17 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     limits: ['If drift × sin(set − track) is bigger than your speed there is no solution: the current is too strong to hold that track.', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.', 'If the speed over ground works out at zero or less you would make no headway.', 'Assumes a steady current, no leeway, and ship speed through the water.'],
   },
   'Distance Off & Horizon': {
-    concept: 'A known height seen at a small vertical angle gives a distance by simple trigonometry. The horizon and the range at which an object can first be seen come from the curve of the earth.',
+    concept: 'Two cards. VSA gives the distance off an object from a sextant angle, by the method of the book you use (BR 45 methods, or your own formula). Horizon and visibility gives the horizon, the range at which an object is first seen, and the radar horizon, with the coefficients of the book you choose.',
     steps: [
-      'Distance off by vertical sextant angle: divide the object\'s height by the tangent of the angle (metres), then convert to nautical miles (÷ 1852).',
-      'Visual horizon (with normal refraction) in nautical miles is about 2.08 times the square root of the height of eye in metres. The radar horizon uses 2.21.',
-      'An object is first seen where the horizon distances of the observer and the object add up.',
+      'Height of object, base visible (BR 45 8.1): distance = height x cot (corrected angle). The corrected angle is the observed angle plus the index error; the charted elevation (above MHWS) is increased by the height of the tide below MHWS.',
+      'Width of object (8.1a): distance = width x 360 / (2 pi x angle in degrees).',
+      'Object beyond the horizon (Appendix 6): the angle from the sea horizon is corrected for index error and dip, then for terrestrial refraction (8% of the distance in nautical miles, in minutes of arc, found by repeating), and cos (d + t) = (R + h) / (R + H) x cos t gives the arc d, with R 3437.75 nm.',
+      'Horizon method (8.3): with no height known, the angle of the waterline below the horizon plus the dip is theta, and theta (minutes) = 1.8563 h / d + 0.42 d (h in metres) is solved for d, taking the smaller root.',
+      'Horizon: distance in nautical miles = coefficient x the square root of the height in metres. BR 45 uses 2.08 (optical) and 2.23 (radar); Norie\'s uses 2.095, the Admiralty List of Lights 2.03, the geometric horizon 1.93; 2.21 is the radar figure used before. An object is first seen where the horizon distances of the observer and the object add up.',
+      'My own formula: type an expression in H (height, m), W (width, m), A (corrected angle, degrees), a (observed angle), ie (index error, minutes) and h (height of eye, m).',
     ],
-    formulas: ['d (nm) = h / tan(α) / 1852', 'Visual horizon = 2.08 × √h', 'Radar horizon = 2.21 × √h', 'Range first seen = 2.08 × (√h_eye + √h_object)'],
-    limits: ['The sextant method ignores earth curvature and refraction, so use it for short distances and small heights above the water.', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.', 'Heights are above sea level at the state of tide the object\'s height is charted for.', 'Real visibility also depends on weather, light and the target\'s size.'],
+    formulas: ['d = H cot(A)  (8.1)', 'd = W x 360 / (2 pi A)  (8.1a)', 'cos (d + t) = (R + h)/(R + H) cos t  (A6.1)', 'theta = 1.8563 h/d + 0.42 d  (8.3b)', 'Visual horizon = 2.08 x sqrt(h) (BR 45), radar 2.23 x sqrt(h); 2.21 as used before', 'Range first seen = 2.08 x (sqrt(h_eye) + sqrt(h_object))'],
+    limits: ['The sextant method ignores earth curvature and refraction, so use it for short distances and small heights above the water.', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.', 'Heights are above sea level at the state of tide the object\'s height is charted for.', 'Real visibility also depends on weather, light and the target\'s size.', 'The BR 45 examples check: 1.65 nm for 8.1 (Example 8-1), 24.6 nm for A6.1 (Example A6-1), 1.42 nm for the horizon method (Example 8-3), 20.37 nm for the dipping range (Example 8-2).', 'Long-range sextant ranges are approximate, and abnormal refraction spoils them. Do not use a peak that is part of a chain unless it is positively identified.'],
   },
   'Horizontal Sextant Angle (HSA)': {
     concept: 'The angle between two charted objects, measured with a sextant held horizontally, puts you on a circle that passes through both objects. Two such angles to three objects give two circles that cross at your position. The same angle also gives your distance off two objects, and, turned round, the length of an object from the bearings of its ends.',
@@ -195,3 +234,13 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     limits: ['The cable is taken as one tenth of a nautical mile (185.2 m), the usual navigational definition. Older texts and some navies use 100 fathoms (182.9 m) or, in the US, 120 fathoms (219.5 m).'],
   },
 };
+
+// ASTRO is one tool with five tabs: its explanation is the five joined, each part headed by the tab's name.
+const ASTRO_PARTS: [string, string][] = [['Sun Run Sun (SRS)', 'Sun Run Sun'], ['Sun Run Merpass (SRM)', 'Sun Run Merpass'], ['Four Star Fix', '4 Star Fix'], ['Polaris Latitude', 'Polaris'], ['Rise, Set and Twilight', 'Rise & Set']];
+TOOL_INFO['ASTRO'] = {
+  concept: 'The astronomical tools in one place, as tabs: ' + ASTRO_PARTS.map(([, t]) => t).join(', ') + '. ' + ASTRO_PARTS.map(([n, t]) => `${t}: ${TOOL_INFO[n].concept}`).join(' '),
+  steps: ASTRO_PARTS.flatMap(([n, t]) => TOOL_INFO[n].steps.map(x => `${t}: ${x}`)),
+  formulas: ASTRO_PARTS.flatMap(([n]) => TOOL_INFO[n].formulas),
+  limits: ASTRO_PARTS.flatMap(([n, t]) => TOOL_INFO[n].limits.map(x => `${t}: ${x}`)),
+};
+ASTRO_PARTS.forEach(([n]) => { delete TOOL_INFO[n]; });

@@ -57,3 +57,12 @@ export function rescue(kind: RescueTurn, side: Side, lookup: Lookup): Outcome {
     toRun: y,   // on the reciprocal (head 180) the ship goes down the y axis, so y yards remain to the man's abeam
   };
 }
+
+/** Normal mode: no turning data, so the turn is taken as a steady circle of the given diameter (yards) at the given speed (knots). */
+export function circleLookup(speedKn: number, diameterYd: number): Lookup {
+  const r = diameterYd / 2, ydPerS = (speedKn * 2025.37) / 3600;
+  return turn => {
+    const a = (turn * Math.PI) / 180;
+    return { advance: r * Math.sin(a), transfer: r * (1 - Math.cos(a)), time: (r * a) / ydPerS };
+  };
+}

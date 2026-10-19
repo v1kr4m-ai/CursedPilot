@@ -1,6 +1,10 @@
-import React, { useCallback, useSyncExternalStore } from 'react';
+import React, { createContext, useCallback, useContext, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import * as nav from './navMath';
 import { PREF, toolMemory } from './toolMemory';
+import { Entry } from './entry';
+import type { EntryKind } from './entry';
+import { SensorField } from './SensorField';
 
 // ---- shared bits ------------------------------------------------------------------------------
 
@@ -23,18 +27,33 @@ export function useMemory<T>(key: string, initial: T): [T, (v: T | ((prev: T) =>
 }
 
 /** Text state for a set of number fields; `bind('speed')` gives Field its value/onChange. `id` names the tool for the memory. */
-export function useForm<K extends string>(id: string, keys: readonly K[]) {
+export function useForm<K extends string>(id: string, keys: readonly K[], defaults?: Partial<Record<K, string>>) {
   const [v, setV] = useMemory<Record<K, string>>(`${id}:fields`, Object.fromEntries(keys.map(k => [k, ''])) as Record<K, string>);
-  const bind = (k: K) => ({ value: v[k] ?? '', onChange: (s: string) => setV(prev => ({ ...prev, [k]: s })) });
-  const n = (k: K) => toNum(v[k] ?? '');
-  return { v: new Proxy(v, { get: (t, k) => (t as Record<string, string>)[k as string] ?? '' }) as Record<K, string>, bind, n };
+  // `defaults` are the selected ship's own figures: a field left blank takes the ship's value, a typed value wins
+  const eff = (k: string) => { const t = (v as Record<string, string>)[k] ?? ''; const d = (defaults as Record<string, string | undefined> | undefined)?.[k]; return t.trim() === '' && d !== undefined ? d : t; };
+  const bind = (k: K) => ({ value: v[k] ?? '', onChange: (s: string) => setV(prev => ({ ...prev, [k]: s })), shipHint: defaults?.[k] });
+  const n = (k: K) => toNum(eff(k));
+  return { v: new Proxy(v, { get: (t, k) => eff(k as string) }) as Record<K, string>, bind, n };
 }
 
-export const Field: React.FC<{ label: string; unit?: string; value: string; onChange: (s: string) => void; hint?: string; text?: boolean; invalid?: boolean }> = ({ label, unit, value, onChange, hint, text, invalid }) => (
+/** Under a field that has a value from the selected ship: what it is, and a way back to it after typing over it. */
+export const ShipHint: React.FC<{ hint?: string; unit?: string; typed: boolean; onReset: () => void }> = ({ hint, unit, typed, onReset }) => hint === undefined ? null : (
+  <span className="flex items-center justify-between gap-2 text-[10px] font-bold text-emerald-600">
+    <span>{typed ? 'Ship\'s value' : 'From the ship'}: {hint}{unit ? ` ${unit}` : ''}</span>
+    {typed && <button type="button" onClick={onReset} className="underline underline-offset-2">use it</button>}
+  </span>
+);
+
+export const Field: React.FC<{ label: string; unit?: string; value: string; onChange: (s: string) => void; hint?: string; text?: boolean; invalid?: boolean; kind?: EntryKind; wide?: boolean; sensor?: 'course' | 'speed'; units?: boolean; shipHint?: string }> = ({ label, unit, value, onChange, hint, text, invalid, kind, wide, sensor, units, shipHint }) => sensor || units ? (
+  <SensorField label={label} unit={unit} value={value} onChange={onChange} invalid={invalid} sensor={sensor} units={units} />
+) : kind ? (
+  <Entry kind={kind} label={label} unit={unit} value={value} onChange={onChange} invalid={invalid} wide={wide} />
+) : (
   <label className="block space-y-1">
     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}{unit && ` (${unit})`}</span>
-    <input type={text ? 'text' : 'number'} inputMode={text ? 'text' : 'decimal'} step="any" value={value} onChange={e => onChange(e.target.value)} placeholder={hint}
-      className={`w-full p-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 ${invalid ? 'border-red-400' : 'border-slate-200'}`} />
+    <input type={text ? 'text' : 'number'} inputMode={text ? 'text' : 'decimal'} step="any" value={value} onChange={e => onChange(e.target.value)} placeholder={shipHint ?? hint}
+      className={`w-full p-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 ${invalid ? 'border-red-400' : shipHint !== undefined && value.trim() === '' ? 'border-emerald-300' : 'border-slate-200'}`} />
+    <ShipHint hint={shipHint} unit={unit} typed={value.trim() !== ''} onReset={() => onChange('')} />
   </label>
 );
 
@@ -68,16 +87,17 @@ export function useUnit(tool: string, fallback: nav.LengthUnit = nav.DEFAULT_DIS
 export const SELECT = 'p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400';
 
 /** A number field with a length-unit dropdown beside it. */
-export const LengthField: React.FC<{ label: string; value: string; onChange: (s: string) => void; unit: nav.LengthUnit; onUnit: (u: nav.LengthUnit) => void; hint?: string }> = ({ label, value, onChange, unit, onUnit, hint }) => (
+export const LengthField: React.FC<{ label: string; value: string; onChange: (s: string) => void; unit: nav.LengthUnit; onUnit: (u: nav.LengthUnit) => void; hint?: string; shipHint?: string }> = ({ label, value, onChange, unit, onUnit, hint, shipHint }) => (
   <div className="block space-y-1">
     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
     <div className="flex gap-2">
-      <input type="number" inputMode="decimal" step="any" value={value} placeholder={hint} aria-label={label} onChange={e => onChange(e.target.value)}
-        className="min-w-0 flex-1 p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+      <input type="number" inputMode="decimal" step="any" value={value} placeholder={shipHint ?? hint} aria-label={label} onChange={e => onChange(e.target.value)}
+        className={`min-w-0 flex-1 p-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 ${shipHint !== undefined && value.trim() === '' ? 'border-emerald-300' : 'border-slate-200'}`} />
       <select value={unit} onChange={e => onUnit(e.target.value as nav.LengthUnit)} aria-label={`${label} unit`} className={`${SELECT} w-[5.5rem] shrink-0`}>
         {nav.LENGTH_UNIT_KEYS.map(k => <option key={k} value={k} title={nav.LENGTH_UNITS[k].label}>{nav.LENGTH_UNITS[k].short}</option>)}
       </select>
     </div>
+    <ShipHint hint={shipHint} typed={value.trim() !== ''} onReset={() => onChange('')} />
   </div>
 );
 
@@ -93,11 +113,19 @@ export const UnitPick: React.FC<{ label: string; unit: nav.LengthUnit; onChange:
 
 export const fromNm = (nm: number, unit: nav.LengthUnit) => nav.formatLength(nav.convertLength(nm, 'nm', unit), unit);
 
-export const Result: React.FC<{ rows: [string, string][]; tone?: 'ok' | 'warn' }> = ({ rows, tone = 'ok' }) => (
-  <div className={`p-3 rounded-xl text-white text-sm font-bold space-y-1 ${tone === 'warn' ? 'bg-amber-600' : 'bg-blue-600'}`}>
-    {rows.map(([k, val]) => <div key={k} className="flex justify-between gap-3"><span className="opacity-80 font-semibold">{k}</span><span>{val}</span></div>)}
-  </div>
-);
+/** Where NavYeo shows the results of the open tool: a header at the top of the tool that stays in view. Null outside NavYeo. */
+export const ResultSlot = createContext<HTMLElement | null>(null);
+
+/** An answer block. It appears in the result header at the top of the tool; `inline` keeps it where it is written (for lists that are not the answer). */
+export const Result: React.FC<{ rows: [string, string][]; tone?: 'ok' | 'warn'; inline?: boolean }> = ({ rows, tone = 'ok', inline }) => {
+  const slot = useContext(ResultSlot);
+  const block = (
+    <div className={`p-3 rounded-xl text-white text-sm font-bold space-y-1 shadow-md ${tone === 'warn' ? 'bg-amber-600' : 'bg-blue-600'}`}>
+      {rows.map(([k, val], i) => <div key={`${k}${i}`} className="flex justify-between gap-3"><span className="opacity-80 font-semibold">{k}</span><span className="text-right">{val}</span></div>)}
+    </div>
+  );
+  return slot && !inline ? createPortal(block, slot) : block;
+};
 
 export const Warn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="p-3 bg-amber-50 border border-amber-200 text-amber-600 rounded-xl text-xs font-bold">{children}</div>
@@ -106,3 +134,29 @@ export const Warn: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 export const bearing = (d: number) => `${Math.round(nav.norm360(d)).toString().padStart(3, '0')}°`;
 export const hhmm = (min: number) => `${Math.floor(min / 60)}h ${Math.round(min % 60).toString().padStart(2, '0')}m`;
 
+
+/** Port / Starboard choice as two coloured buttons. */
+export const SideToggle: React.FC<{ label: string; value: 'Port' | 'Starboard'; onChange: (v: 'Port' | 'Starboard') => void }> = ({ label, value, onChange }) => (
+  <div className="space-y-1">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</span>
+    <div className="flex gap-1">
+      {(['Port', 'Starboard'] as const).map(sd => (
+        <button type="button" key={sd} onClick={() => onChange(sd)} aria-pressed={value === sd}
+          className={`flex-1 py-3 rounded-xl text-xs font-bold border ${value === sd ? (sd === 'Port' ? 'bg-red-600 border-red-600' : 'bg-green-600 border-green-600') + ' text-white' : 'bg-white text-slate-500 border-slate-200'}`}>{sd}</button>
+      ))}
+    </div>
+  </div>
+);
+
+/** A panel that folds up: a heading to tap, and the content under it. */
+export const Card: React.FC<{ title: string; note?: string; children: React.ReactNode; closed?: boolean }> = ({ title, note, children, closed }) => (
+  <details open={!closed} className="group bg-slate-50 rounded-2xl border border-slate-200">
+    <summary className="flex items-center justify-between gap-2 px-4 py-3 cursor-pointer list-none text-xs font-bold text-slate-600 uppercase tracking-wider">
+      <span>{title}</span><span className="text-slate-400 transition-transform group-open:rotate-90" aria-hidden>›</span>
+    </summary>
+    <div className="px-4 pb-4 space-y-3">
+      {children}
+      {note && <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{note}</p>}
+    </div>
+  </details>
+);

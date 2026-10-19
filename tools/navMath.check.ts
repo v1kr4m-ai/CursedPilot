@@ -160,4 +160,27 @@ near(m.convertLength(m.objectLengthFromBearings(5, 100, 103)!.length, 'cables', 
 assert.equal(m.objectLengthFromBearings(1, 40, 40), null); assert.equal(m.objectLengthFromBearings(1, 0, 180), null);   // no angle / opposite directions
 assert.equal(m.objectLengthFromBearings(0, 40, 50), null); assert.equal(m.objectLengthFromBearings(-1, 40, 50), null); assert.equal(m.objectLengthFromBearings(NaN, 40, 50), null);
 
+
+// port/starboard pass and the bow crossing: own 000 at 10 kn; target 090 at 5 nm ahead-ish, crossing from starboard to port at 10 kn
+{
+  const g = m.cpaGeometry({ ownCourse: 0, ownSpeed: 10, bearing: 45, range: 7.0710678, targetCourse: 270, targetSpeed: 10 });
+  // target starts at (5,5), relative velocity (-10,-10): reaches the course line x=0 after 0.5 h at (0,0): passes through -> CPA 0, crossing range 0 at 30 min
+  assert.equal(g.side, null); near(g.crossing!.minutes, 30); near(g.crossing!.rangeNm, 0, 1e-6);
+  const h = m.cpaGeometry({ ownCourse: 0, ownSpeed: 10, bearing: 45, range: 7.0710678, targetCourse: 270, targetSpeed: 5 });
+  // relative velocity (-5,-10): x=0 at t=1 h, y = 5-10 = -5 -> crosses 5 nm astern
+  assert.equal(h.crossing!.where, 'stern'); near(h.crossing!.rangeNm, 5, 1e-4); near(h.crossing!.minutes, 60, 1e-4);
+  const b = m.cpaGeometry({ ownCourse: 0, ownSpeed: 0, bearing: 45, range: 7.0710678, targetCourse: 270, targetSpeed: 10 });
+  // own stopped: target crosses x=0 at 0.5 h still at y=5 -> 5 nm ahead; it passes on the starboard bow side first, CPA is at its closest = 5 nm ahead
+  assert.equal(b.crossing!.where, 'bow'); near(b.crossing!.rangeNm, 5, 1e-4); near(b.crossing!.minutes, 30, 1e-4); assert.equal(b.side, 'Starboard');
+  const pt = m.cpaGeometry({ ownCourse: 0, ownSpeed: 0, bearing: 225, range: 7.0710678, targetCourse: 0, targetSpeed: 10 });
+  assert.equal(pt.side, 'Port');
+}
+// interpolation: straight line between two readings, and the inverse form that is exact for the radian rule
+{
+  near(m.interpolate(2, 10, 4, 6, 3)!, 8); near(m.interpolate(2, 10, 4, 6, 5)!, 4);                       // extrapolates the same line
+  const k = 57.29578 * 100, y = (x: number) => k / x;                                                  // angle = 57.3 x distance / range
+  near(m.interpolate(200, y(200), 400, y(400), 300, 'inverse')!, y(300), 1e-9);                          // exact for y = K/x
+  assert.ok(Math.abs(m.interpolate(200, y(200), 400, y(400), 300, 'linear')! - y(300)) > 1);             // the straight line is off over a wide span
+  assert.equal(m.interpolate(3, 1, 3, 2, 3), null); assert.equal(m.interpolate(1, 0, 2, 1, 1.5, 'inverse'), null);
+}
 console.log('navMath: all checks passed');

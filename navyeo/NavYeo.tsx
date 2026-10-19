@@ -1,16 +1,21 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Send } from 'lucide-react';
+import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Pin, PinOff, Send } from 'lucide-react';
 import { Ship } from '../types';
 import { NAV_TOOLS, NavTool } from '../tools/NavTools';
+import { ASTRO_TABS } from '../tools/AstroTool';
 import ToolInfoCard from './ToolInfoCard';
 import { toolMemory } from '../tools/toolMemory';
 import { isLengthUnit } from '../tools/navMath';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
 import { TurnTable, interpret } from './commands';
 import { Listening, startListening, voiceMaybeSupported } from './voice';
+import { ResultSlot } from '../tools/kit';
+import { TileOrder, arrange, moveTo, parseOrder, togglePin } from './order';
 import { ICON, Pos, centredPanel, clampPos, defaultPos, growOrigin, isDrag, moved, parsePos } from './layout';
 
 const STORE = 'cursedpilot.navyeo.v1';
+const ORDER_STORE = 'cursedpilot.navyeo.order.v1';
+const HOLD_MS = 450;
 
 /**
  * NavYeo: the navigator's assistant. A floating icon that can be dragged anywhere and is remembered; tap it and a
@@ -24,6 +29,46 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
   const [tool, setTool] = useState<NavTool | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  // tile order and pins: press and hold a tile for the Pin menu, then drag it to move it
+  const [tiles, setTiles] = useState<TileOrder>(() => { try { return parseOrder(localStorage.getItem(ORDER_STORE)); } catch { return { order: [], pinned: [] }; } });
+  const [resultSlot, setResultSlot] = useState<HTMLElement | null>(null);   // the header where the open tool's answers are shown
+  const [held, setHeld] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [over, setOver] = useState<string | null>(null);
+  const holdTimer = useRef<number | undefined>(undefined);
+  const downAt = useRef<{ x: number; y: number } | null>(null);
+  const holdFired = useRef(false);        // the click that ends a long press must not open the tool
+  const saveTiles = (t: TileOrder) => { setTiles(t); try { localStorage.setItem(ORDER_STORE, JSON.stringify(t)); } catch { /* storage unavailable */ } };
+  const ordered = arrange(NAV_TOOLS.map(t => t.name), tiles).map(n => NAV_TOOLS.find(t => t.name === n)!);
+  useEffect(() => {          // while a tile is held, the page must not scroll under the finger
+    if (!held) return;
+    const stop = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener('touchmove', stop, { passive: false });
+    return () => document.removeEventListener('touchmove', stop);
+  }, [held]);
+  const tileAt = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest<HTMLElement>('[data-tile]')?.dataset.tile ?? null;
+  const tileDown = (name: string, e: React.PointerEvent) => {
+    downAt.current = { x: e.clientX, y: e.clientY };
+    window.clearTimeout(holdTimer.current);
+    holdFired.current = false;
+    holdTimer.current = window.setTimeout(() => { holdFired.current = true; setHeld(name); }, HOLD_MS);
+  };
+  const tileMove = (name: string, e: React.PointerEvent) => {
+    const d = downAt.current;
+    if (!d) return;
+    const far = Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8;
+    if (!held && far) window.clearTimeout(holdTimer.current);          // an ordinary scroll or swipe: not a hold
+    if (held === name && far) { setDragging(true); setOver(tileAt(e.clientX, e.clientY)); }
+  };
+  const tileUp = (name: string, e: React.PointerEvent) => {
+    window.clearTimeout(holdTimer.current);
+    if (dragging && held === name) {
+      const target = tileAt(e.clientX, e.clientY);
+      if (target && target !== name) saveTiles({ order: moveTo(ordered.map(t => t.name), name, target, tiles.pinned), pinned: tiles.pinned });
+      setHeld(null);
+    }
+    setDragging(false); setOver(null); downAt.current = null;
+  };
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight });
   const [pos, setPos] = useState<Pos>(() => {
     let saved: string | null = null;
@@ -136,8 +181,10 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
     const unit = toolMemory.get<string>('pref:wheel:unit', 'cables');
     const reply = interpret(q, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables' });
     if (reply.kind === 'open') {
-      const target = NAV_TOOLS.find(t => t.name === reply.tool);
+      const astroTab = ASTRO_TABS[reply.tool];
+      const target = NAV_TOOLS.find(t => t.name === (astroTab ? 'ASTRO' : reply.tool));
       if (target) {
+        if (astroTab) toolMemory.set('astro:tab', astroTab);
         if (reply.form) {
           const key = `${reply.form.id}:fields`;
           toolMemory.set(key, { ...toolMemory.get<Record<string, string>>(key, {}), ...reply.form.values });
@@ -166,7 +213,9 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
         <Bot size={26} />
       </button>
 
-      {open && (
+      {open && (<>
+        {/* the screen behind is blurred so the eye stays on NavYeo; taps still reach it, which collapses NavYeo as before */}
+        <div aria-hidden className={`fixed inset-0 z-[45] bg-slate-900/25 backdrop-blur-sm pointer-events-none transition-opacity duration-200 ${phase === 'closing' ? 'opacity-0' : 'opacity-100'}`} />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 pointer-events-none">
           <div
             ref={panelRef} role="dialog" aria-label="NavYeo"
@@ -179,7 +228,7 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
                 <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Bot size={18} /></div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-slate-900 leading-tight">NavYeo</h3>
-                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Navigator's assistant</div>
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> <span className="truncate">{ship ? ship.name : "Navigator's assistant"}</span></div>
                 </div>
               </div>
               <button onClick={() => toolMemory.clear()} disabled={!hasEntries} aria-label="Clear all entries" title="Clear all entries"
@@ -190,6 +239,7 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
               {tool ? (
                 <div className="space-y-3">
+                  <div ref={setResultSlot} aria-live="polite" aria-label="Result" className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 space-y-2 bg-white/95 backdrop-blur max-h-[42vh] overflow-y-auto empty:hidden" />
                   <button onClick={() => { setTool(null); setShowInfo(false); }} className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:underline"><ArrowLeft size={14} /> All tools</button>
                   <div className="flex items-center gap-2">
                     <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">{tool.icon}</div>
@@ -198,15 +248,26 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
                       className={`p-2 rounded-full border transition-colors ${showInfo ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-slate-200'}`}><Info size={16} /></button>
                   </div>
                   {showInfo && <ToolInfoCard name={tool.name} />}
-                  <tool.Component ship={ship} />
+                  <p className="text-[10px] font-medium text-slate-400">{ship ? <>Figures from <span className="font-bold text-emerald-600">{ship.name}</span> are filled in where it has them (green); type over one to change it.</> : 'No ship selected: choose one under My Ship to have its figures filled in.'}</p>
+                  <ResultSlot.Provider value={resultSlot}><tool.Component ship={ship} /></ResultSlot.Provider>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-slate-500 font-medium">Pick a tool. Tap <Info size={12} className="inline -mt-0.5 text-blue-600" /> on a tile to see how it works.</p>
                   <div className="grid grid-cols-3 gap-3">
-                    {NAV_TOOLS.map(t => (
-                      <div key={t.name} className="relative">
-                        <button onClick={() => openInfoFor(t, false)} aria-label={t.name} title={t.desc}
+                    {ordered.map(t => (
+                      <div key={t.name} data-tile={t.name} className={`relative ${held === t.name && dragging ? 'opacity-60 scale-95' : ''} ${over === t.name && dragging ? 'ring-2 ring-blue-400 rounded-2xl' : ''}`}>
+                        {tiles.pinned.includes(t.name) && <Pin size={11} className="absolute top-1.5 left-1.5 text-blue-500" aria-label="Pinned" />}
+                        {held === t.name && !dragging && (
+                          <div className="absolute z-10 -top-2 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-lg whitespace-nowrap">
+                            <button onClick={() => { saveTiles(togglePin({ order: ordered.map(x => x.name), pinned: tiles.pinned }, t.name)); setHeld(null); }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-blue-50">{tiles.pinned.includes(t.name) ? <><PinOff size={13} />Unpin</> : <><Pin size={13} />Pin to top</>}</button>
+                            <button onClick={() => setHeld(null)} className="px-3 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:bg-slate-50">Drag to move · close</button>
+                          </div>
+                        )}
+                        <button onClick={() => { if (holdFired.current) { holdFired.current = false; return; } if (held) { setHeld(null); return; } openInfoFor(t, false); }} aria-label={t.name} title={t.desc}
+                          onPointerDown={e => tileDown(t.name, e)} onPointerMove={e => tileMove(t.name, e)} onPointerUp={e => tileUp(t.name, e)} onPointerCancel={() => { window.clearTimeout(holdTimer.current); setDragging(false); setOver(null); }}
+                          onContextMenu={e => e.preventDefault()} style={{ touchAction: held ? 'none' : 'pan-y', userSelect: 'none' }}
                           className="w-full flex flex-col items-center gap-2 p-3 pt-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50 active:scale-95 transition-all">
                           <span className="p-2.5 bg-white rounded-xl shadow-sm">{t.icon}</span>
                           <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">{t.short}</span>
@@ -239,7 +300,7 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
             </div>
           </div>
         </div>
-      )}
+      </>)}
     </>
   );
 };

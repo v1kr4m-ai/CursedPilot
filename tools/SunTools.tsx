@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Ship } from '../types';
+import { shipParams } from './shipParams';
 import { saveFile } from '../services/backup';
 import { sightFormsHtml } from '../services/sightFormHtml';
 import * as nav from './navMath';
@@ -38,9 +39,10 @@ export const DateField: React.FC<{ value: string; onChange: (s: string) => void 
 
 /** The ship, the date, and the sextant and weather: shared by both tools, so it is entered once. */
 /** `run: false` leaves out course and speed; `latitude: 'optional'` lets the DR latitude be left blank (the tool does not need it). */
-export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'required' | 'optional' } = {}) {
+export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'required' | 'optional'; ship?: Ship } = {}) {
   const needRun = opts.run !== false, needLat = opts.latitude !== 'optional';
-  const f = useForm('sun', FIELDS);
+  const sp = shipParams(opts.ship);
+  const f = useForm('sun', FIELDS, { hoe: sp.heightOfEye === undefined ? undefined : String(Math.round(sp.heightOfEye * 10) / 10) });
   const [offArc, setOffArc] = useMemory('sun:offarc', true);
   const [limb, setLimb] = useMemory<'LL' | 'UL'>('sun:limb', 'LL');
   const date = parseIsoDate(f.v.date), zone = parseZone(f.v.zone);
@@ -81,21 +83,21 @@ export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'requ
 
   const ui = (
     <>
-      <Panel title="Ship and date" note="The DR is the ship's estimated position: at the time of the first sight for the Sun fixes, at zero time for the star fix. The zone is hours from UT, east positive (India +5:30). Temperature and pressure are used for refraction; leave blank for 10°C and 1010 mb.">
+      <Panel title="Ship and date" note="The DR is the ship's estimated position: at the time of the first sight for the Sun fixes, at zero time for the star fix. The zone is hours from UT, east positive (India + 5:30). Temperature and pressure are used for refraction; leave blank for 10°C and 1010 mb.">
         <Grid>
           <DateField value={f.v.date} onChange={f.bind('date').onChange} />
-          <Field label="Zone (h from UT)" hint="+5:30" text invalid={f.v.zone.trim() !== '' && zone === null} {...f.bind('zone')} />
-          <Field label={needLat ? 'DR latitude' : 'DR latitude (optional)'} hint="15 20 N" text invalid={f.v.lat.trim() !== '' && lat === null} {...f.bind('lat')} />
-          <Field label="DR longitude" hint="78 35 E" text invalid={f.v.lon.trim() !== '' && lon === null} {...f.bind('lon')} />
-          {needRun && <Field label="Course" unit="°T" {...f.bind('course')} />}
-          {needRun && <Field label="Speed" unit="kn" {...f.bind('speed')} />}
+          <Field label="Zone (h from UT)" kind="zone" wide invalid={f.v.zone.trim() !== '' && zone === null} {...f.bind('zone')} />
+          <Field label={needLat ? 'DR latitude' : 'DR latitude (optional)'} kind="lat" wide invalid={f.v.lat.trim() !== '' && lat === null} {...f.bind('lat')} />
+          <Field label="DR longitude" kind="lon" wide invalid={f.v.lon.trim() !== '' && lon === null} {...f.bind('lon')} />
+          {needRun && <Field label="Course" unit="°T" sensor="course" {...f.bind('course')} />}
+          {needRun && <Field label="Speed" unit="kn" sensor="speed" {...f.bind('speed')} />}
           <Field label="From (optional)" text hint="port" {...f.bind('from')} />
           <Field label="To (optional)" text hint="port" {...f.bind('to')} />
         </Grid>
       </Panel>
-      <Panel title="Deck watch" note="Leave the watch error blank if the times you enter are already right. With a watch error the form shows the deck watch reading (G.M.T. less the error). Slow is positive, fast negative: +12, 5 fast, 1:05.">
+      <Panel title="Deck watch" note="Leave the watch error blank if the times you enter are already right. With a watch error the form shows the deck watch reading (G.M.T. less the error). Choose Slow or Fast, then the seconds.">
         <Seg value={basis} onChange={v => setBasis(v as 'zt' | 'dwt')} options={[['zt', 'Times are zone time'], ['dwt', 'Times are deck watch']]} />
-        <Field label="Watch error (seconds)" text hint="+12 slow / -5 fast" invalid={f.v.dwe.trim() !== '' && dwe === null} {...f.bind('dwe')} />
+        <Field label="Watch error (seconds)" kind="watch" wide invalid={f.v.dwe.trim() !== '' && dwe === null} {...f.bind('dwe')} />
       </Panel>
       <Panel title="Sextant and weather">
         <Grid>
@@ -160,7 +162,7 @@ const crossRows = (set: FormSet): [string, string][] =>
 export const NOTE = 'An aid for checking your own working. The Sun is worked out on the device to about a minute of arc, not taken from the Nautical Almanac, so compare with the almanac for anything that matters.';
 
 export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const setup = useSetup();
+  const setup = useSetup({ ship });
   const { f, common, zone, jdOf } = setup;
   const g = useForm('srs', ['t1', 'a1', 't2', 'a2'] as const);
   const [unit, setUnit] = useUnit('srs:unit', 'nm');
@@ -176,10 +178,10 @@ export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       {setup.ui}
       <Panel title="Sun run Sun" note={NOTE}>
         <Grid>
-          <Field label="First sight, zone time" hint="09:15:00" text invalid={bad(g.v.t1, j1 !== null)} {...g.bind('t1')} />
-          <Field label="Sextant altitude" unit="° ′" hint="52 15.0" text invalid={bad(g.v.a1, a1 !== null)} {...g.bind('a1')} />
-          <Field label="Second sight, zone time" hint="11:45:00" text invalid={bad(g.v.t2, j2 !== null)} {...g.bind('t2')} />
-          <Field label="Sextant altitude" unit="° ′" hint="79 30.0" text invalid={bad(g.v.a2, a2 !== null)} {...g.bind('a2')} />
+          <Field label="First sight, zone time" kind="time" invalid={bad(g.v.t1, j1 !== null)} {...g.bind('t1')} />
+          <Field label="Sextant altitude" unit="° ′" kind="angle" invalid={bad(g.v.a1, a1 !== null)} {...g.bind('a1')} />
+          <Field label="Second sight, zone time" kind="time" invalid={bad(g.v.t2, j2 !== null)} {...g.bind('t2')} />
+          <Field label="Sextant altitude" unit="° ′" kind="angle" invalid={bad(g.v.a2, a2 !== null)} {...g.bind('a2')} />
         </Grid>
         <UnitPick label="Run shown in" unit={unit} onChange={setUnit} />
         {!setup.ready && <p className="text-xs text-slate-400 font-medium">Fill in the date, zone, DR, course, speed and height of eye above.</p>}
@@ -208,7 +210,7 @@ export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 };
 
 export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const setup = useSetup();
+  const setup = useSetup({ ship });
   const { common, zone, jdOf } = setup;
   const g = useForm('srm', ['t1', 'a1', 'tm', 'am'] as const);
   const [unit, setUnit] = useUnit('srm:unit', 'nm');
@@ -225,8 +227,8 @@ export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       {setup.ui}
       <Panel title="Sun run Meridian passage" note={NOTE}>
         <Grid>
-          <Field label="First sight, zone time" hint="09:15:00" text invalid={bad(g.v.t1, j1 !== null)} {...g.bind('t1')} />
-          <Field label="Sextant altitude" unit="° ′" hint="52 15.0" text invalid={bad(g.v.a1, a1 !== null)} {...g.bind('a1')} />
+          <Field label="First sight, zone time" kind="time" invalid={bad(g.v.t1, j1 !== null)} {...g.bind('t1')} />
+          <Field label="Sextant altitude" unit="° ′" kind="angle" invalid={bad(g.v.a1, a1 !== null)} {...g.bind('a1')} />
         </Grid>
         {early && zone !== null && (
           <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs font-bold text-blue-700">
@@ -234,8 +236,8 @@ export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
           </div>
         )}
         <Grid>
-          <Field label="Meridian altitude" unit="° ′" hint="70 50.0" text invalid={bad(g.v.am, am !== null)} {...g.bind('am')} />
-          <Field label="Time you observed it (optional)" hint="11:40:25" text invalid={bad(g.v.tm, jm !== undefined)} {...g.bind('tm')} />
+          <Field label="Meridian altitude" unit="° ′" kind="angle" invalid={bad(g.v.am, am !== null)} {...g.bind('am')} />
+          <Field label="Time you observed it (optional)" kind="time" invalid={bad(g.v.tm, jm !== undefined)} {...g.bind('tm')} />
         </Grid>
         <UnitPick label="Run shown in" unit={unit} onChange={setUnit} />
         {!setup.ready && <p className="text-xs text-slate-400 font-medium">Fill in the date, zone, DR, course, speed and height of eye above.</p>}

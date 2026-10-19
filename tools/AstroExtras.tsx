@@ -1,4 +1,5 @@
 import React from 'react';
+import { Ship } from '../types';
 import * as nav from './navMath';
 import { Field, Grid, Panel, Result, Seg, Warn, useForm, useMemory } from './kit';
 import { NOTE, clock, dm, useSetup } from './SunTools';
@@ -11,8 +12,8 @@ import { parseAngle } from './navMath';
 
 const hm = (jd: number | null, zone: number) => (jd === null ? '—' : clock(jd, zone).slice(0, 5));
 
-export const PolarisTool: React.FC = () => {
-  const setup = useSetup({ limb: false, run: false, latitude: 'optional' });
+export const PolarisTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const setup = useSetup({ limb: false, run: false, latitude: 'optional', ship });
   const { common, jdOf, lon, lat, zone } = setup;
   const g = useForm('polaris', ['t', 'a'] as const);
   const jd = jdOf(g.v.t), alt = parseAngle(g.v.a);
@@ -26,8 +27,8 @@ export const PolarisTool: React.FC = () => {
       {setup.ui}
       <Panel title="Latitude from Polaris" note={`Polaris is within a degree of the celestial pole, so its true altitude is the latitude, corrected for how far it is from the pole at that moment. Only the longitude (for the hour angle) matters in the DR: a degree out in longitude is under a minute of latitude. ${NOTE}`}>
         <Grid>
-          <Field label="Time of sight" hint="19:15:00" text invalid={bad(g.v.t, jd !== null)} {...g.bind('t')} />
-          <Field label="Sextant altitude" unit="° ′" hint="8 20.2" text invalid={bad(g.v.a, alt !== null)} {...g.bind('a')} />
+          <Field label="Time of sight" kind="time" invalid={bad(g.v.t, jd !== null)} {...g.bind('t')} />
+          <Field label="Sextant altitude" unit="° ′" kind="angle" invalid={bad(g.v.a, alt !== null)} {...g.bind('a')} />
         </Grid>
         {!setup.ready && <p className="text-xs text-slate-400 font-medium">Fill in the date, zone, DR longitude and height of eye above.</p>}
       </Panel>
@@ -64,8 +65,8 @@ export const PolarisTool: React.FC = () => {
   );
 };
 
-export const RiseSetTool: React.FC = () => {
-  const setup = useSetup({ limb: false, run: false });
+export const RiseSetTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const setup = useSetup({ limb: false, run: false, ship });
   const { common, jdOf, zone } = setup;
   const g = useForm('riseset', ['t', 'b'] as const);
   const [horizon, setHorizon] = useMemory<'almanac' | 'eye'>('riseset:horizon', 'almanac');
@@ -106,7 +107,7 @@ export const RiseSetTool: React.FC = () => {
             ]} />
             <Seg value={event} onChange={v => setEvent(v as 'rise' | 'set')} options={[['rise', 'Observed at rising'], ['set', 'Observed at setting']]} />
             <Grid>
-              <Field label="Time observed (optional)" hint="05:58:30" text invalid={bad(g.v.t, obsJd !== null)} {...g.bind('t')} />
+              <Field label="Time observed (optional)" kind="time" invalid={bad(g.v.t, obsJd !== null)} {...g.bind('t')} />
               <Field label="Bearing read" unit="°" hint="101.5" text invalid={bad(g.v.b, observed !== null)} {...g.bind('b')} />
             </Grid>
             {trueAt !== null && trueAt !== undefined && <p className="text-xs font-medium text-slate-600">True bearing of the Sun {obsJd !== null ? 'at that time' : `at ${event === 'rise' ? 'rising' : 'setting'}`}: <b>{trueAt.toFixed(1)}° T</b></p>}

@@ -35,4 +35,10 @@ o = m.rescue('williamson', 'Starboard', l => (l === 60 ? { advance: 200, transfe
 near(o.x, 0); near(o.y, 200); near(o.manRelativeBearing, 0); near(o.toRun, 200); near(o.distance, 200);
 
 assert.ok(m.TURNS.williamson.how('Starboard').includes('060') && m.TURNS.scharnow.how('Port').includes('240'));
+// normal mode: a 600 yd circle at 12 kn. A 180 turn advances nothing and transfers a diameter; takes half the circumference
+{
+  const leg = m.circleLookup(12, 600)(180);
+  near(leg.advance, 0, 1e-9); near(leg.transfer, 600, 1e-9); near(leg.time, (300 * Math.PI) / (12 * 2025.37 / 3600), 1e-6);
+  near(m.circleLookup(12, 600)(90).advance, 300, 1e-9); near(m.circleLookup(12, 600)(90).transfer, 300, 1e-9);
+}
 console.log('manOverboard: all checks passed');

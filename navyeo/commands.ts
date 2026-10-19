@@ -149,6 +149,9 @@ function tsdCommand(t: string): Reply | null {
 }
 
 const OPEN_ONLY: [RegExp, string][] = [
+  [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg'],
+  [/\b(?:anchor(?:ing|age)?|swinging (?:circle|radius)|shackles?|msr|cable required)\b/, 'Anchor'],
+  [/\b(?:tides?|tidal height|high water|low water|rule of twelfths|springs?|neaps?)\b/, 'Tides'],
   [/\bpolaris|pole star\b/, 'Polaris Latitude'],
   [/\b(?:sunrise|sunset|rising|setting|twilight|amplitude|gyro error)\b/, 'Rise, Set and Twilight'],
   [/\b(?:4|four) ?star|rapid sight|star fix|star sights?\b/, 'Four Star Fix'],
