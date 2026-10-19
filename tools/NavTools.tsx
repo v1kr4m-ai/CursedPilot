@@ -10,6 +10,7 @@ import { RescueTurn, Side, TURNS, circleLookup, rescue, turnsFor as mobTurnsFor 
 
 import { AstroTool } from './AstroTool';
 import { CpaPpi } from './CpaPpi';
+import { OwnFormula } from './OwnFormula';
 import { CameraBearing } from './CameraBearing';
 import { MapPick, coordText } from './MapPick';
 import { askCompassPermission } from '../services/position';
@@ -46,6 +47,7 @@ const BearingTool: React.FC = () => {
         <p className="text-[10px] text-slate-400 font-medium leading-relaxed">Point the phone at the ship or object and mark: the phone's compass gives the magnetic bearing, the variation makes it true, and the ship's head gives the relative bearing. The phone compass is thrown off by steel, so check it against the ship's compass.</p>
         {camera && <CameraBearing shipHead={head} variation={vari} onClose={() => setCamera(false)} onUse={m => { if (m.off !== null && m.side) { f.bind('rel').onChange(String(Math.round(m.off))); setRelSide(m.side); } }} />}
       </Panel>
+    <OwnFormula id="bearing" unitHint="°" vars={[{ name: 'brg', label: 'bearing or course (°)', value: brg }, { name: 'head', label: 'ship head (°T)', value: head }, { name: 'rel', label: 'relative bearing (°)', value: rel }, { name: 'var', label: 'variation (°)', value: vari }]} />
     </div>
   );
 };
@@ -67,6 +69,7 @@ const TsdTool: React.FC = () => {
   const startSec = parseClock(f.v.start);
   const eta = r && startSec !== null && Number.isFinite(r.minutes) ? etaText(startSec, r.minutes) : null;
   return (
+    <div className="space-y-3">
     <Panel title="Time, speed, distance" note="Fill any two, leave the third blank.">
       <LengthField label="Distance" unit={unit} onUnit={setUnit} {...f.bind('d')} />
       <Grid>
@@ -80,6 +83,8 @@ const TsdTool: React.FC = () => {
       ]} />}
       {given === 2 && !r && <Warn>Speed and time must be above zero where they are divided by.</Warn>}
     </Panel>
+    <OwnFormula id="tsd" unitHint="" vars={[{ name: 'd', label: 'distance (nm)', value: r ? r.distance : null }, { name: 's', label: 'speed (kn)', value: r ? r.speed : null }, { name: 't', label: 'time (min)', value: r ? r.minutes : null }]} />
+    </div>
   );
 };
 
@@ -131,6 +136,7 @@ const RadianTool: React.FC = () => {
         {found && outside && <Warn>That is outside the two readings, so the answer is carried beyond them and is less reliable.</Warn>}
         {r1 !== null && r2 !== null && r1 === r2 && <Warn>The two ranges must be different.</Warn>}
       </Panel>
+    <OwnFormula id="radian" unitHint="°" vars={[{ name: 'D', label: 'distance off (m)', value: dm }, { name: 'R', label: 'range (m)', value: rm }, { name: 'angle', label: 'angle (°)', value: dm !== null && rm !== null && rm > 0 ? nav.radianAngle(dm, rm) : null }]} />
     </div>
   );
 };
@@ -145,6 +151,7 @@ const CpaTool: React.FC = () => {
   const geo = input ? nav.cpaGeometry(input) : null;
   const [headUp, setHeadUp] = useMemory('cpa:headup', true);
   return (
+    <div className="space-y-3">
     <Panel title="CPA / TCPA" note="True bearing, true courses, speeds through the ground. Assumes both vessels hold course and speed.">
       <Grid>
         <Field label="Own course" unit="°T" sensor="course" {...f.bind('oc')} />
@@ -171,6 +178,8 @@ const CpaTool: React.FC = () => {
         </>
       )}
     </Panel>
+    <OwnFormula id="cpa" unitHint="" vars={[{ name: 'oc', label: 'own course (°T)', value: v[0] }, { name: 'os', label: 'own speed (kn)', value: v[1] }, { name: 'brg', label: 'target bearing (°T)', value: v[2] }, { name: 'rng', label: 'range (nm)', value: input ? input.range : null }, { name: 'tc', label: 'target course (°T)', value: v[4] }, { name: 'ts', label: 'target speed (kn)', value: v[5] }, { name: 'cpa', label: 'CPA (nm)', value: r ? r.cpa : null }, { name: 'tcpa', label: 'TCPA (min)', value: r ? r.tcpaMinutes : null }]} />
+    </div>
   );
 };
 
@@ -183,6 +192,7 @@ const CtsTool: React.FC = () => {
   const typed = f.n('dist');
   const distNm = typed === null ? null : nav.convertLength(typed, unit, 'nm');
   return (
+    <div className="space-y-3">
     <Panel title="Course to steer (set and drift)" note="Speed is through the water. Set is the direction the current flows towards.">
       <Grid>
         <Field label="Track to make good" unit="°T" {...f.bind('track')} />
@@ -200,6 +210,8 @@ const CtsTool: React.FC = () => {
         ]} />
       ))}
     </Panel>
+    <OwnFormula id="cts" unitHint="" vars={[{ name: 'track', label: 'track (°T)', value: track }, { name: 'speed', label: 'ship speed (kn)', value: speed }, { name: 'set', label: 'set (°T)', value: set }, { name: 'drift', label: 'drift (kn)', value: drift }, { name: 'cts', label: 'course to steer (°)', value: r && !('error' in r) ? r.cts : null }, { name: 'sog', label: 'speed over ground (kn)', value: r && !('error' in r) ? r.sog : null }]} />
+    </div>
   );
 };
 
@@ -250,6 +262,7 @@ const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const show = (yd: number) => nav.formatLength(nav.convertLength(yd, 'yards', unit), unit);
 
   return (
+    <div className="space-y-3">
     <Panel title="Wheel-over point" note="Approximate: takes advance and transfer at the heading change and assumes the ship is on the new track by the end of the turn. Confirm against your ship's own turning trials and standing orders.">
       <Field label="Course alteration" unit="°" {...f.bind('turn')} />
       <div className="space-y-1">
@@ -297,6 +310,8 @@ const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       )}
       {turn !== null && (Math.abs(turn) < 1 || Math.abs(turn) >= 180) && <Warn>Enter an alteration between 1° and 179°.</Warn>}
     </Panel>
+    <OwnFormula id="wheelover" unitHint="yd" vars={[{ name: 'turn', label: 'alteration (°)', value: turn }, { name: 'adv', label: 'advance (yd)', value: adv }, { name: 'tr', label: 'transfer (yd)', value: tr }, { name: 'wo', label: 'wheel-over distance (yd)', value: dist }]} />
+    </div>
   );
 };
 
@@ -321,6 +336,7 @@ const MobTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const greenRed = (b: number) => (b <= 180 ? `Green ${String(Math.round(b)).padStart(3, '0')}` : `Red ${String(Math.round(360 - b)).padStart(3, '0')}`);
 
   return (
+    <div className="space-y-3">
     <Panel title="Man overboard turn" note="Worked from the ship's own turning data, taking the man as not drifting and the ship as steady on each new heading at the end of its turn. An aid only: follow the ship's standing orders and the situation, and use the quickest method for the circumstances.">
       <Seg value={source} onChange={v => setSource(v as 'data' | 'manual')} options={[['data', "From ship's data"], ['manual', 'Normal (enter a turning circle)']]} />
       {source === 'data' && (!ship || tables.length === 0) && <Warn>This needs turning data for the selected ship. Add or import it under Calibration Data, Turning Trials, or switch to Normal.</Warn>}
@@ -367,6 +383,8 @@ const MobTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         </>
       )}
     </Panel>
+    <OwnFormula id="mob" unitHint="yd" vars={[{ name: 'speed', label: 'speed (kn)', value: mSpeed }, { name: 'dia', label: 'turning circle (yd)', value: mDia === null ? null : nav.convertLength(mDia, unit, 'yards') }, { name: 'secs', label: 'time to complete (s)', value: out ? out.seconds : null }, { name: 'lat', label: 'off the track (yd)', value: out ? Math.abs(out.lateral) : null }, { name: 'dist', label: 'distance from the man (yd)', value: out ? out.distance : null }]} />
+    </div>
   );
 };
 
@@ -444,6 +462,7 @@ const CompassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         </Grid>
         {gyro !== null && err !== null && <Result rows={[['True', bearing(nav.trueFromGyro(gyro, err))]]} />}
       </Panel>
+    <OwnFormula id="compass" unitHint="°" vars={[{ name: 'course', label: 'course (°)', value: course }, { name: 'dev', label: 'deviation (°, E+)', value: dev }, { name: 'var', label: 'variation (°, E+)', value: vr }, { name: 'gyro', label: 'gyro course (°)', value: gyro }, { name: 'err', label: 'gyro error (°, E+)', value: err }]} />
     </div>
   );
 };
@@ -462,6 +481,7 @@ const AtbTool: React.FC = () => {
   };
 
   return (
+    <div className="space-y-3">
     <Panel title="Angle on the bow (ATB)" note="The angle between the target's head and the line of sight from the target to you, 0-180° to port or starboard. Green is starboard, red is port. Bearing is true, from you to the target.">
       <Seg value={mode} onChange={v => setMode(v as 'course' | 'angle')} options={[['course', 'Find target course'], ['angle', 'Find angle on bow']]} />
       <Field label="Bearing of target" unit="°T" {...f.bind('brg')} />
@@ -493,6 +513,8 @@ const AtbTool: React.FC = () => {
         </>
       )}
     </Panel>
+    <OwnFormula id="atb" unitHint="°" vars={[{ name: 'brg', label: 'bearing (°T)', value: brg }, { name: 'angle', label: 'angle on the bow (°)', value: angle }, { name: 'course', label: 'target course (°T)', value: course }]} />
+    </div>
   );
 };
 
@@ -571,12 +593,15 @@ const HsaDistancePanel: React.FC = () => {
   const r = base !== null && ang !== null && ang > 0 && ang < 180 && base > 0 ? nav.positionCircleRadius(base, ang) : null;
   const show = (v: number) => nav.formatLength(v, unit);
   return (
+    <div className="space-y-3">
     <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object. The answer is in the same unit as the distance between the objects.">
       <LengthField label="Distance between the objects" unit={unit} onUnit={setUnit} {...f.bind('base')} />
       <Field label="Horizontal sextant angle" unit="°" kind="angle" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
       {ang !== null && (ang <= 0 || ang >= 180) && <Warn>The angle must be between 0° and 180°.</Warn>}
       {d !== null && r !== null && <Result rows={[['Distance off the line', show(d)], ['Position circle radius', show(r)]]} />}
     </Panel>
+    <OwnFormula id="hsadist" unitHint="" vars={[{ name: 'B', label: 'distance between objects', value: base }, { name: 'A', label: 'angle (°)', value: ang }, { name: 'd', label: 'distance off', value: d }]} />
+    </div>
   );
 };
 

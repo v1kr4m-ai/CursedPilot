@@ -61,3 +61,15 @@ export function evaluate(src: string, vars: Vars): { value: number } | { error: 
     return Number.isFinite(v) ? { value: v } : { error: 'The formula gives no number for these values' };
   } catch (e) { return { error: e instanceof Error ? e.message : String(e) }; }
 }
+
+/** The names a formula uses (not the functions and constants), so a tool can say which of its values are still missing. */
+export function names(src: string): string[] {
+  const text = src.replace(/√/g, 'sqrt'), out: string[] = [], re = /[A-Za-z_]\w*/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const t = m[0], low = t.toLowerCase(), next = text.slice(re.lastIndex).trimStart()[0];
+    if ((own(FUNCS, low) && next === '(') || own(CONSTS, low) || out.includes(t)) continue;
+    out.push(t);
+  }
+  return out;
+}

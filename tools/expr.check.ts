@@ -16,4 +16,7 @@ ok('1e2 + .5', {}, 100.5);
 bad(''); bad('1 +'); bad('(1 + 2'); bad('foo + 1'); bad('1 2'); bad('sin(', {}); bad('1 / 0'); bad('process.exit()'); bad('H ** 2', { H: 1 }); bad('sqrt(-1)');
 // no way out to anything but the variables
 bad('constructor'); bad('__proto__'); bad('toString');
+import { names } from './expr.ts';
+assert.deepEqual(names('d / s * 60'), ['d', 's']); assert.deepEqual(names('sqrt(h) + sin(A) * pi'), ['h', 'A']); assert.deepEqual(names('1.5 * √(depth)'), ['depth']); assert.deepEqual(names(''), []);
+assert.deepEqual(names('a + a * b'), ['a', 'b']);
 console.log('expr: all checks passed');

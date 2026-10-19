@@ -3,6 +3,7 @@ import { MapPin, Plus, Trash2 } from 'lucide-react';
 import { getPosition } from '../services/position';
 import { Field, Grid, Panel, Result, SELECT, Seg, Warn, toNum, useForm, useMemory } from './kit';
 import { DateField } from './SunTools';
+import { OwnFormula } from './OwnFormula';
 import { julianDay } from './sunEphemeris';
 import { parseClock, parseIsoDate, parseZone } from './sunSights';
 import { Method, Tide, heightAt, moonPhase, rateAt, timeAt } from './tides';
@@ -93,6 +94,7 @@ const ManualTides: React.FC = () => {
       </Panel>
       {good && <Answer a={a} b={b} tw={tw} hw={hw} method={method} jdUt={jdUt} />}
       {good && !date && <p className="text-[11px] text-slate-400 font-medium">Enter the date to see whether the tides are springs or neaps.</p>}
+    <OwnFormula id="tides" unitHint="m" vars={[{ name: 'h1', label: 'first height (m)', value: ok ? h1 : null }, { name: 'h2', label: 'second height (m)', value: ok ? h2 : null }, { name: 't1', label: 'first time (h)', value: ok ? t1 : null }, { name: 't2', label: 'second time (h)', value: ok ? t2 : null }, { name: 'tw', label: 'time wanted (h)', value: tw }, { name: 'h', label: 'height at that time (m)', value: good && tw !== null && tw >= t1 && tw <= t2 ? heightAt(a, b, tw, method) : null }]} />
     </div>
   );
 };

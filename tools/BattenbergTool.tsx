@@ -4,6 +4,7 @@ import * as nav from './navMath';
 import { Slowing, Solution, place, slowing, solve, stationBearing } from './battenberg';
 import { Field, Grid, Panel, Result, Seg, SideToggle, UnitPick, Warn, bearing, useForm, useMemory, useUnit } from './kit';
 import { shipParams } from './shipParams';
+import { OwnFormula } from './OwnFormula';
 
 // Battenberg: the course to steer to take or change station on a Guide (BR 45(6) paras 0423-0424), with the stations
 // marked on a Battenberg-style diagram: the Guide at the centre heading up, range rings, and the bearings on her bow,
@@ -137,6 +138,7 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       {sols[1] && <Result tone="warn" rows={row('Other course that also works', sols[1])} />}
       {best && loss === null && ss! > gs! && <p className="text-[11px] text-slate-500 font-medium">Enter the ship's loss of speed (yards per knot) to find where to reduce speed. It comes from her deceleration runs when they are recorded.</p>}
       <p className="text-[10px] text-slate-400 font-medium leading-relaxed">The course is worked from the relative velocity triangle (BR 45(6) para 0423) and does not allow for the turn: allow for advance and transfer with the Wheel-over tool, and for loss of speed in the turn. The point to reduce speed uses the deceleration distance of para 0424. Follow the OTC's signals and the ship's standing orders.</p>
+    <OwnFormula id="battenberg" unitHint="" vars={[{ name: 'gc', label: 'guide course (°T)', value: gc }, { name: 'gs', label: 'guide speed (kn)', value: gs }, { name: 'ss', label: 'stationing speed (kn)', value: ss }, { name: 'course', label: 'course to steer (°)', value: best ? best.course : null }, { name: 'rel', label: 'relative speed (kn)', value: best ? best.relativeSpeed : null }, { name: 'run', label: 'distance to run (nm)', value: best ? dist : null }, { name: 'hours', label: 'time to station (h)', value: best ? best.hours : null }]} />
     </div>
   );
 };

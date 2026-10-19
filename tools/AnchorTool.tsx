@@ -2,6 +2,7 @@ import React from 'react';
 import { Ship } from '../types';
 import * as nav from './navMath';
 import { shipParams } from './shipParams';
+import { OwnFormula } from './OwnFormula';
 import { CABLE_M, CableType, SHACKLE_M, benignCable, cableRequired, circles, spacing } from './anchor';
 import { Field, Grid, LengthField, Panel, Result, Seg, UnitPick, Warn, useForm, useMemory, useUnit } from './kit';
 
@@ -108,6 +109,7 @@ export const AnchorTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         )}
       </Panel>
       <p className="text-[10px] text-slate-400 font-medium leading-relaxed">An aid worked from the formulae of BR 45(1)(2) Chapter 14. The Safety Swinging Circle must be clear of the minimum LDL; the Bridge Swinging Circle is for the anchor watch, since a fix of the Bridge outside it means the ship is dragging.</p>
+    <OwnFormula id="anchor" unitHint="m" vars={[{ name: 'depth', label: 'greatest depth (m)', value: total !== null ? nav.convertLength(total, depthUnit, 'metres') : null }, { name: 'need', label: 'cable required (shackles)', value: need }, { name: 'L', label: 'length of ship (m)', value: len }, { name: 'stem', label: 'stem to standard (m)', value: stem }, { name: 'veered', label: 'cable veered (shackles)', value: veered }, { name: 'avail', label: 'cable available (shackles)', value: usable }, { name: 'safety', label: 'safety circle (m)', value: c ? c.safety : null }, { name: 'bridge', label: 'bridge circle (m)', value: c ? c.bridge : null }, { name: 'stern', label: 'stern circle (m)', value: c ? c.stern : null }]} />
     </div>
   );
 };
