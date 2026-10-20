@@ -23,7 +23,7 @@ export const PolarisTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   if (r && lat !== null && Math.abs(r.lat - lat) > 1) warnings.push(`The latitude from Polaris is ${Math.abs(r.lat - lat).toFixed(1)}° from the DR. Check the time, the longitude and the altitude.`);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {setup.ui}
       <Panel title="Latitude from Polaris" note={`Polaris is within a degree of the celestial pole, so its true altitude is the latitude, corrected for how far it is from the pole at that moment. Only the longitude (for the hour angle) matters in the DR: a degree out in longitude is under a minute of latitude. ${NOTE}`}>
         <Grid>
@@ -83,7 +83,7 @@ export const RiseSetTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {setup.ui}
       <Panel title="Rising, setting and twilight" note="For the DR position and the date. Almanac times are for the Sun's upper limb on a sea-level horizon with standard refraction; 'as seen from the height of eye' allows for the dip of the horizon. Twilight is for the Sun's centre 6°, 12° and 18° below the horizon.">
         <Seg value={horizon} onChange={v => setHorizon(v as 'almanac' | 'eye')} options={[['almanac', 'Almanac (sea level)'], ['eye', 'From the height of eye']]} />

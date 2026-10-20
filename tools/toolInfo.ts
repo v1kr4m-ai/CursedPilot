@@ -13,6 +13,18 @@ export interface ToolInfo {
 }
 
 export const TOOL_INFO: Record<string, ToolInfo> = {
+  'Flying Corpen': {
+    concept: 'The course and speed that put the wind the helicopter needs over the flight deck. The wind on deck is the true wind combined with the ship\'s own motion, so the tool works out the true wind (from the wind you measure on deck, if you do not know it), then the course and the lowest speed that give the wind over the deck asked for, from the angle asked for.',
+    steps: [
+      'True wind: either enter it (the direction it blows from, and its speed), or enter the wind on deck (angle off the bow, port or starboard, and speed) with the ship\'s course and speed, and the true wind is found by taking the ship\'s motion out of the wind on deck.',
+      'Wind over the deck needed: its speed, and the angle off the bow it must come from, 0 being right ahead. Optionally the top of the range, and the ship\'s top speed.',
+      'The wind on deck is the ship\'s velocity less the wind\'s velocity. Making that equal to the wanted wind over the deck gives the course from the cross-deck part (sin (C - D) = -(WOD / true wind) sin angle) and the speed from the along-deck part (speed = WOD cos angle - true wind cos (D - C)).',
+      'Two courses satisfy the angle; those that need no negative speed are given, the slower first. The usual answer is the course into the wind at a speed that makes up the difference: with a 15 kn true wind from ahead and 25 kn wanted, steer into it at 10 kn.',
+      'The picture plays the turn onto the flying course, with the wind on deck changing as the ship swings and speeds up.',
+    ],
+    formulas: ['Wind on deck = ship velocity - wind velocity', 'sin (C - D) = -(WOD / Vw) sin a', 'Speed = WOD cos a - Vw cos (D - C)', 'True wind = ship velocity - wind on deck velocity'],
+    limits: ['The wind is taken as steady. Wind changes, gusts and the sea state alter the wind on deck, and the ship\'s turning circle and acceleration are not modelled in the playback.', 'The wind over the deck and the angle it must come from are the aircraft\'s and the ship\'s flying limits: take them from the flying orders.', 'If the true wind is stronger than the wind over the deck wanted, steaming into it gives too much; the tool then offers running downwind, which may not be practical.', 'An aid. The Captain and the flight deck officer decide the ship\'s course and speed for flying.'],
+  },
   'Battenberg': {
     concept: 'The course to steer to take up, or change, station on a Guide. The Guide moves, so the track you want is the track relative to her, and the course is found from the relative velocity triangle (BR 45(6) para 0423). The stations are shown on a Battenberg-style diagram with the Guide at the centre heading up, and the bearings on her bow, beam, quarter and astern marked.',
     steps: [

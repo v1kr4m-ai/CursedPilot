@@ -121,7 +121,7 @@ export const FourStarTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {setup.ui}
       <Panel title="Four star fix: plan" note="The DR is the ship's position at zero time, when the stopwatch starts. Choose morning or evening, and how many minutes before civil twilight to begin (10 is usual). The tool works out the time to start the stopwatch so that LHA Aries is a whole number of degrees, then suggests four well-spread stars.">
         <Seg value={kind} onChange={v => setKind(v as 'morning' | 'evening')} options={[['morning', 'Morning stars'], ['evening', 'Evening stars']]} />

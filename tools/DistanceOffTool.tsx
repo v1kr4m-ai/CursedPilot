@@ -133,7 +133,7 @@ const HorizonCard: React.FC<{ ship?: Ship }> = ({ ship }) => {
 };
 
 export const DistanceOffTool: React.FC<{ ship?: Ship }> = ({ ship }) => (
-  <div className="space-y-3">
+  <div className="space-y-2">
     <VsaCard ship={ship} />
     <HorizonCard ship={ship} />
   </div>

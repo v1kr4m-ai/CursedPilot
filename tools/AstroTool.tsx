@@ -23,7 +23,7 @@ export const AstroTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const [tab, setTab] = useMemory<string>('astro:tab', 'srs');
   const cur = TABS.find(t => t.key === tab) ?? TABS[0];
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Astro tools">
         {TABS.map(t => (
           <button key={t.key} role="tab" aria-selected={cur.key === t.key} onClick={() => setTab(t.key)}

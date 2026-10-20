@@ -49,7 +49,7 @@ export const AnchorTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const normal = other ? spacing(c!.normalMsr, other.normalMsr) : null, reduced = other ? spacing(c!.reducedMsr, other.reducedMsr) : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="Length of cable to veer" note="BR 45(1)(2) para 1411. Use the greatest depth expected while at anchor: the charted depth plus the maximum height of tide. The formulae are for a fine-hulled vessel in calm conditions with up to 5 kn of stream; in strong wind or stream more cable will be needed.">
         <Seg value={type} onChange={v => setType(v as CableType)} options={[['steel', 'Forged steel cable'], ['bronze', 'Aluminium bronze']]} />
         <LengthField label="Charted depth" unit={depthUnit} onUnit={setDepthUnit} {...f.bind('depth')} />
@@ -94,7 +94,7 @@ export const AnchorTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         {veered !== null && usable !== null && usable < veered && <Warn>The cable available to veer is less than the cable veered.</Warn>}
       </Panel>
 
-      <Panel title="Distance from another ship (optional)" note="Para 1412. Double MSR: the two radii added, the least risk of fouling. Single MSR: the larger radius, which uses less room but there is more risk of fouling. Reduced MSR: if the cables of adjacent ships may foul, use a figure greater than 45 m or the normal MSR.">
+      <Panel closed title="Distance from another ship (optional)" note="Para 1412. Double MSR: the two radii added, the least risk of fouling. Single MSR: the larger radius, which uses less room but there is more risk of fouling. Reduced MSR: if the cables of adjacent ships may foul, use a figure greater than 45 m or the normal MSR.">
         <Grid>
           <Field label="Other ship's length" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('len2')} />
           <Field label="Other ship's cable veered" unit="shackles" {...f.bind('veered2')} />

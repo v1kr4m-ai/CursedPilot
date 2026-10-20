@@ -56,4 +56,20 @@ assert.deepEqual(b.solve({ guideCourse: 0, guideSpeed: 10, stationingSpeed: 15, 
   assert.equal(b.slowing({ ...prob, stationingSpeed: 15 }, s, 33 / 2025.37), null);          // nothing to lose
   assert.equal(b.slowing({ ...prob, from: b.place(270, 0.51) }, b.solve({ ...prob, from: b.place(270, 0.51) })[0], 33 / 2025.37)!.immediately, true);
 }
+// playing the run: starts at the start, ends on the station, never goes backwards and never overshoots
+{
+  const prob = { guideCourse: 90, guideSpeed: 15, stationingSpeed: 25, from: b.place(270, 3), to: b.place(270, 0.5) };
+  const s = b.solve(prob)[0], sl = b.slowing(prob, s, 33 / 2025.37)!, pr = b.profile(prob, s, sl);
+  near(pr.at(0).pos.x, prob.from.x, 1e-9); near(pr.at(0).pos.y, prob.from.y, 1e-9);
+  const end = pr.at(pr.totalHours); near(end.pos.x, prob.to.x, 1e-9); near(end.pos.y, prob.to.y, 1e-9); near(end.relSpeed, 0, 1e-9);
+  near(pr.at(pr.totalHours + 5).pos.x, prob.to.x, 1e-9, 'stays on station');
+  let prev = -1e9;
+  for (let i = 0; i <= 200; i++) { const x = pr.at((pr.totalHours * i) / 200).pos.x; assert.ok(x >= prev - 1e-9 && x <= prob.to.x + 1e-9, 'steady closing'); prev = x; }
+  // time: the straight run to the slow-down point at 10 kn, then twice the slow-down distance over 10 kn
+  near(pr.totalHours, (2.5 - sl.backAlongTrack) / 10 + (2 * sl.backAlongTrack) / 10, 1e-9);
+  near(pr.at((2.5 - sl.backAlongTrack) / 10).relSpeed, 10, 1e-9, 'full relative speed up to the slow-down point');
+  near(pr.guideAt(2).x, 30, 1e-9);                                                                // the Guide steams 15 kn due east
+  // with no deceleration figure: constant speed to the station
+  const flat = b.profile(prob, s, null); near(flat.totalHours, 2.5 / 10, 1e-12); near(flat.at(0.1).pos.x, -3 + 1, 1e-9);
+}
 console.log('battenberg: all checks passed');

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Ship } from '../types';
 import { shipParams } from './shipParams';
+import { BOX, BOX_INPUT, BOX_LABEL, boxTone } from './boxStyle';
 import { saveFile } from '../services/backup';
 import { sightFormsHtml } from '../services/sightFormHtml';
 import * as nav from './navMath';
@@ -30,10 +31,9 @@ export const clock = (jd: number, zone: number) => {
 };
 
 export const DateField: React.FC<{ value: string; onChange: (s: string) => void }> = ({ value, onChange }) => (
-  <label className="block space-y-1">
-    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Date (zone time)</span>
-    <input type="date" value={value} onChange={e => onChange(e.target.value)} aria-label="Date"
-      className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+  <label className={`${BOX} ${boxTone()} col-span-2`}>
+    <span className={BOX_LABEL}>Date (zone time)</span>
+    <input type="date" value={value} onChange={e => onChange(e.target.value)} aria-label="Date" className={BOX_INPUT} />
   </label>
 );
 
@@ -95,7 +95,7 @@ export function useSetup(opts: { limb?: boolean; run?: boolean; latitude?: 'requ
           <Field label="To (optional)" text hint="port" {...f.bind('to')} />
         </Grid>
       </Panel>
-      <Panel title="Deck watch" note="Leave the watch error blank if the times you enter are already right. With a watch error the form shows the deck watch reading (G.M.T. less the error). Choose Slow or Fast, then the seconds.">
+      <Panel closed title="Deck watch" note="Leave the watch error blank if the times you enter are already right. With a watch error the form shows the deck watch reading (G.M.T. less the error). Choose Slow or Fast, then the seconds.">
         <Seg value={basis} onChange={v => setBasis(v as 'zt' | 'dwt')} options={[['zt', 'Times are zone time'], ['dwt', 'Times are deck watch']]} />
         <Field label="Watch error (seconds)" kind="watch" wide invalid={f.v.dwe.trim() !== '' && dwe === null} {...f.bind('dwe')} />
       </Panel>
@@ -174,7 +174,7 @@ export const SunRunSunTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const bad = (text: string, ok: boolean) => text.trim() !== '' && !ok;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {setup.ui}
       <Panel title="Sun run Sun" note={NOTE}>
         <Grid>
@@ -223,7 +223,7 @@ export const SunRunMerpassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const r = out?.result ?? null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {setup.ui}
       <Panel title="Sun run Meridian passage" note={NOTE}>
         <Grid>

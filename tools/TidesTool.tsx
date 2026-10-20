@@ -65,7 +65,7 @@ const ManualTides: React.FC = () => {
   const jdUt = date && zone !== null && ok ? julianDay(date[0], date[1], date[2]) + ((tw ?? t1) - zone) / 24 : null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="Tide at a given time" note="Enter the two tides either side of the time you want: a high water and the next low water, or a low water and the next high water (from the tide tables, for the port). The height between them is worked by the rule of twelfths or by the half-cosine curve.">
         <Grid>
           <DateField value={f.v.date} onChange={f.bind('date').onChange} />
@@ -116,7 +116,7 @@ const DayEditor: React.FC<{ title: string; rows: DayTide[]; onChange: (r: DayTid
           <label className="block space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Height (m)</span>
             <input type="number" inputMode="decimal" step="any" value={Number.isFinite(r.h) ? r.h : ''} onChange={e => onChange(rows.map((x, j) => (j === i ? { ...x, h: e.target.value === '' ? NaN : parseFloat(e.target.value) } : x)))}
-              className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
           </label>
           <button type="button" onClick={() => onChange(rows.filter((_, j) => j !== i))} aria-label="Remove this tide" className="p-2 mb-1 text-slate-400 hover:text-red-500"><Trash2 size={16} /></button>
         </div>
@@ -136,7 +136,7 @@ const PortEditor: React.FC<{ port: Port; stds: string[]; isUser: boolean; onSave
   const input = (k: keyof typeof v, label: string, unit: string) => (
     <label className="block space-y-1">
       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label} ({unit})</span>
-      <input type="number" inputMode="decimal" step="any" value={v[k]} onChange={e => setV({ ...v, [k]: e.target.value })} className="w-full p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+      <input type="number" inputMode="decimal" step="any" value={v[k]} onChange={e => setV({ ...v, [k]: e.target.value })} className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
     </label>
   );
   return (
@@ -219,7 +219,7 @@ const AutoTides: React.FC = () => {
   const label = (o: number) => `${o === -1 ? 'Day before' : o === 1 ? 'Day after' : 'Date'} (${dayKey(o)?.split('|')[1] ?? ''})`;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="Place and time" note="Choose the port, or use your GPS position to pick the nearest one. Tide times are in the zone of the tables (blank zone is +5:30, India).">
         <label className="block space-y-1">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Port</span>
@@ -267,7 +267,7 @@ const AutoTides: React.FC = () => {
           <PortEditor key={port.name + (port.ref ?? '')} port={port} stds={stdNames} isUser={userPorts.some(u => u.name === port.name)} onSave={savePort}
             onRemove={() => { setUserPorts(userPorts.filter(u => u.name !== port.name)); setPortName(SEED_PORTS[0].name); }} />
           <div className="flex gap-2 pt-2 border-t border-slate-100">
-            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="New port name" aria-label="New port name" className="min-w-0 flex-1 p-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="New port name" aria-label="New port name" className="min-w-0 flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400" />
             <button type="button" onClick={addPort} disabled={!newName.trim()} className="px-4 rounded-xl bg-blue-600 text-white text-xs font-bold disabled:opacity-40">Add</button>
           </div>
         </div>
@@ -279,7 +279,7 @@ const AutoTides: React.FC = () => {
 export const TidesTool: React.FC = () => {
   const [mode, setMode] = useMemory<'auto' | 'manual'>('tide:mode', 'auto');
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Seg value={mode} onChange={v => setMode(v as 'auto' | 'manual')} options={[['auto', 'By port (tables)'], ['manual', 'User defined']]} />
       {mode === 'auto' ? <AutoTides /> : <ManualTides />}
     </div>

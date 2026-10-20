@@ -83,3 +83,36 @@ export function slowing(p: Problem, s: Solution, lossPerKnotNm: number): Slowing
   const at = { x: p.from.x + u.x * alongRun, y: p.from.y + u.y * alongRun };
   return { decelDistance, backAlongTrack: back, immediately: back >= dist, at, guideBearsTrue: norm(bearingOf(at) + 180), distance: len(at) };
 }
+
+export interface Profile {
+  /** hours from the start to being on station */
+  totalHours: number;
+  /** own ship's position relative to the Guide, n miles, and her speed along the relative track in knots, `hours` into the run */
+  at(hours: number): { pos: Vec; relSpeed: number };
+  /** the Guide's position after `hours` (she starts at the origin) */
+  guideAt(hours: number): Vec;
+}
+
+/**
+ * The run played in time. Own ship closes along the relative track at the relative speed k; at the point to reduce speed her
+ * relative speed falls steadily to nothing over the deceleration distance, and she is on station when it reaches nothing.
+ * With no deceleration figure she runs at k and stops on the station.
+ */
+export function profile(p: Problem, s: Solution, slow: Slowing | null): Profile {
+  const d = { x: p.to.x - p.from.x, y: p.to.y - p.from.y }, dist = len(d);
+  const u = dist > 0 ? { x: d.x / dist, y: d.y / dist } : { x: 0, y: 0 };
+  const k = s.relativeSpeed;
+  const back = slow ? Math.min(slow.backAlongTrack, dist) : 0;
+  const run = dist - back, t1 = run / k, t2 = back > 0 ? (2 * back) / k : 0;
+  const g = { x: p.guideSpeed * Math.sin(rad(p.guideCourse)), y: p.guideSpeed * Math.cos(rad(p.guideCourse)) };
+  const along = (h: number) => {
+    if (h <= t1) return { s: k * h, v: k };
+    const tau = Math.min(h - t1, t2);
+    return t2 > 0 ? { s: run + k * (tau - (tau * tau) / (2 * t2)), v: k * (1 - tau / t2) } : { s: dist, v: 0 };
+  };
+  return {
+    totalHours: t1 + t2,
+    at: h => { const a = along(Math.max(0, h)); return { pos: { x: p.from.x + u.x * a.s, y: p.from.y + u.y * a.s }, relSpeed: a.v }; },
+    guideAt: h => ({ x: g.x * h, y: g.y * h }),
+  };
+}

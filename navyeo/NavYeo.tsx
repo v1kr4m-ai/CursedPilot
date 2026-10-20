@@ -236,19 +236,21 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
               <button onClick={collapse} aria-label="Collapse NavYeo" title="Collapse to icon" className="m-2 p-2.5 bg-slate-50 text-slate-500 rounded-full hover:bg-slate-100 transition-colors"><Minimize2 size={18} /></button>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3">
               {tool ? (
                 <div className="space-y-3">
-                  <div ref={setResultSlot} aria-live="polite" aria-label="Result" className="sticky top-0 z-10 -mx-4 -mt-4 px-4 pt-4 pb-2 space-y-2 bg-white/95 backdrop-blur max-h-[42vh] overflow-y-auto empty:hidden" />
-                  <button onClick={() => { setTool(null); setShowInfo(false); }} className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:underline"><ArrowLeft size={14} /> All tools</button>
+                  <div ref={setResultSlot} aria-live="polite" aria-label="Result" className="sticky top-0 z-10 -mx-3 -mt-3 px-3 pt-3 pb-1.5 space-y-1.5 bg-white/95 backdrop-blur max-h-[38vh] overflow-y-auto empty:hidden" />
                   <div className="flex items-center gap-2">
-                    <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">{tool.icon}</div>
-                    <div className="min-w-0 flex-1"><p className="text-sm font-bold text-slate-800 leading-tight">{tool.name}</p><p className="text-[10px] text-slate-400 font-medium">{tool.desc}</p></div>
+                    <button onClick={() => { setTool(null); setShowInfo(false); }} aria-label="All tools" title="All tools" className="p-1.5 rounded-full bg-slate-50 border border-slate-200 text-blue-600 active:scale-95"><ArrowLeft size={16} /></button>
+                    <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">{tool.icon}</div>
+                    <div className="min-w-0 flex-1" title={tool.desc}>
+                      <p className="text-sm font-bold text-slate-800 leading-tight truncate">{tool.name}</p>
+                      <p className="text-[9px] font-medium text-slate-400 leading-tight truncate">{ship ? <>Figures from <span className="font-bold text-emerald-600">{ship.name}</span> in green</> : 'No ship selected'}</p>
+                    </div>
                     <button onClick={() => setShowInfo(v => !v)} aria-pressed={showInfo} aria-label={`How ${tool.name} works`} title="How it works"
-                      className={`p-2 rounded-full border transition-colors ${showInfo ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-slate-200'}`}><Info size={16} /></button>
+                      className={`p-1.5 rounded-full border transition-colors ${showInfo ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-slate-200'}`}><Info size={16} /></button>
                   </div>
                   {showInfo && <ToolInfoCard name={tool.name} />}
-                  <p className="text-[10px] font-medium text-slate-400">{ship ? <>Figures from <span className="font-bold text-emerald-600">{ship.name}</span> are filled in where it has them (green); type over one to change it.</> : 'No ship selected: choose one under My Ship to have its figures filled in.'}</p>
                   <ResultSlot.Provider value={resultSlot}><tool.Component ship={ship} /></ResultSlot.Provider>
                 </div>
               ) : (

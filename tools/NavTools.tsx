@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Anchor, ArrowLeftRight, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { Anchor, ArrowLeftRight, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -18,6 +18,7 @@ import { TidesTool } from './TidesTool';
 import { AnchorTool } from './AnchorTool';
 import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
+import { FlyingCorpenTool } from './FlyingCorpenTool';
 import { parseClock } from './sunSights';
 import { Field, Grid, LengthField, Panel, Result, SELECT, Seg, SideToggle, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
 
@@ -29,7 +30,7 @@ const BearingTool: React.FC = () => {
   const [camera, setCamera] = useState(false);
   const brg = f.n('brg'), head = f.n('head'), rel = f.n('rel'), vari = f.n('var');
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="Reciprocal bearing">
         <Field label="Bearing or course" unit="°" {...f.bind('brg')} />
         {brg !== null && <Result rows={[['Reciprocal', bearing(nav.reciprocal(brg))]]} />}
@@ -69,7 +70,7 @@ const TsdTool: React.FC = () => {
   const startSec = parseClock(f.v.start);
   const eta = r && startSec !== null && Number.isFinite(r.minutes) ? etaText(startSec, r.minutes) : null;
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Time, speed, distance" note="Fill any two, leave the third blank.">
       <LengthField label="Distance" unit={unit} onUnit={setUnit} {...f.bind('d')} />
       <Grid>
@@ -113,13 +114,13 @@ const RadianTool: React.FC = () => {
   const outside = (find === 'angle' ? wantRange !== null && r1 !== null && r2 !== null && (wantRange < Math.min(r1, r2) || wantRange > Math.max(r1, r2))
     : wantAngle !== null && a1 !== null && a2 !== null && (wantAngle < Math.min(a1, a2) || wantAngle > Math.max(a1, a2)));
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="Radian rule (angle = distance / range)" note="Gives the angle subtended in degrees. The two lengths may be in different units.">
         <LengthField label="Distance off" unit={ud} onUnit={setUd} {...f.bind('dist')} />
         <LengthField label="Range" unit={ur} onUnit={setUr} {...f.bind('range')} />
         {dm !== null && rm !== null && rm > 0 && <Result rows={[['Angle', `${nav.radianAngle(dm, rm).toFixed(2)}\u00B0`]]} />}
       </Panel>
-      <Panel title="Interpolate between two readings" note="Enter two known pairs of range and angle (from a table or from two sights) and the value in between. Straight line is how a table is read; Inverse follows the radian rule, where the angle falls as the range grows, and is the better choice over a wide span.">
+      <Panel closed title="Interpolate between two readings" note="Enter two known pairs of range and angle (from a table or from two sights) and the value in between. Straight line is how a table is read; Inverse follows the radian rule, where the angle falls as the range grows, and is the better choice over a wide span.">
         <UnitPick label="Ranges in" unit={uri} onChange={setUri} />
         <Grid>
           <Field label="Range 1" unit={nav.LENGTH_UNITS[uri].short} {...g.bind('r1')} />
@@ -151,16 +152,16 @@ const CpaTool: React.FC = () => {
   const geo = input ? nav.cpaGeometry(input) : null;
   const [headUp, setHeadUp] = useMemory('cpa:headup', true);
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="CPA / TCPA" note="True bearing, true courses, speeds through the ground. Assumes both vessels hold course and speed.">
       <Grid>
         <Field label="Own course" unit="°T" sensor="course" {...f.bind('oc')} />
         <Field label="Own speed" unit="kn" sensor="speed" {...f.bind('os')} />
         <Field label="Target bearing" unit="°T" {...f.bind('brg')} />
+        <LengthField label="Range" unit={unit} onUnit={setUnit} {...f.bind('rng')} />
         <Field label="Target course" unit="°T" {...f.bind('tc')} />
         <Field label="Target speed" unit="kn" units {...f.bind('ts')} />
       </Grid>
-      <LengthField label="Target range" unit={unit} onUnit={setUnit} {...f.bind('rng')} />
       {r && (
         <Result tone={r.status === 'closing' && r.cpa < 1 ? 'warn' : 'ok'} rows={[
           ['CPA', fromNm(r.cpa, unit)],
@@ -192,7 +193,7 @@ const CtsTool: React.FC = () => {
   const typed = f.n('dist');
   const distNm = typed === null ? null : nav.convertLength(typed, unit, 'nm');
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Course to steer (set and drift)" note="Speed is through the water. Set is the direction the current flows towards.">
       <Grid>
         <Field label="Track to make good" unit="°T" {...f.bind('track')} />
@@ -262,7 +263,7 @@ const WheelOverTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const show = (yd: number) => nav.formatLength(nav.convertLength(yd, 'yards', unit), unit);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Wheel-over point" note="Approximate: takes advance and transfer at the heading change and assumes the ship is on the new track by the end of the turn. Confirm against your ship's own turning trials and standing orders.">
       <Field label="Course alteration" unit="°" {...f.bind('turn')} />
       <div className="space-y-1">
@@ -336,7 +337,7 @@ const MobTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const greenRed = (b: number) => (b <= 180 ? `Green ${String(Math.round(b)).padStart(3, '0')}` : `Red ${String(Math.round(360 - b)).padStart(3, '0')}`);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Man overboard turn" note="Worked from the ship's own turning data, taking the man as not drifting and the ship as steady on each new heading at the end of its turn. An aid only: follow the ship's standing orders and the situation, and use the quickest method for the circumstances.">
       <Seg value={source} onChange={v => setSource(v as 'data' | 'manual')} options={[['data', "From ship's data"], ['manual', 'Normal (enter a turning circle)']]} />
       {source === 'data' && (!ship || tables.length === 0) && <Warn>This needs turning data for the selected ship. Add or import it under Calibration Data, Turning Trials, or switch to Normal.</Warn>}
@@ -437,7 +438,7 @@ const CompassTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const gyro = g.n('gyro'), err = g.n('err');
   const toTrue = dir === 'toTrue';
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Panel title="True, magnetic and compass" note="Easterly variation and deviation are positive, westerly negative. Deviation depends on the ship's head, so use the value for that heading. With a compass swing recorded for the selected ship, the deviation is taken from it for the heading entered.">
         <div className="flex gap-2">
           {([['toTrue', 'Compass to true'], ['toCompass', 'True to compass']] as const).map(([k, l]) => (
@@ -481,7 +482,7 @@ const AtbTool: React.FC = () => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Angle on the bow (ATB)" note="The angle between the target's head and the line of sight from the target to you, 0-180° to port or starboard. Green is starboard, red is port. Bearing is true, from you to the target.">
       <Seg value={mode} onChange={v => setMode(v as 'course' | 'angle')} options={[['course', 'Find target course'], ['angle', 'Find angle on bow']]} />
       <Field label="Bearing of target" unit="°T" {...f.bind('brg')} />
@@ -521,7 +522,7 @@ const AtbTool: React.FC = () => {
 const HsaTool: React.FC = () => {
   const [mode, setMode] = useMemory<'fix' | 'dist' | 'length'>('hsa:mode', 'fix');
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <Seg value={mode} onChange={v => setMode(v as 'fix' | 'dist' | 'length')} options={[['fix', 'Position fix'], ['dist', 'Distance off'], ['length', 'Object length']]} />
       {mode === 'fix' ? <HsaFixPanel /> : mode === 'dist' ? <HsaDistancePanel /> : <HsaLengthPanel />}
     </div>
@@ -593,7 +594,7 @@ const HsaDistancePanel: React.FC = () => {
   const r = base !== null && ang !== null && ang > 0 && ang < 180 && base > 0 ? nav.positionCircleRadius(base, ang) : null;
   const show = (v: number) => nav.formatLength(v, unit);
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
     <Panel title="Distance off from one horizontal sextant angle" note="Valid when you are on the perpendicular bisector of the two objects, i.e. equally far from both (for example abeam the midpoint between them). Otherwise use the position fix with a third object. The answer is in the same unit as the distance between the objects.">
       <LengthField label="Distance between the objects" unit={unit} onUnit={setUnit} {...f.bind('base')} />
       <Field label="Horizontal sextant angle" unit="°" kind="angle" invalid={f.v.ang.trim() !== '' && ang === null} {...f.bind('ang')} />
@@ -650,6 +651,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Tides', short: 'Tides', desc: 'Height of tide at a time, flood or ebb, springs or neaps', icon: <ArrowUpDown size={18} className="text-teal-500" />, Component: TidesTool },
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
+  { name: 'Flying Corpen', short: 'Flying Corpen', desc: 'True wind, wind on deck, and the course and speed for helicopter flying', icon: <WindIcon size={18} className="text-sky-500" />, Component: FlyingCorpenTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
   { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },
   { name: 'Unit Converter', short: 'Units', desc: 'Distance and speed units, cables, fathoms', icon: <ArrowLeftRight size={18} className="text-slate-500" />, Component: UnitTool },
