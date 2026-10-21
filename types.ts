@@ -7,6 +7,11 @@ export interface ShipParticulars {
   stemToBridge: number;
   stemToRas: number;
   stemToFueling: number;
+  /** height of the observer's eye on the bridge above the waterline, metres: used by the sight and horizon tools */
+  heightOfEye?: number;
+  /** shackles of cable that can be veered on the bower anchor, and what it is made of: used by the Anchor tool */
+  anchorCableShackles?: number;
+  anchorCableType?: 'steel' | 'bronze';
 }
 
 export interface TurningDataRow {

@@ -15,6 +15,8 @@ export interface ShipParams {
   heightOfEye?: number;
   /** shackles of cable the anchor can veer: an extra particular whose heading mentions the cable or shackles */
   cableShackles?: number;
+  /** what the cable is made of, when the ship's particulars say */
+  cableType?: 'steel' | 'bronze';
   /** metres the ship runs while slowing, per knot lost, from her deceleration runs */
   decelMetresPerKnot?: number;
   /** the compass swing's coefficients, from the latest swing with all eight headings */
@@ -53,6 +55,8 @@ export function shipParams(ship?: Ship): ShipParams {
     length: pos(p?.lengthOverall) ?? firstNumber(ship.info?.length), breadth: pos(p?.breadthOverall) ?? firstNumber(ship.info?.beam),
     stemToStandard: pos(p?.stemToStandard), stemToBridge: pos(p?.stemToBridge), displacement: pos(p?.displacement) ?? firstNumber(ship.info?.displacement),
     draught: firstNumber(ship.info?.draught), maxSpeed: firstNumber(ship.info?.speed),
+    // the dedicated particulars first; an extra particular with the right heading still works for ships set up before they existed
+    heightOfEye: pos(p?.heightOfEye), cableShackles: pos(p?.anchorCableShackles), cableType: p?.anchorCableType === 'bronze' || p?.anchorCableType === 'steel' ? p.anchorCableType : undefined,
   };
   for (const c of ship.custom ?? []) {
     if (c.group !== 'particulars') continue;

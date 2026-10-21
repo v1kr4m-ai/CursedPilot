@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Anchor, ArrowLeftRight, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { Anchor, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -18,7 +18,9 @@ import { TidesTool } from './TidesTool';
 import { AnchorTool } from './AnchorTool';
 import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
+import { StationTurnTool } from './StationTurnTool';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
+import { ReferenceTool } from './ReferenceTool';
 import { parseClock } from './sunSights';
 import { Field, Grid, LengthField, Panel, Result, SELECT, Seg, SideToggle, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
 
@@ -651,7 +653,9 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Tides', short: 'Tides', desc: 'Height of tide at a time, flood or ebb, springs or neaps', icon: <ArrowUpDown size={18} className="text-teal-500" />, Component: TidesTool },
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
+  { name: 'Station Turn', short: 'Station turn', desc: 'Wheel-over point for the turn onto station on a Guide, worked back from the station with the ship’s advance, transfer and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationTurnTool },
   { name: 'Flying Corpen', short: 'Flying Corpen', desc: 'True wind, wind on deck, and the course and speed for helicopter flying', icon: <WindIcon size={18} className="text-sky-500" />, Component: FlyingCorpenTool },
+  { name: 'Rules & Buoyage', short: 'Rules & buoyage', desc: 'IALA buoyage, lights and shapes, sound signals and the steering rules', icon: <BookOpen size={18} className="text-emerald-600" />, Component: ReferenceTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
   { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },
   { name: 'Unit Converter', short: 'Units', desc: 'Distance and speed units, cables, fathoms', icon: <ArrowLeftRight size={18} className="text-slate-500" />, Component: UnitTool },

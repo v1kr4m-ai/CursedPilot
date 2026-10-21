@@ -3,6 +3,7 @@ import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Pin, PinOff, Send
 import { Ship } from '../types';
 import { NAV_TOOLS, NavTool } from '../tools/NavTools';
 import { ASTRO_TABS } from '../tools/AstroTool';
+import { shipParams } from '../tools/shipParams';
 import ToolInfoCard from './ToolInfoCard';
 import { toolMemory } from '../tools/toolMemory';
 import { isLengthUnit } from '../tools/navMath';
@@ -179,7 +180,7 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
       tables.get(key)!.rows.push({ turn: r.heading, advance: r.advance, transfer: r.transfer, time: r.time });
     });
     const unit = toolMemory.get<string>('pref:wheel:unit', 'cables');
-    const reply = interpret(q, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables' });
+    const reply = interpret(q, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables', ship: shipParams(ship) });
     if (reply.kind === 'open') {
       const astroTab = ASTRO_TABS[reply.tool];
       const target = NAV_TOOLS.find(t => t.name === (astroTab ? 'ASTRO' : reply.tool));

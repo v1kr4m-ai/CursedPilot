@@ -22,11 +22,12 @@ const Rings: React.FC<{ rings: { r: number; label: string; color: string; dash?:
 };
 
 export const AnchorTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const [type, setType] = useMemory<CableType>('anchor:type', 'steel');
+  const [typeChosen, setType] = useMemory<CableType | ''>('anchor:type', '');
   const [depthUnit, setDepthUnit] = useUnit('anchor:depth', 'metres');
   const [unit, setUnit] = useUnit('anchor:unit', 'metres');
   // the selected ship's own figures, shown in the unit chosen; typing over one overrides it
   const sp = shipParams(ship);
+  const type: CableType = typeChosen || sp.cableType || 'steel';   // the user's choice, else the ship's cable, else forged steel
   const inUnit = (m?: number) => (m === undefined ? undefined : String(Math.round(nav.convertLength(m, 'metres', unit) * 10) / 10));
   const f = useForm('anchor', FIELDS, { len: inUnit(sp.length), stem: inUnit(sp.stemToStandard), usable: sp.cableShackles === undefined ? undefined : String(sp.cableShackles) });
   const toM = (v: number | null) => (v === null ? null : nav.convertLength(v, unit, 'metres'));

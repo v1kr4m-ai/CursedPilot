@@ -35,5 +35,13 @@ assert.equal(shipParams({ ...base, particulars: { ...base.particulars, lengthOve
 near(shipParams({ ...base, custom: [{ id: 'x', group: 'particulars', label: 'H.O.E.', value: '60', unit: 'ft' }] }).heightOfEye!, 18.288);
 assert.equal(firstNumber('about 12.5 kn'), 12.5); assert.equal(firstNumber('n/a'), undefined);
 
+// the dedicated particulars win over an extra particular with the same meaning, and the cable type comes with them
+{
+  const q = shipParams({ ...base, particulars: { ...base.particulars, heightOfEye: 21.5, anchorCableShackles: 9, anchorCableType: 'bronze' } });
+  assert.equal(q.heightOfEye, 21.5); assert.equal(q.cableShackles, 9); assert.equal(q.cableType, 'bronze');
+  assert.equal(shipParams(base).cableType, undefined);                                                   // not recorded: no cable type
+  assert.equal(shipParams({ ...base, particulars: { ...base.particulars, anchorCableType: 'wire' as unknown as 'steel' } }).cableType, undefined);
+}
+
 function near(a: number, b: number) { assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`); }
 console.log('shipParams: all checks passed');

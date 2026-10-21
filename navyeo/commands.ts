@@ -3,10 +3,13 @@
 // `node navyeo/commands.check.ts` checks it.
 import { convertLength, formatLength, norm360, wheelOverDistance } from '../tools/navMath.ts';
 import type { LengthUnit } from '../tools/navMath.ts';
+import type { ShipParams } from '../tools/shipParams.ts';
+import { NUM, lengthAfter, num } from './parse.ts';
+import { anchorCommand, battCommand, flyingCommand, referenceCommand, tideCommand, vsaCommand } from './shipCommands.ts';
 
 export interface TurnRow { turn: number; advance: number; transfer: number; time: number }   // yards, yards, seconds
 export interface TurnTable { speed: number; wheel: number; side: 'Port' | 'Starboard'; rows: TurnRow[] }
-export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit }
+export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit; /** the selected ship's figures, for the commands that use them */ ship?: ShipParams }
 
 export type Reply =
   | { kind: 'say'; say: string }
@@ -21,27 +24,16 @@ export const EXAMPLES = [
   'tactical diameter at 15 kn 20 wheel',
   'advance at 12 kn 15 wheel 90 turn',
   'wheel over for 60 degrees at 15 kn 20 wheel',
+  'anchor depth 30 m tide 2 length 142',
+  'flying corpen wind 090 15 wod 25 ahead',
+  'battenberg guide course 030 speed 10 own speed 20 from red 90 4 nm to ahead 1 nm',
+  'tide hw 0600 4.8 lw 1220 0.6 at 0910',
+  'vsa height 40 m angle 0 46.2',
+  'east cardinal buoy',
+  'trawling lights',
+  'overtaking signals',
   'man overboard, williamson, hsa, compass, units ...',
 ];
-
-const NUM = '(-?\\d+(?:\\.\\d+)?)';
-const UNIT_WORDS: [RegExp, LengthUnit][] = [
-  [/^(?:cables?|cbl?s?)\b/, 'cables'], [/^(?:nm|nautical miles?|miles?)\b/, 'nm'], [/^(?:metres?|meters?|m)\b/, 'metres'],
-  [/^(?:yards?|yds?|yd)\b/, 'yards'], [/^(?:km|kilomet(?:re|er)s?)\b/, 'km'], [/^(?:feet|foot|ft)\b/, 'feet'], [/^(?:fathoms?|fm)\b/, 'fathoms'],
-];
-
-const num = (t: string, re: string): number | null => {
-  const m = new RegExp(re).exec(t);
-  return m ? parseFloat(m[1]) : null;
-};
-
-/** A number with an optional length unit after it: "6 nm", "12", "3 cables". */
-function lengthAfter(t: string, words: string): { value: number; unit: LengthUnit | null } | null {
-  const m = new RegExp(`(?:${words})\\s*(?:of|is|=|:)?\\s*${NUM}\\s*([a-z]*)`).exec(t);
-  if (!m) return null;
-  const unit = UNIT_WORDS.find(([re]) => re.test(m[2]))?.[1] ?? null;
-  return { value: parseFloat(m[1]), unit };
-}
 
 const bearing3 = (n: number) => String(Math.round(norm360(n))).padStart(3, '0');
 const show = (yd: number, unit: LengthUnit) => formatLength(convertLength(yd, 'yards', unit), unit);
@@ -150,6 +142,7 @@ function tsdCommand(t: string): Reply | null {
 
 const OPEN_ONLY: [RegExp, string][] = [
   [/\b(?:flying corpen|corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/, 'Flying Corpen'],
+  [/\b(?:station turn|turn onto station|wheel[- ]?over for (?:the )?station)\b/, 'Station Turn'],
   [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg'],
   [/\b(?:anchor(?:ing|age)?|swinging (?:circle|radius)|shackles?|msr|cable required)\b/, 'Anchor'],
   [/\b(?:tides?|tidal height|high water|low water|rule of twelfths|springs?|neaps?)\b/, 'Tides'],
@@ -200,7 +193,7 @@ export function interpret(text: string, ctx: Context): Reply {
   const rec = /reciprocal(?: of)?\s*(?:course |bearing )?(\d+(?:\.\d+)?)/.exec(t);
   if (rec) return { kind: 'say', say: `Reciprocal of ${bearing3(parseFloat(rec[1]))} is ${bearing3(parseFloat(rec[1]) + 180)}.` };
 
-  const reply = turningAnswer(t, ctx) ?? cpaCommand(t) ?? atbCommand(t) ?? tsdCommand(t);
+  const reply = turningAnswer(t, ctx) ?? cpaCommand(t) ?? atbCommand(t) ?? battCommand(t, ctx) ?? flyingCommand(t, ctx) ?? anchorCommand(t, ctx) ?? tideCommand(t) ?? vsaCommand(t, ctx) ?? referenceCommand(t) ?? tsdCommand(t);
   if (reply) return reply;
 
   const hit = OPEN_ONLY.find(([re]) => re.test(t));

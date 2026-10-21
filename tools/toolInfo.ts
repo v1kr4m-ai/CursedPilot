@@ -13,6 +13,16 @@ export interface ToolInfo {
 }
 
 export const TOOL_INFO: Record<string, ToolInfo> = {
+  'Rules & Buoyage': {
+    concept: 'A quick reference to look things up in: the IALA buoyage marks of Region A (the system India uses), the lights and day shapes of the International Regulations for Preventing Collisions at Sea, the sound signals, and all 41 Rules of the Regulations word for word (with Annexes II and IV), each with an info button for the BR 45 explanation.',
+    steps: [
+      'Pick Buoyage, Lights, Sound or Rules, or type in the search box (for example trawling, east cardinal, overtaking) to find an entry in any section.',
+      'Buoyage shows each mark drawn with its colours and topmark, its light, and what it means. Lights gives the arcs and the distances the lights are seen, then the lights and shapes for each kind of vessel. Sound gives the manoeuvring and fog signals. Rules gives every Rule by Part and Section; the i button shows the BR 45 explanation and examples when that file is installed. Each lights, shapes and sound entry shows its Rule number and Part, and the lights have a night and day picture.',
+      'NavYeo opens it from a typed request such as east cardinal buoy, trawling lights, fog signals or colregs overtaking.',
+    ],
+    formulas: ['Cardinal topmarks: North both cones up, South both down, West points together, East bases together', 'Region A lateral marks: red to port, green to starboard when entering from seaward'],
+    limits: ['This is a summary for a quick look and it leaves detail out. The International Regulations, the ship orders and the current IALA and Admiralty publications (for example NP 735) are the authority.', 'Buoyage is for Region A. Region B (the Americas, Japan, Korea, the Philippines) reverses the lateral colours.'],
+  },
   'Flying Corpen': {
     concept: 'The course and speed that put the wind the helicopter needs over the flight deck. The wind on deck is the true wind combined with the ship\'s own motion, so the tool works out the true wind (from the wind you measure on deck, if you do not know it), then the course and the lowest speed that give the wind over the deck asked for, from the angle asked for.',
     steps: [
@@ -24,6 +34,17 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     ],
     formulas: ['Wind on deck = ship velocity - wind velocity', 'sin (C - D) = -(WOD / Vw) sin a', 'Speed = WOD cos a - Vw cos (D - C)', 'True wind = ship velocity - wind on deck velocity'],
     limits: ['The wind is taken as steady. Wind changes, gusts and the sea state alter the wind on deck, and the ship\'s turning circle and acceleration are not modelled in the playback.', 'The wind over the deck and the angle it must come from are the aircraft\'s and the ship\'s flying limits: take them from the flying orders.', 'If the true wind is stronger than the wind over the deck wanted, steaming into it gives too much; the tool then offers running downwind, which may not be practical.', 'An aid. The Captain and the flight deck officer decide the ship\'s course and speed for flying.'],
+  },
+  'Station Turn': {
+    concept: 'Where to put the wheel over so that the turn onto the Guide’s course ends with own ship on station. The sum is worked backwards from the station on a plot with the Guide at the centre, using the ship’s advance, transfer, speed lost in the turn and the time the turn takes.',
+    steps: [
+      'Enter the Guide’s true course and speed, and your own approach course. The turn is onto the Guide’s course, the shorter way unless you choose.',
+      'Give the station as a true bearing from the Guide and a distance in yards, and a lateral safety margin to the Guide’s starboard or port side.',
+      'Enter the turn: advance, transfer, knots lost, deceleration distance (yards per knot) and the time the turn takes.',
+      'The answer is the true bearing and distance of the Guide from your Wheel-Over Point. Wheel over when the Guide bears that and is at that distance. The working lists points B to G.',
+    ],
+    formulas: ['B station, C = B + margin, D = C + transfer, E = D - advance along the approach course', 'F = E - (knots lost x yards per knot) along the Guide’s course', 'G = F + Guide’s run in the turn; answer = bearing and distance of the Guide from G', '2000 yards to the n mile'],
+    limits: ['A plane plot for the short distances of manoeuvring; it takes advance and transfer as constants for the turn and ignores wind and current.', 'Check against Battenberg for the course to steer to the station and against the Wheel-over tool for the turn itself.'],
   },
   'Battenberg': {
     concept: 'The course to steer to take up, or change, station on a Guide. The Guide moves, so the track you want is the track relative to her, and the course is found from the relative velocity triangle (BR 45(6) para 0423). The stations are shown on a Battenberg-style diagram with the Guide at the centre heading up, and the bearings on her bow, beam, quarter and astern marked.',

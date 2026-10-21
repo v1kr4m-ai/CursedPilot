@@ -1,0 +1,29 @@
+{
+  "name": "Cursed Pilot",
+  "short_name": "Cursed Pilot",
+  "description": "Ship records and navigator tools",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#313c44",
+  "theme_color": "#313c44",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -87,6 +87,14 @@ const TrueDiagram: React.FC<{ prob: { guideCourse: number; from: Vec }; pr: Prof
   );
 };
 
+const PRESETS: [string, number, Side | null][] = [['Ahead', 0, null], ['Bow', 45, null], ['Beam', 90, null], ['Quarter', 135, null], ['Astern', 180, null]];
+/** Quick stations about the Guide: tap one and choose the side to fill the angle off her bow. */
+const Presets: React.FC<{ side: Side; onPick: (angle: number) => void }> = ({ side, onPick }) => (
+  <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Preset stations">
+    {PRESETS.map(([name, a]) => <button key={name} type="button" onClick={() => onPick(a)} className="shrink-0 px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600">{name === 'Ahead' || name === 'Astern' ? `${name} ${String(a).padStart(3, '0')}` : `${side === 'Port' ? 'P' : 'S'} ${name} ${String(a).padStart(3, '0')}`}</button>)}
+  </div>
+);
+
 export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const [unit, setUnit] = useUnit('batt:unit', 'yards');
   const sp = shipParams(ship);
@@ -143,6 +151,7 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
       <Panel title="Where you are now" note="Your position from the Guide: the angle off her bow, on her port or starboard side, and the distance.">
         <SideToggle label="On the Guide's" value={side1} onChange={setSide1} />
+        <Presets side={side1} onPick={a => f.bind('a1').onChange(String(a))} />
         <Grid>
           <Field label="Angle off her bow" unit="°" {...f.bind('a1')} />
           <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d1')} />
@@ -151,6 +160,7 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
       <Panel title="Ordered station" note="Where you are to take station, in the same way. Stations are measured from the Guide's head: 000 right ahead, 090 on the starboard beam, 180 astern.">
         <SideToggle label="On the Guide's" value={side2} onChange={setSide2} />
+        <Presets side={side2} onPick={a => f.bind('a2').onChange(String(a))} />
         <Grid>
           <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />
           <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d2')} />
