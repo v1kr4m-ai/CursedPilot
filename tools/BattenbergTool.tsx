@@ -6,13 +6,14 @@ import { PlayBar, mmss, usePlayer } from './PlayBar';
 import { Field, Grid, Panel, Result, Seg, SideToggle, UnitPick, Warn, bearing, useForm, useMemory, useUnit } from './kit';
 import { shipParams } from './shipParams';
 import { OwnFormula } from './OwnFormula';
+import { stationInTime, stationRun } from './relvel';
 
 // Battenberg: the course to steer to take or change station on a Guide (BR 45(6) paras 0423-0424), with the stations
 // marked on a Battenberg-style diagram: the Guide at the centre heading up, range rings, and the bearings on her bow,
 // beam, quarter and astern. Tap the diagram to place a station. The sums are in battenberg.ts.
 
 type Side = 'Port' | 'Starboard';
-const FIELDS = ['gc', 'gs', 'ss', 'a1', 'd1', 'a2', 'd2', 'loss'] as const;
+const FIELDS = ['gc', 'gs', 'ss', 'a1', 'd1', 'a2', 'd2', 'loss', 'tm', 'vis'] as const;
 const NM_PER_YD = 1 / 2025.37;
 
 const hms = (hours: number) => { const s = Math.round(hours * 3600); return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`; };
@@ -161,6 +162,7 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       <Panel title="Ordered station" note="Where you are to take station, in the same way. Stations are measured from the Guide's head: 000 right ahead, 090 on the starboard beam, 180 astern.">
         <SideToggle label="On the Guide's" value={side2} onChange={setSide2} />
         <Presets side={side2} onPick={a => f.bind('a2').onChange(String(a))} />
+        <button type="button" onClick={() => { setSide2(side1); f.bind('a2').onChange(f.bind('a1').value); }} className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600">Open or close on the steady bearing: use my bearing, change the distance</button>
         <Grid>
           <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />
           <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d2')} />
@@ -190,6 +192,21 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         ]} />
       )}
       {sols[1] && <Result tone="warn" rows={row('Other course that also works', sols[1])} />}
+      {best && prob && (() => {
+        const tm = f.n('tm'), vis = f.n('vis');
+        const inTime = tm !== null && tm > 0 ? stationInTime(gc!, gs!, now!, st!, tm / 60) : null;
+        const run = stationRun(now!, st!, best.relativeSpeed, vis !== null && vis > 0 ? nav.convertLength(vis, unit, 'nm') : undefined);
+        return (
+          <Panel title="More about the run" closed note="How close you come to the Guide, when she is sighted, and the course and speed to be on station in a set time.">
+            <Grid><Field label="Be on station in" unit="min" {...f.bind('tm')} /><Field label="Visibility" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('vis')} /></Grid>
+            <Result inline rows={[
+              ['Closest to the Guide', `${unitLabel(run.closest)}, bearing ${bearing(run.closestBearing)}`],
+              ...(run.sight ? [['Sighted after', `${run.sight.minutes.toFixed(1)} min, bearing ${bearing(run.sight.bearing)}`] as [string, string]] : []),
+              ...(inTime ? [['To be on station in ' + tm + ' min', `${bearing(inTime.course)} at ${inTime.speed.toFixed(1)} kn`] as [string, string]] : []),
+            ]} />
+          </Panel>
+        );
+      })()}
       {best && loss === null && ss! > gs! && <p className="text-[11px] text-slate-500 font-medium">Enter the ship's loss of speed (yards per knot) to find where to reduce speed. It comes from her deceleration runs when they are recorded.</p>}
       <p className="text-[10px] text-slate-400 font-medium leading-relaxed">The course is worked from the relative velocity triangle (BR 45(6) para 0423) and does not allow for the turn: allow for advance and transfer with the Wheel-over tool, and for loss of speed in the turn. The point to reduce speed uses the deceleration distance of para 0424. Follow the OTC's signals and the ship's standing orders.</p>
     <OwnFormula id="battenberg" unitHint="" vars={[{ name: 'gc', label: 'guide course (°T)', value: gc }, { name: 'gs', label: 'guide speed (kn)', value: gs }, { name: 'ss', label: 'stationing speed (kn)', value: ss }, { name: 'course', label: 'course to steer (°)', value: best ? best.course : null }, { name: 'rel', label: 'relative speed (kn)', value: best ? best.relativeSpeed : null }, { name: 'run', label: 'distance to run (nm)', value: best ? dist : null }, { name: 'hours', label: 'time to station (h)', value: best ? best.hours : null }]} />

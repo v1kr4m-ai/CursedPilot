@@ -70,7 +70,7 @@ export function anchorCommand(t: string, ctx: ShipCtx): OpenReply | null {
 // ---- Flying Corpen ----------------------------------------------------------------------------------------------------
 
 export function flyingCommand(t: string, ctx: ShipCtx): OpenReply | null {
-  if (!/\b(?:flying corpen|corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/.test(t)) return null;
+  if (!/\b(?:flying corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/.test(t)) return null;
   const wod = num(t, `(?:wod|wind over (?:the )?deck)\\s*(?:of|is|=|needs?|required)?\\s*${NUM}`);
   const rest = strip(t, new RegExp(`(?:wod|wind over (?:the )?deck)\\s*(?:of|is|=|needs?|required)?\\s*${NUM}`));
   const tw = new RegExp(`(?:true\\s+)?wind\\s*(?:from)?\\s*${NUM}\\s*(?:°|deg(?:rees?)?)?\\s*(?:at|/|,|speed)?\\s*${NUM}`).exec(rest);
