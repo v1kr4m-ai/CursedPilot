@@ -142,6 +142,7 @@ function tsdCommand(t: string): Reply | null {
 
 const OPEN_ONLY: [RegExp, string][] = [
   [/\b(?:flying corpen|corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/, 'Flying Corpen'],
+  [/\b(?:index error|radar calibration|log calibration|calibrate (?:the )?(?:log|radar)|toe[- ]?in|lubber'?s line|ship checks)\b/, 'Ship Checks'],
   [/\b(?:station turn|turn onto station|wheel[- ]?over for (?:the )?station)\b/, 'Station Turn'],
   [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg'],
   [/\b(?:anchor(?:ing|age)?|swinging (?:circle|radius)|shackles?|msr|cable required)\b/, 'Anchor'],

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Anchor, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { Anchor, ClipboardCheck, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -19,6 +19,7 @@ import { AnchorTool } from './AnchorTool';
 import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
 import { StationTurnTool } from './StationTurnTool';
+import { ShipChecksTool } from './ShipChecksTool';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
 import { ReferenceTool } from './ReferenceTool';
 import { parseClock } from './sunSights';
@@ -654,6 +655,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
   { name: 'Station Turn', short: 'Station turn', desc: 'Wheel-over point for the turn onto station on a Guide, worked back from the station with the ship’s advance, transfer and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationTurnTool },
+  { name: 'Ship Checks', short: 'Ship checks', desc: 'Radar index error, speed log calibration, lubber’s line toe-in and echo sounder checks (Handbook chapter 8)', icon: <ClipboardCheck size={18} className="text-teal-600" />, Component: ShipChecksTool },
   { name: 'Flying Corpen', short: 'Flying Corpen', desc: 'True wind, wind on deck, and the course and speed for helicopter flying', icon: <WindIcon size={18} className="text-sky-500" />, Component: FlyingCorpenTool },
   { name: 'Rules & Buoyage', short: 'Rules & buoyage', desc: 'IALA buoyage, lights and shapes, sound signals and the steering rules', icon: <BookOpen size={18} className="text-emerald-600" />, Component: ReferenceTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },

@@ -5,6 +5,7 @@ import { Card, Field, useMemory } from './kit';
 import { groupedRules, ruleLabels, ruleName, ruleSearchText } from './colregsInfo';
 import type { RuleText } from './colregsText';
 import { LightPicture } from './LightPics';
+import { RorQuiz } from './RorQuiz';
 
 // The BR 45 explanations and examples are kept out of the public copy of the project: tools/private/colregsCommentary.json is
 // picked up when it is there, and the info buttons say so when it is not.
@@ -192,7 +193,7 @@ const BuoyRow: React.FC<{ b: Buoy }> = ({ b }) => (
   </div>
 );
 
-const TABS = [['buoyage', 'Buoyage'], ['lights', 'Lights'], ['sound', 'Sound'], ['rules', 'Rules']] as const;
+const TABS = [['buoyage', 'Buoyage'], ['lights', 'Lights'], ['sound', 'Sound'], ['rules', 'Rules'], ['quiz', 'ROR quiz']] as const;
 
 export const ReferenceTool: React.FC = () => {
   const [tab, setTab] = useMemory<string>('ref:tab', 'buoyage');
@@ -243,6 +244,7 @@ export const ReferenceTool: React.FC = () => {
       )}
 
       {tab === 'rules' && <RulesTab q={q} />}
+      {tab === 'quiz' && <RorQuiz />}
       <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{REFERENCE_NOTE}</p>
     </div>
   );
