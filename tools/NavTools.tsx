@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Anchor, Crosshair, Shuffle, Spline, MoveHorizontal as Ship2, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { Repeat, Anchor, Crosshair, Shuffle, Spline, MoveHorizontal as Ship2, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -20,6 +20,7 @@ import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
 import { StationFromBowsTool } from './StationTurnTool';
 import { RelMotionTool } from './RelMotionTool';
+import { StationChangesTool } from './StationChangesTool';
 import { CorpenTool, RasApproachTool, RegainTrackTool } from './ManoeuvreTools';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
 import { ReferenceTool } from './ReferenceTool';
@@ -660,6 +661,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Regain Track', short: 'Regain track', desc: 'Time or throw-off to regain track by the radian rule, and the allowance for a stream', icon: <Spline size={18} className="text-cyan-600" />, Component: RegainTrackTool },
   { name: 'RAS Approach', short: 'RAS approach', desc: 'Course to steer for the working distance and when to come down in speed when coming alongside', icon: <Ship2 size={18} className="text-sky-600" />, Component: RasApproachTool },
   { name: 'Relative Motion', short: 'Rel-vel', desc: 'Contact course from a plot, time at a range, pass at a distance, close a faster ship (REL-VEL docket)', icon: <Crosshair size={18} className="text-orange-600" />, Component: RelMotionTool },
+  { name: 'Station Changes', short: 'Station changes', desc: 'Round-the-clock station changes, reversing the order in column, losing distance (BR 45(6) 0427 to 0429)', icon: <Repeat size={18} className="text-indigo-600" />, Component: StationChangesTool },
   { name: 'Flying Corpen', short: 'Flying Corpen', desc: 'True wind, wind on deck, and the course and speed for helicopter flying', icon: <WindIcon size={18} className="text-sky-500" />, Component: FlyingCorpenTool },
   { name: 'Rules & Buoyage', short: 'Rules & buoyage', desc: 'IALA buoyage, lights and shapes, sound signals and the steering rules', icon: <BookOpen size={18} className="text-emerald-600" />, Component: ReferenceTool },
   { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },

@@ -132,9 +132,71 @@ const HorizonCard: React.FC<{ ship?: Ship }> = ({ ship }) => {
   );
 };
 
+const dmText = (deg: number) => { const a = Math.abs(deg), d = Math.floor(a), m = (a - d) * 60; return `${deg < 0 ? '−' : ''}${d}° ${m.toFixed(1)}′`; };
+
+/** Interpolation between two table readings of range and angle, for reading a distance-off or sextant-angle table. */
+const InterpCard: React.FC = () => {
+  const g = useForm('vsa-interp', ['r1', 'a1', 'r2', 'a2', 'want'] as const);
+  const [find, setFind] = useMemory<'angle' | 'range'>('vsa:find', 'angle');
+  const [imode, setImode] = useMemory<'linear' | 'inverse'>('vsa:imode', 'linear');
+  const [u, setU] = useUnit('vsa:interp');
+  const r1 = g.n('r1'), r2 = g.n('r2'), a1 = nav.parseAngle(g.v.a1), a2 = nav.parseAngle(g.v.a2);
+  const wantAngle = nav.parseAngle(g.v.want), wantRange = g.n('want');
+  let found: string | null = null;
+  if (r1 !== null && r2 !== null && a1 !== null && a2 !== null) {
+    if (find === 'angle' && wantRange !== null) { const v = nav.interpolate(r1, a1, r2, a2, wantRange, imode); if (v !== null) found = dmText(v); }
+    if (find === 'range' && wantAngle !== null) { const v = nav.interpolate(a1, r1, a2, r2, wantAngle, imode); if (v !== null) found = nav.formatLength(v, u); }
+  }
+  return (
+    <Card title="Interpolate between two table readings" closed note="Two known pairs of range and angle from a table, and the value in between. Straight line is how a table is read; Inverse follows the radian rule (the angle falls as the range grows) and is better over a wide span.">
+      <UnitPick label="Ranges in" unit={u} onChange={setU} />
+      <Grid>
+        <Field label="Range 1" unit={nav.LENGTH_UNITS[u].short} {...g.bind('r1')} />
+        <Field label="Angle 1" unit="° ′" kind="angle" {...g.bind('a1')} />
+        <Field label="Range 2" unit={nav.LENGTH_UNITS[u].short} {...g.bind('r2')} />
+        <Field label="Angle 2" unit="° ′" kind="angle" {...g.bind('a2')} />
+      </Grid>
+      <Seg value={find} onChange={v => setFind(v as 'angle' | 'range')} options={[['angle', 'Find the angle'], ['range', 'Find the range']]} />
+      <Seg value={imode} onChange={v => setImode(v as 'linear' | 'inverse')} options={[['linear', 'Straight line'], ['inverse', 'Inverse']]} />
+      {find === 'angle' ? <Field label="Range wanted" unit={nav.LENGTH_UNITS[u].short} {...g.bind('want')} /> : <Field label="Angle wanted" unit="° ′" kind="angle" {...g.bind('want')} />}
+      {found && <Result rows={[[find === 'angle' ? 'Angle' : 'Range', found]]} />}
+    </Card>
+  );
+};
+
+/** Relative bearing of a contact and whether she can be sighted: the horizon range from the heights, and the visibility if known. */
+const SightingCard: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const sp = shipParams(ship);
+  const f = useForm('sighting', ['oc', 'brg', 'rng', 'eye', 'obj', 'vis'] as const, { eye: sp.heightOfEye === undefined ? undefined : String(Math.round(sp.heightOfEye * 10) / 10) });
+  const oc = f.n('oc'), brg = f.n('brg'), rng = f.n('rng'), eye = f.n('eye'), obj = f.n('obj'), vis = f.n('vis');
+  const rel = oc !== null && brg !== null ? ((brg - oc + 540) % 360) - 180 : null;
+  const geo = eye !== null && eye >= 0 && obj !== null && obj >= 0 ? dippingRange(eye, obj, HORIZON_SETS.br45?.visual ?? 2.08) : null;
+  const limit = geo === null ? (vis !== null && vis > 0 ? vis : null) : vis !== null && vis > 0 ? Math.min(geo, vis) : geo;
+  const rows: [string, string][] = [];
+  if (rel !== null) rows.push(['Relative bearing', Math.abs(rel) < 0.5 || Math.abs(Math.abs(rel) - 180) < 0.5 ? `${String(Math.round(Math.abs(rel))).padStart(3, '0')}°` : `${rel > 0 ? 'Green' : 'Red'} ${String(Math.round(Math.abs(rel))).padStart(2, '0')}°`]);
+  if (geo !== null) rows.push(['Horizon (geometric) range', `${geo.toFixed(1)} nm`]);
+  if (limit !== null) rows.push(['Sighted at', `${limit.toFixed(1)} nm${vis !== null && vis > 0 && geo !== null && vis < geo ? ' (limited by the visibility)' : ''}`]);
+  if (limit !== null && rng !== null) rows.push([rng <= limit ? 'Now' : 'Not yet', rng <= limit ? 'she is within the range she can be sighted' : `${(rng - limit).toFixed(1)} nm to go before she can be sighted`]);
+  return (
+    <Card title="Relative bearing and visibility" closed note="Her relative bearing from own course and her true bearing, and whether she can be seen: the horizon range from the heights of eye and object (BR 45 coefficient 2.08), cut down by the visibility when that is less.">
+      <Grid>
+        <Field label="Own course" unit="°T" {...f.bind('oc')} />
+        <Field label="Her bearing" unit="°T" {...f.bind('brg')} />
+        <Field label="Range" unit="nm" {...f.bind('rng')} />
+        <Field label="Visibility" unit="nm" {...f.bind('vis')} />
+        <Field label="Height of eye" unit="m" {...f.bind('eye')} />
+        <Field label="Height of object" unit="m" {...f.bind('obj')} />
+      </Grid>
+      {rows.length > 0 && <Result rows={rows} />}
+    </Card>
+  );
+};
+
 export const DistanceOffTool: React.FC<{ ship?: Ship }> = ({ ship }) => (
   <div className="space-y-2">
     <VsaCard ship={ship} />
+    <InterpCard />
     <HorizonCard ship={ship} />
+    <SightingCard ship={ship} />
   </div>
 );
