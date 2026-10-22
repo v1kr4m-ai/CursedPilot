@@ -112,4 +112,4 @@ export interface Ship {
   catalog?: boolean;
 }
 
-export type AppView = 'home' | 'select' | 'add' | 'details' | 'particulars_form' | 'turning_data_form' | 'record_form' | 'fishtail_calc' | 'ship_info_form';
+export type AppView = 'home' | 'select' | 'tool' | 'add' | 'details' | 'particulars_form' | 'turning_data_form' | 'record_form' | 'fishtail_calc' | 'ship_info_form';

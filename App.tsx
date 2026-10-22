@@ -46,6 +46,7 @@ import { mergeTurningSets } from './fishtail/tableConvert';
 import NavYeo from './navyeo/NavYeo';
 import FleetRegistry from './components/FleetRegistry';
 import BottomBar from './components/BottomBar';
+import ToolPage from './components/ToolPage';
 import MyShipHero from './components/MyShipHero';
 import ShipInfoPanel from './components/ShipInfoPanel';
 import FishtailTable from './components/FishtailTable';
@@ -259,7 +260,7 @@ const App: React.FC = () => {
   const [meta, setMeta] = useState<FleetMeta>(loadMeta);
   const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); return Array.isArray(a) ? [a[0] ?? null, a[1] ?? null] : [null, null]; } catch { return [null, null]; } });
   useEffect(() => { try { localStorage.setItem('cursedpilot.homeTools', JSON.stringify(homeTools)); } catch { /* storage unavailable */ } }, [homeTools]);
-  const [launch, setLaunch] = useState<{ name: string; stamp: number } | null>(null);
+  const [pageTool, setPageTool] = useState<string | null>(null);   // the NavYeo tool open as a page from the home bar
   const [anchorMenu, setAnchorMenu] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [calOpen, setCalOpen] = useState<string | null>(null);
@@ -1159,6 +1160,7 @@ const App: React.FC = () => {
       {showSplash && renderSplash()}
       {view === 'home' && renderHome()}
       {view === 'select' && renderSelectShip()}
+      {view === 'tool' && pageTool && <ToolPage name={pageTool} ship={selectedShip ?? myShip} fleet={ships} onBack={() => setView('home')} />}
       {view === 'add' && renderAddShip()}
       {view === 'details' && renderShipDetails()}
       {view === 'particulars_form' && renderParticularsForm()}
@@ -1172,8 +1174,8 @@ const App: React.FC = () => {
         />
       )}
       <input ref={restoreInput} type="file" accept="application/json,.json" onChange={handleImport} className="hidden" />
-      {(view === 'home' || view === 'select' || view === 'add') && (
-        <BottomBar view={view} onHome={() => setView('home')} onFleet={() => setView('select')} slots={homeTools} onSlots={setHomeTools} onLaunch={name => setLaunch({ name, stamp: Date.now() })} />
+      {(view === 'home' || view === 'select' || view === 'tool' || view === 'add') && (
+        <BottomBar view={view} onHome={() => setView('home')} onFleet={() => setView('select')} slots={homeTools} onSlots={setHomeTools} onLaunch={name => { setPageTool(name); setView('tool'); }} openTool={view === 'tool' ? pageTool : null} />
       )}
       {dataSheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setDataSheetOpen(false)}>
@@ -1240,7 +1242,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <NavYeo ship={selectedShip} fleet={ships} launch={launch ?? undefined} />
+      <NavYeo ship={selectedShip} fleet={ships} />
     </div>
   );
 };

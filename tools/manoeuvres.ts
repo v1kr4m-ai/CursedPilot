@@ -12,7 +12,8 @@ export const yardsRun = (knots: number, seconds: number) => (knots * YD_PER_NM *
 /** Stopwatch method: the ship stationed `distance` yards astern of the Guide alters when the Guide's wheel-over point is reached, after distance / speed. */
 export const stopwatchSeconds = (distance: number, knots: number) => (distance / (knots * YD_PER_NM)) * 3600;
 
-export interface ColumnInput { knots: number; distance: number; advance: number; transfer: number; turnSeconds: number; regainSeconds?: number }
+/** `angle` is the amount of the turn in degrees (90 when not given); advance and transfer are the ship's figures for that turn. */
+export interface ColumnInput { knots: number; distance: number; advance: number; transfer: number; turnSeconds: number; regainSeconds?: number; angle?: number }
 export interface TurnPoint {
   /** yards the Guide steams while own ship turns and regains the speed she lost (A'A) */
   guideRun: number;
@@ -20,13 +21,28 @@ export interface TurnPoint {
   along: number; across: number;
   /** angle in degrees: exact (tangent) and by the radian rule; alter when the Guide bears (90 - angle) off the bow on the side turned toward */
   exact: number; radian: number;
+  /** where the Guide bears from own ship's head, in degrees toward the side turned to, at the moment own ship should put her wheel over */
+  bearing: number;
+  /** how far short of the Guide's wheel-over point own ship turns, along the old course, yards (negative: after it) */
+  early: number;
 }
-/** Own ship stationed astern: she turns early, at B', so that after the 90 degree turn she is the stationed distance astern. tan(angle) = Adv / (T + (D - A'A)). */
+/**
+ * Own ship stationed astern: she turns early so that, after her turn, she is the stationed distance astern on the Guide's new track.
+ * For a 90 degree turn tan(angle) = Adv / (T + (D - A'A)), the school's form. For a turn of theta the same picture gives, with the Guide's
+ * wheel-over point as the origin, the old course along y and the new course at theta from it: own ship starts her turn q = Adv - T / tan(theta) short of
+ * the point, and the Guide is then g = D - A'A + T / sin(theta) along the new track. (theta = 90 gives q = Adv and g = T + D - A'A.)
+ */
 export function columnTurn(i: ColumnInput): TurnPoint | null {
+  const theta = i.angle ?? 90, th = (theta * Math.PI) / 180;
+  if (!(theta > 0 && theta < 180)) return null;
   const guideRun = yardsRun(i.knots, i.turnSeconds + (i.regainSeconds ?? 0));
-  const along = i.transfer + (i.distance - guideRun), across = i.advance;
-  if (!(along > 0) || !(across >= 0)) return null;
-  return { guideRun, along, across, exact: deg(Math.atan2(across, along)), radian: (60 * across) / along };
+  const along = i.transfer / Math.sin(th) + (i.distance - guideRun);
+  const across = i.advance - i.transfer / Math.tan(th);
+  if (!(along > 0) || !(i.advance >= 0)) return null;
+  return {
+    guideRun, along, across, exact: deg(Math.atan2(across, along)), radian: (60 * across) / along,
+    bearing: deg(Math.atan2(along * Math.sin(th), along * Math.cos(th) + across)), early: across,
+  };
 }
 
 export interface AbreastInput { knots: number; range: number; transfer: number; turnSeconds: number; lossYards?: number }

@@ -22,3 +22,26 @@ near(m.lateralFeet(3, 5), 150, 1e-9); near(m.lateralFeet(3, 4), 120, 1e-9); near
 // surge: 18 -> 12 kn in a minute against a Guide at 12 kn: 500 - 400 = 100 yd; at 0.5 cable the angle is 24 degrees
 near(m.surgeYards(18, 12, 12, 60), 100, 1e-9); near(m.angleForSeparation(120, 100 / 200), 24, 1e-9);
 console.log('manoeuvres: all checks passed');
+
+// a turn of another angle: 90 degrees gives the school's figures; the bearing at which to turn follows from the geometry
+{
+  const base = { knots: 12, distance: 1000, advance: 200, transfer: 200, turnSeconds: 60 };
+  const a = m.columnTurn(base)!, b = m.columnTurn({ ...base, angle: 90 })!;
+  assert.deepEqual(a, b);                                                                          // 90 is the default
+  assert.ok(Math.abs(a.bearing - (90 - a.exact)) < 1e-9);                                          // bearing = 90 - angle for a right angle
+  const t = m.columnTurn({ ...base, angle: 60, advance: 150, transfer: 70, turnSeconds: 40 })!;
+  const th = Math.PI / 3, run = m.yardsRun(12, 40);
+  assert.ok(Math.abs(t.along - (70 / Math.sin(th) + 1000 - run)) < 1e-9);                          // g
+  assert.ok(Math.abs(t.early - (150 - 70 / Math.tan(th))) < 1e-9);                                 // q
+  // closing the loop: own ship starting q short of O, turning 60 deg, ends on the new track and D astern of the Guide
+  const q = t.early, g = t.along, v = [Math.sin(th), Math.cos(th)];
+  const fx = 70, fy = 150 - q;                                                                      // final point in the frame of O (own ship's turn data: transfer across, advance along)
+  assert.ok(Math.abs(fx * v[1] - fy * v[0]) < 1e-9);                                               // on the new track
+  const sf = fx * v[0] + fy * v[1];                                                                 // own ship's distance along the new track from O
+  assert.ok(Math.abs(sf - 70 / Math.sin(th)) < 1e-9);
+  assert.ok(Math.abs(sf - (g + run - 1000)) < 1e-9);                                               // the Guide is g + run along it: own ship is D = 1000 astern
+  assert.equal(m.columnTurn({ ...base, angle: 0 }), null); assert.equal(m.columnTurn({ ...base, angle: 180 }), null);
+  // a wider turn leaves the Guide further abeam when own ship turns
+  assert.ok(m.columnTurn({ ...base, angle: 135, advance: 260, transfer: 280 })!.bearing > 0);
+}
+console.log('manoeuvres (angle): ok');

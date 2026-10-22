@@ -1,6 +1,7 @@
 import React from 'react';
 import { Field, Grid, Panel, Result, Seg, SideToggle, Warn, bearing, useForm, useMemory } from './kit';
 import { abreastTurn, angleForSeparation, columnTurn, distanceToRegain, stopwatchSeconds, streamAllowance, throwOffToRegain, YD_PER_CABLE, yardsRun } from './manoeuvres';
+import { lookupTurn } from './turnLookup';
 import { EVOLUTIONS, decelRate, dimsOf, plan } from './rasApproach';
 import type { Dims, Evolution } from './rasApproach';
 import type { Ship } from '../types';
@@ -12,44 +13,69 @@ const mmss = (s: number) => `${Math.floor(s / 60)} min ${Math.round(s % 60).toSt
 const norm = (d: number) => ((d % 360) + 360) % 360;
 
 // ---- Corpen --------------------------------------------------------------------------------------------------------------------
-const CF = ['kn', 'dc', 'adv', 'tr', 'tt', 'rg', 'rc', 'nt', 'ls'] as const;
+const CF = ['an', 'kn', 'dc', 'adv', 'tr', 'tt', 'rg', 'rc', 'nt', 'ls'] as const;
 
-export const CorpenTool: React.FC = () => {
-  const f = useForm('corpen', CF);
+export const CorpenTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const typed = useForm('corpen', CF);
   const [mode, setMode] = useMemory<'column' | 'abreast'>('corpen:mode', 'column');
   const [turnSide, setTurnSide] = useMemory<'Port' | 'Starboard'>('corpen:side', 'Starboard');
+  const [wheelRaw, setWheelRaw] = useMemory<string>('corpen:wheel', '');
+  const angle = typed.n('an') ?? 90;
+  const angleOk = angle > 0 && angle < 180;
+  // the ship's own figures for this turn: advance, transfer, time to turn, the speed lost (and so the distance lost) come from her turning data
+  const tkn = typed.n('kn');
+  const pick = ship && angleOk && tkn !== null && tkn > 0 ? lookupTurn(ship, turnSide, tkn, angle, wheelRaw === '' ? undefined : Number(wheelRaw)) : null;
+  const r1 = (v: number) => String(Math.round(v * 10) / 10);
+  const f = useForm('corpen', CF, pick ? {
+    adv: r1(pick.advance), tr: r1(pick.transfer), tt: String(Math.round(pick.seconds)),
+    ...(pick.loss !== undefined ? { ls: r1(yardsRun(pick.loss / 2, pick.seconds)) } : {}),
+  } : undefined);
   const kn = f.n('kn'), dc = f.n('dc'), adv = f.n('adv'), tr = f.n('tr'), tt = f.n('tt'), rg = f.n('rg'), ls = f.n('ls');
   const ok = kn !== null && kn > 0;
   const stop = ok && dc !== null && dc > 0 ? stopwatchSeconds(dc * YD_PER_CABLE, kn!) : null;
-  const col = mode === 'column' && ok && dc !== null && adv !== null && tt !== null ? columnTurn({ knots: kn!, distance: dc * YD_PER_CABLE, advance: adv, transfer: tr ?? adv, turnSeconds: tt, regainSeconds: rg ?? 0 }) : null;
+  const col = angleOk && mode === 'column' && ok && dc !== null && adv !== null && tt !== null ? columnTurn({ knots: kn!, distance: dc * YD_PER_CABLE, advance: adv, transfer: tr ?? adv, turnSeconds: tt, regainSeconds: rg ?? 0, angle }) : null;
   const abr = mode === 'abreast' && ok && dc !== null && tr !== null && tt !== null ? abreastTurn({ knots: kn!, range: dc * YD_PER_CABLE, transfer: tr, turnSeconds: tt, lossYards: ls ?? 0 }) : null;
   const t = col ?? abr;
   const bears = t ? 90 - Math.round(t.radian) : null;
+  const right = angle === 90;
+  const deg1 = (v: number) => `${Math.round(v * 10) / 10}°`;
 
   return (
     <div className="space-y-2">
       <Seg value={mode} onChange={v => setMode(v as 'column' | 'abreast')} options={[['column', 'Corpen (Guide ahead)'], ['abreast', "Corpen 'S' (abreast)"]]} />
       <Panel title="Station" note={mode === 'column' ? 'Own ship stationed astern of the Guide. The Guide alters course by Corpen; you follow to the same turning point, or turn early by the radian rule.' : 'Ships abreast. The Guide turns at once and the other ship continues ahead, then turns early so as to end abreast of the Guide.'}>
         <Grid><Field label="Speed" unit="kn" units {...f.bind('kn')} /><Field label={mode === 'column' ? 'Distance astern' : 'Distance abeam'} unit="cables" {...f.bind('dc')} /></Grid>
+        <Field label="Angle of turn" unit="°" hint="90" {...typed.bind('an')} />
         <SideToggle label="Turning to" value={turnSide} onChange={setTurnSide} />
+        {!angleOk && <Warn>The angle of turn must be more than 0° and less than 180°.</Warn>}
       </Panel>
-      <Panel title="Own ship's turn (90°)" closed note="From the ship's turning data for a 90° turn. Transfer is taken as the advance if left blank. The time of the turn is how long she takes to complete it.">
+      {pick && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 space-y-1.5">
+          <p className="text-[11px] font-bold text-emerald-800">Turning data of {ship!.name}: {pick.interpolatedSpeed ? `between ${pick.speedFrom} and ${pick.speedTo} kn` : `${pick.speed} kn`}, {pick.wheel}° wheel, {deg1(angle)} to {turnSide.toLowerCase()}</p>
+          {pick.wheels.length > 1 && <div className="flex gap-1 flex-wrap">{pick.wheels.map(w => <button key={w} type="button" onClick={() => setWheelRaw(String(w))} className={`px-2 py-1 rounded-lg text-[11px] font-bold border ${pick.wheel === w ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'}`}>{w}° wheel</button>)}</div>}
+          <p className="text-[10px] text-emerald-700 font-medium leading-snug">Advance, transfer, time to turn{pick.loss !== undefined ? ' and the distance lost (from the speed lost in the turn)' : ''} below come from it; type over any to use another figure.{pick.outsideTurn ? ' The turn is more than the largest recorded: the largest is used.' : ''}</p>
+        </div>
+      )}
+      {!pick && ship && angleOk && tkn !== null && tkn > 0 && <p className="text-[10px] font-semibold text-slate-400">{ship.name} has no turning data for a turn to {turnSide.toLowerCase()}: enter the figures below by hand, or add them under Calibration Data, Turning Trials.</p>}
+      <Panel title={`Own ship's turn (${deg1(angle)})`} closed={!pick && right} note={`From the ship's turning data for a ${deg1(angle)} turn, taken from the ship when it has it. Transfer is taken as the advance if left blank. The time of the turn is how long she takes to complete it.`}>
         <Grid>{mode === 'column' && <Field label="Advance" unit="yd" {...f.bind('adv')} />}<Field label="Transfer" unit="yd" {...f.bind('tr')} /></Grid>
         <Grid><Field label="Time to turn" unit="s" {...f.bind('tt')} />{mode === 'column' ? <Field label="Time to regain speed" unit="s" {...f.bind('rg')} /> : <Field label="Distance lost in turn" unit="yd" {...f.bind('ls')} />}</Grid>
       </Panel>
       {stop !== null && mode === 'column' && (
         <Result rows={[
           ['Stopwatch', `alter ${mmss(stop)} after the Guide orders the wheel over`],
-          ...(col ? [['Radian rule', `alter when the Guide bears ${bears}° off your bow on the ${turnSide.toLowerCase()} side (${col.radian.toFixed(1)}°; exact ${col.exact.toFixed(1)}°, so ${(90 - col.exact).toFixed(0)}°)`] as [string, string], ['Guide runs meanwhile', `${Math.round(col.guideRun)} yd`] as [string, string]] : []),
+          ...(col && right ? [['Radian rule', `alter when the Guide bears ${bears}° off your bow on the ${turnSide.toLowerCase()} side (${col.radian.toFixed(1)}°; exact ${col.exact.toFixed(1)}°, so ${(90 - col.exact).toFixed(0)}°)`] as [string, string], ['Guide runs meanwhile', `${Math.round(col.guideRun)} yd`] as [string, string]] : []),
+          ...(col && !right ? [['Alter when', `the Guide bears ${deg1(col.bearing)} off your bow on the ${turnSide.toLowerCase()} side (by the geometry of the turn; the radian rule is for a 90° turn)`] as [string, string], ['Own ship turns', col.early >= 0 ? `${Math.round(col.early)} yd before the Guide's wheel-over point` : `${Math.round(-col.early)} yd after the Guide's wheel-over point`] as [string, string], ['Guide runs meanwhile', `${Math.round(col.guideRun)} yd`] as [string, string]] : []),
         ]} />
       )}
+      {abr && !right && <Warn>The school's abreast rule is worked for a 90° turn: for another angle this is only an estimate, from the ship's transfer and time for that turn.</Warn>}
       {abr && <Result rows={[
         ['Guide draws ahead', `${Math.round(abr.netAhead)} yd (Guide runs ${Math.round(abr.guideRun)} yd in the turn)`],
         ['Radian rule', `alter when the Guide bears ${bears}° off your beam toward the bow (${abr.radian.toFixed(1)}°; exact ${abr.exact.toFixed(1)}°)`],
       ]} />}
       {mode === 'column' && !col && stop === null && <p className="text-[11px] text-slate-500 font-medium">Enter speed and distance for the stopwatch time, and the turn data for the radian-rule bearing.</p>}
       <Panel title="Other ways to judge it" closed note="True mark: when the Guide wheels, put a true mark on her blip on the PPI; she must keep coming toward own ship, and when her blip is at the centre, order the wheel. Follow the wake: trace the Guide's path with your bow in the middle of her wake and turn when the bow tends to leave it. The wake is clearer on the inner side (made by the bow) and diffuse on the outer side (made by the stern). Whichever you use, watch the Guide and check bearing and range." >
-        <p className="text-[11px] text-slate-500 font-medium leading-snug">The radian rule is L = R x angle / 60. In a column, tan(angle) = advance / (transfer + (distance - Guide's run)).</p>
+        <p className="text-[11px] text-slate-500 font-medium leading-snug">The radian rule is L = R x angle / 60. In a column, for a 90° turn tan(angle) = advance / (transfer + (distance - Guide's run)). For another angle of turn the bearing comes from the same picture with the angle: own ship starts the turn (advance - transfer / tan(turn)) short of the Guide's wheel-over point.</p>
       </Panel>
     </div>
   );

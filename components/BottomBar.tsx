@@ -12,7 +12,9 @@ import { NAV_TOOLS } from '../tools/NavTools';
 const BottomBar: React.FC<{
   view: AppView; onHome: () => void; onFleet: () => void;
   slots: (string | null)[]; onSlots: (s: (string | null)[]) => void; onLaunch: (toolName: string) => void;
-}> = ({ view, onHome, onFleet, slots, onSlots, onLaunch }) => {
+  /** the tool currently open as a page, so its slot shows as the current one */
+  openTool?: string | null;
+}> = ({ view, onHome, onFleet, slots, onSlots, onLaunch, openTool }) => {
   const [picking, setPicking] = React.useState<number | null>(null);
   const hold = React.useRef<{ timer: ReturnType<typeof setTimeout> | null; fired: boolean }>({ timer: null, fired: false });
 
@@ -44,7 +46,7 @@ const BottomBar: React.FC<{
               return (
                 <button key={i} aria-label={tool ? `Open ${tool.name}. Press and hold to change` : 'Add a tool'}
                   onPointerDown={() => press(i)} onPointerUp={release} onPointerLeave={release} onPointerCancel={release} onContextMenu={e => e.preventDefault()} onClick={() => tap(i)}
-                  className={`${side(false)} select-none`}>
+                  aria-current={tool && openTool === tool.name ? 'page' : undefined} className={`${side(!!tool && openTool === tool.name)} select-none`}>
                   {tool ? <span className="h-[22px] flex items-center">{React.cloneElement(tool.icon as React.ReactElement<{ size?: number }>, { size: 22 })}</span>
                     : <span className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center"><Plus size={13} /></span>}
                   <span className="max-w-[64px] truncate">{tool ? tool.short : 'Tool'}</span>
