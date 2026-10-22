@@ -142,7 +142,6 @@ function tsdCommand(t: string): Reply | null {
 
 const OPEN_ONLY: [RegExp, string][] = [
   [/\b(?:flying corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/, 'Flying Corpen'],
-  [/\b(?:index error|radar calibration|log calibration|calibrate (?:the )?(?:log|radar)|toe[- ]?in|lubber'?s line|ship checks)\b/, 'Ship Checks'],
   [/\b(?:corpen|alter course by corpen)\b/, 'Corpen'],
   [/\b(?:regain(?:ing)? (?:the )?track|throw[- ]?off)\b/, 'Regain Track'],
   [/\b(?:ras approach|coming alongside|come alongside|ras point)\b/, 'RAS Approach'],

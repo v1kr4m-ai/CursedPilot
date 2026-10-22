@@ -28,11 +28,16 @@ export const infoRows = (ship: Ship): Cell[][] => [
   ...shownFields(ship, 'details').map((f): Cell[] => [f.label.trim(), f.value.trim()]).filter(r => r[1] !== ''),
 ];
 
-const RECORD_SECTIONS: [string, 'accelDecelData' | 'fishtails' | 'emLogCalibration' | 'compassSwing'][] = [
+const RECORD_SECTIONS: [string, 'accelDecelData' | 'fishtails' | 'emLogCalibration' | 'compassSwing' | 'radarIndex' | 'radarBearing' | 'speedLog' | 'lubberLine' | 'echoSounder'][] = [
   ['Acceleration and deceleration', 'accelDecelData'],
   ['Fishtails', 'fishtails'],
   ['EM log calibration', 'emLogCalibration'],
   ['Compass swing', 'compassSwing'],
+  ['Radar index error', 'radarIndex'],
+  ['Radar bearing error', 'radarBearing'],
+  ['Speed log calibration', 'speedLog'],
+  ['Lubber line alignment', 'lubberLine'],
+  ['Echo sounder calibration', 'echoSounder'],
 ];
 
 export const TURNING_HEADER = ['Turn (°)', 'Bearing MOB (°)', 'Angle (°)', 'Range (cables)', 'Range (yd)', 'Transfer (yd)', 'Advance (yd)', 'Dist to new course', 'Time', 'Speed (kn)'];
@@ -87,7 +92,7 @@ export function vesselSheets(ship: Ship): Sheet[] {
     { name: 'Vessel', rows: [['Name', ship.name], ['Type', ship.type], ...infoRows(ship), [], ['Particular', 'Value', 'Unit'], ...particularRows(ship)] },
   ];
   sheets.push({ name: 'Turning data', rows: turningTable(ship) });
-  RECORD_SECTIONS.forEach(([title, key]) => sheets.push({ name: title.slice(0, 31), rows: [RECORD_HEADER, ...recordRows(ship[key])] }));
+  RECORD_SECTIONS.forEach(([title, key]) => sheets.push({ name: title.slice(0, 31), rows: [RECORD_HEADER, ...recordRows(ship[key] ?? [])] }));
   return sheets;
 }
 
@@ -109,7 +114,7 @@ export function vesselReportHtml(ship: Ship, date: Date = new Date()): string {
     .join('') || '<p class="none">No turning data recorded.</p>';
   const special: Partial<Record<(typeof RECORD_SECTIONS)[number][1], (s: Ship) => string>> = { fishtails: fishtailsHtml, emLogCalibration: emLogHtml, compassSwing: compassHtml };
   const records = RECORD_SECTIONS.map(([title, key]) =>
-    `<h2>${escapeHtml(title)}</h2>${special[key] ? special[key]!(ship) : ship[key].length ? table(RECORD_HEADER, recordRows(ship[key])) : '<p class="none">No records.</p>'}`).join('');
+    `<h2>${escapeHtml(title)}</h2>${special[key] ? special[key]!(ship) : (ship[key] ?? []).length ? table(RECORD_HEADER, recordRows(ship[key] ?? [])) : '<p class="none">No records.</p>'}`).join('');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(ship.name)} - Cursed Pilot report</title>

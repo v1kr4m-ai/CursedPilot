@@ -34,7 +34,8 @@ import {
   Moon,
   Eye,
   Star,
-  Pin
+  Pin,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { generateSmartParticulars } from './services/geminiService';
@@ -53,6 +54,7 @@ import EmLogList from './components/EmLogList';
 import { SWING_HEADINGS, coefficients, readDeviations, swingSummary } from './tools/compassSwing';
 import ShipInfoForm from './components/ShipInfoForm';
 import CalibrationData from './components/CalibrationData';
+import { RADAR_METHODS, echoSummary, lubberResult, lubberSummary, radarBearingSummary, radarIndexError, radarIndexSummary, radarMethodHelp, speedLogResult, speedLogSummary } from './tools/shipChecks';
 import CustomFieldsEditor from './components/CustomFieldsEditor';
 import { fieldsOf, formatField, shownFields, tidy, withGroup } from './data/customFields';
 import { useShipWiki } from './components/useShipWiki';
@@ -84,15 +86,15 @@ const generateInitialTurningSheet = () => {
   }));
 };
 
-type RecordKind = 'fishtails' | 'accelDecelData' | 'emLogCalibration' | 'compassSwing';
+type RecordKind = 'fishtails' | 'accelDecelData' | 'emLogCalibration' | 'compassSwing' | 'radarIndex' | 'radarBearing' | 'speedLog' | 'lubberLine' | 'echoSounder';
 type RecordValues = Record<string, string>;
-interface FieldDef { key: string; label: string; type: 'number' | 'select'; options?: string[]; required?: boolean; signed?: boolean; initial?: string }
+interface FieldDef { key: string; label: string; type: 'number' | 'select' | 'text'; options?: string[]; required?: boolean; signed?: boolean; initial?: string; /** shown only when this is true of the values so far */ showWhen?: (v: RecordValues) => boolean }
 
 const num = (v: string) => parseFloat(v);
 const signed = (n: number, digits = 1) => `${n > 0 ? '+' : ''}${n.toFixed(digits)}`;
 
 // One entry form is generated from each definition; every record is stored as a SimpleRecord.
-const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string; fields: FieldDef[]; summarize: (v: RecordValues) => string }> = {
+const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string; fields: FieldDef[]; summarize: (v: RecordValues) => string; /** what to enter, shown above the fields */ help?: (v: RecordValues) => string; /** false while the values do not give a result */ valid?: (v: RecordValues) => boolean }> = {
   fishtails: {
     formTitle: 'Record Fishtail',
     defaultNote: 'Fishtail manoeuvre',
@@ -124,6 +126,90 @@ const RECORD_KINDS: Record<RecordKind, { formTitle: string; defaultNote: string;
       { key: 'log', label: 'Log reading (kn)', type: 'number', required: true },
     ],
     summarize: v => `True ${v.ref} kn, log ${v.log} kn (error ${signed(num(v.log) - num(v.ref))} kn)`,
+  },
+  radarIndex: {
+    formTitle: 'Record Radar Index Error',
+    defaultNote: 'Radar index error',
+    fields: [
+      { key: 'radar_name', label: 'Radar', type: 'text' },
+      { key: 'scale', label: 'Range scale (e.g. 6 nm)', type: 'text' },
+      { key: 'unit', label: 'Ranges in', type: 'select', options: ['yards', 'nm'], initial: 'yards' },
+      { key: 'method', label: 'Method', type: 'select', options: [...RADAR_METHODS], initial: RADAR_METHODS[0] },
+      { key: 'true', label: 'True / reference range', type: 'number', showWhen: v => !['Two-mark', 'Three-mark (cocked hat)', 'HSA'].includes(v.method) },
+      { key: 'radar', label: 'Radar range', type: 'number', showWhen: v => !['Two-mark', 'Three-mark (cocked hat)', 'HSA'].includes(v.method) },
+      { key: 'ab', label: 'Charted distance between the marks', type: 'number', showWhen: v => v.method === 'Two-mark' },
+      { key: 'a', label: 'Radar range to mark A', type: 'number', showWhen: v => v.method === 'Two-mark' },
+      { key: 'b', label: 'Radar range to mark B', type: 'number', showWhen: v => v.method === 'Two-mark' },
+      ...[1, 2, 3].flatMap(i => [
+        { key: `x${i}`, label: `Mark ${i} east`, type: 'number' as const, signed: true, showWhen: (v: RecordValues) => v.method === 'Three-mark (cocked hat)' },
+        { key: `y${i}`, label: `Mark ${i} north`, type: 'number' as const, signed: true, showWhen: (v: RecordValues) => v.method === 'Three-mark (cocked hat)' },
+        { key: `r${i}`, label: `Radar range to mark ${i}`, type: 'number' as const, showWhen: (v: RecordValues) => v.method === 'Three-mark (cocked hat)' },
+      ]),
+      ...[1, 2, 3, 4].flatMap(i => [
+        { key: `ht${i}`, label: `True range ${i}`, type: 'number' as const, showWhen: (v: RecordValues) => v.method === 'HSA' },
+        { key: `hr${i}`, label: `Radar range ${i}`, type: 'number' as const, showWhen: (v: RecordValues) => v.method === 'HSA' },
+      ]),
+    ],
+    summarize: radarIndexSummary,
+    help: v => radarMethodHelp(v.method),
+    valid: v => radarIndexError(v) !== null,
+  },
+  radarBearing: {
+    formTitle: 'Record Radar Bearing Error',
+    defaultNote: 'Radar bearing alignment check',
+    fields: [
+      { key: 'radar_name', label: 'Radar', type: 'text' },
+      { key: 'visual', label: 'Visual bearing (deg true)', type: 'number', required: true },
+      { key: 'radar', label: 'Radar bearing (deg true)', type: 'number', required: true },
+    ],
+    summarize: radarBearingSummary,
+    help: () => 'Bearing of an object seen well both visually and on the radar, taken together. Allow for gyro error in the visual bearing first.',
+  },
+  speedLog: {
+    formTitle: 'Record Speed Log Calibration',
+    defaultNote: 'Speed log calibration runs',
+    fields: [
+      { key: 'speed', label: 'Calibration speed (kn)', type: 'number', required: true },
+      { key: 'runs', label: 'Runs', type: 'select', options: ['2', '4'], initial: '2' },
+      { key: 'dist', label: 'Measured distance (nm)', type: 'number', initial: '1' },
+      ...[1, 2, 3, 4].flatMap(i => [
+        { key: `t${i}`, label: `Run ${i} time (s)`, type: 'number' as const, showWhen: (v: RecordValues) => i <= 2 || v.runs === '4' },
+        { key: `l${i}`, label: `Run ${i} mean log speed (kn)`, type: 'number' as const, showWhen: (v: RecordValues) => i <= 2 || v.runs === '4' },
+      ]),
+    ],
+    summarize: speedLogSummary,
+    help: v => (v.runs === '4' ? 'Four runs, two each way (the stream is changing): BR 45(3) formula 4.10.' : 'Two runs, one each way (the stream steady or nil): BR 45(3) formula 4.9.') + ' Give the time of each run over the measured distance and the mean log (water) speed.',
+    valid: v => speedLogResult(v) !== null,
+  },
+  lubberLine: {
+    formTitle: "Record Lubber's Line Alignment",
+    defaultNote: "Lubber's line alignment check",
+    fields: [
+      { key: 'repeater', label: 'Repeater', type: 'select', options: ['Bridge wing, port', 'Bridge wing, starboard', 'Centre line', 'Other'], initial: 'Bridge wing, port' },
+      { key: 'method', label: 'Method', type: 'select', options: ['Toe-in angle', 'Direct comparison'], initial: 'Toe-in angle' },
+      { key: 'side', label: 'Repeater is on the', type: 'select', options: ['Port', 'Starboard'], initial: 'Port', showWhen: v => v.method !== 'Direct comparison' },
+      { key: 'offset', label: 'Offset from centre line (m)', type: 'number', showWhen: v => v.method !== 'Direct comparison' },
+      { key: 'ahead', label: 'Distance to Jackstaff, fore and aft (m)', type: 'number', showWhen: v => v.method !== 'Direct comparison' },
+      { key: 'head', label: "Ship's head (deg)", type: 'number', showWhen: v => v.method !== 'Direct comparison' },
+      { key: 'read', label: 'Jackstaff bearing read from the repeater (deg)', type: 'number', showWhen: v => v.method !== 'Direct comparison' },
+      { key: 'lubber', label: "Bearing by the lubber's line (deg)", type: 'number', showWhen: v => v.method === 'Direct comparison' },
+      { key: 'jack', label: 'Bearing of the Jackstaff (deg)', type: 'number', showWhen: v => v.method === 'Direct comparison' },
+    ],
+    summarize: lubberSummary,
+    help: v => (v.method === 'Direct comparison' ? "A centre line repeater from which the Jackstaff can be seen: compare the bearing by the lubber's line with that of the Jackstaff." : "A repeater off the centre line: the Jackstaff should read the ship's head plus the toe-in angle (port side) or minus it (starboard side). Switch the repeater supplies off before checking."),
+    valid: v => lubberResult(v) !== null,
+  },
+  echoSounder: {
+    formTitle: 'Record Echo Sounder Calibration',
+    defaultNote: 'Echo sounder calibration',
+    fields: [
+      { key: 'sounder', label: 'Echo sounder', type: 'text' },
+      { key: 'method', label: 'Method', type: 'select', options: ['Hand lead line', 'Dry dock markings', 'Bar check'], initial: 'Hand lead line' },
+      { key: 'ref', label: 'Reference depth (m)', type: 'number', required: true },
+      { key: 'echo', label: 'Echo sounder depth (m)', type: 'number', required: true },
+    ],
+    summarize: echoSummary,
+    help: () => 'Give the reference depth (lead line, dock marking or bar) and the echo sounder reading to the same datum.',
   },
   compassSwing: {
     formTitle: 'Record Compass Swing',
@@ -714,6 +800,16 @@ const App: React.FC = () => {
         content: <EmLogList items={ship.emLogCalibration} onAdd={() => openRecordForm('emLogCalibration')} onEdit={item => openRecordForm('emLogCalibration', item)} onDelete={id => deleteRecord(ship.id, 'emLogCalibration', id)} /> },
       { id: 'compass', title: 'Compass Swing', icon: <Compass size={18} className="text-amber-500" />, count: sum.compass.count, latest: sum.compass.latest,
         content: <CompassSwingList items={ship.compassSwing} onAdd={() => openRecordForm('compassSwing')} onEdit={item => openRecordForm('compassSwing', item)} onDelete={id => deleteRecord(ship.id, 'compassSwing', id)} /> },
+      { id: 'radarIndex', title: 'Radar Index Error', icon: <ClipboardCheck size={18} className="text-red-500" />, count: sum.radarIndex.count, latest: sum.radarIndex.latest,
+        content: <DetailCard embedded title='Radar Index Error' icon={null} items={ship.radarIndex ?? []} onAdd={() => openRecordForm('radarIndex')} onEdit={item => openRecordForm('radarIndex', item)} onDelete={id => deleteRecord(ship.id, 'radarIndex', id)} /> },
+      { id: 'radarBearing', title: 'Radar Bearing Error', icon: <ClipboardCheck size={18} className="text-rose-500" />, count: sum.radarBearing.count, latest: sum.radarBearing.latest,
+        content: <DetailCard embedded title='Radar Bearing Error' icon={null} items={ship.radarBearing ?? []} onAdd={() => openRecordForm('radarBearing')} onEdit={item => openRecordForm('radarBearing', item)} onDelete={id => deleteRecord(ship.id, 'radarBearing', id)} /> },
+      { id: 'speedLog', title: 'Speed Log Calibration', icon: <ClipboardCheck size={18} className="text-teal-600" />, count: sum.speedLog.count, latest: sum.speedLog.latest,
+        content: <DetailCard embedded title='Speed Log Calibration' icon={null} items={ship.speedLog ?? []} onAdd={() => openRecordForm('speedLog')} onEdit={item => openRecordForm('speedLog', item)} onDelete={id => deleteRecord(ship.id, 'speedLog', id)} /> },
+      { id: 'lubber', title: "Lubber's Line Alignment", icon: <ClipboardCheck size={18} className="text-amber-600" />, count: sum.lubber.count, latest: sum.lubber.latest,
+        content: <DetailCard embedded title="Lubber's Line Alignment" icon={null} items={ship.lubberLine ?? []} onAdd={() => openRecordForm('lubberLine')} onEdit={item => openRecordForm('lubberLine', item)} onDelete={id => deleteRecord(ship.id, 'lubberLine', id)} /> },
+      { id: 'echo', title: 'Echo Sounder Calibration', icon: <ClipboardCheck size={18} className="text-sky-600" />, count: sum.echo.count, latest: sum.echo.latest,
+        content: <DetailCard embedded title='Echo Sounder Calibration' icon={null} items={ship.echoSounder ?? []} onAdd={() => openRecordForm('echoSounder')} onEdit={item => openRecordForm('echoSounder', item)} onDelete={id => deleteRecord(ship.id, 'echoSounder', id)} /> },
     ];
   };
 
@@ -796,7 +892,8 @@ const App: React.FC = () => {
   const saveRecord = (e: React.FormEvent) => {
     e.preventDefault();
     const def = RECORD_KINDS[recordKind];
-    if (!selectedShip || !recordDate || def.fields.some(f => f.required && !recordValues[f.key])) return;
+    if (!selectedShip || !recordDate || def.fields.some(f => (!f.showWhen || f.showWhen(recordValues)) && f.required && !recordValues[f.key])) return;
+    if (def.valid && !def.valid(recordValues)) { setToast('Fill in all the values this method needs.'); return; }
     if (recordKind === 'compassSwing' && !recordValues.deviation && !coefficients(readDeviations(recordValues))) {
       setToast('Enter the residual deviation, or the deviation on all eight headings.');
       return;
@@ -804,14 +901,14 @@ const App: React.FC = () => {
     const record: SimpleRecord = { id: editingRecordId ?? Math.random().toString(36).slice(2, 11), date: recordDate, description: recordRemarks.trim() || def.defaultNote, value: def.summarize(recordValues), fields: { ...recordValues } };
     setShips(prev => prev.map(s => s.id !== selectedShip.id ? s : {
       ...s,
-      [recordKind]: editingRecordId ? s[recordKind].map(r => r.id === editingRecordId ? record : r) : [...s[recordKind], record],
+      [recordKind]: editingRecordId ? (s[recordKind] ?? []).map(r => r.id === editingRecordId ? record : r) : [...(s[recordKind] ?? []), record],
     }));
     setView('details');
   };
 
   const deleteRecord = (shipId: string, kind: RecordKind, recordId: string) => {
     if (!confirm('Delete this record?')) return;
-    setShips(prev => prev.map(s => s.id === shipId ? { ...s, [kind]: s[kind].filter(r => r.id !== recordId) } : s));
+    setShips(prev => prev.map(s => s.id === shipId ? { ...s, [kind]: (s[kind] ?? []).filter(r => r.id !== recordId) } : s));
   };
 
   const renderRecordForm = () => {
@@ -829,20 +926,24 @@ const App: React.FC = () => {
         <form onSubmit={saveRecord} className="space-y-4">
           {editingLegacy && <p className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-2xl p-3">This record was saved before editing existed, so its original values are gone. Enter them again to replace it; the date and remarks are kept.</p>}
           <div className="space-y-1"><label className={label}>Date</label><input type="date" required value={recordDate} onChange={e => setRecordDate(e.target.value)} className={input} /></div>
+          {def.help && <p className="text-xs font-medium text-slate-500 bg-slate-100 rounded-2xl p-3 leading-snug">{def.help(recordValues)}</p>}
           <div className="grid grid-cols-2 gap-4">
-            {def.fields.map(f => (
+            {def.fields.filter(f => !f.showWhen || f.showWhen(recordValues)).map(f => (
               <div key={f.key} className="space-y-1">
                 <label className={label}>{f.label}</label>
                 {f.type === 'select' ? (
                   <select value={recordValues[f.key] ?? ''} onChange={e => setRecordValues({ ...recordValues, [f.key]: e.target.value })} className={input + ' appearance-none'}>
                     {f.options!.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
+                ) : f.type === 'text' ? (
+                  <input type="text" value={recordValues[f.key] ?? ''} onChange={e => setRecordValues({ ...recordValues, [f.key]: e.target.value })} className={input} />
                 ) : (
                   <input type="number" inputMode="decimal" step="any" min={f.signed ? undefined : 0} required={f.required} value={recordValues[f.key] ?? ''} onChange={e => setRecordValues({ ...recordValues, [f.key]: e.target.value })} className={input} />
                 )}
               </div>
             ))}
           </div>
+          {def.valid && def.valid(recordValues) && <p className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-2xl p-3">{def.summarize(recordValues)}</p>}
           <div className="space-y-1"><label className={label}>Remarks</label><textarea rows={3} value={recordRemarks} onChange={e => setRecordRemarks(e.target.value)} className={input + ' font-medium resize-none'} /></div>
           <button type="submit" className="w-full p-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">{editingRecordId ? 'Save Changes' : 'Save Record'}</button>
         </form>

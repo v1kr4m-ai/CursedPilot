@@ -46,17 +46,6 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['B station, C = B + margin, D = C + transfer, E = D - advance along the approach course', 'F = E - (knots lost x yards per knot) along the Guide’s course', 'G = F + Guide’s run in the turn; answer = bearing and distance of the Guide from G', '2000 yards to the n mile'],
     limits: ['A plane plot for the short distances of manoeuvring; it takes advance and transfer as constants for the turn and ignores wind and current.', 'Check against Battenberg for the course to steer to the station and against the Wheel-over tool for the turn itself.'],
   },
-  'Ship Checks': {
-    concept: 'The calibrations and checks on the ship’s navigation equipment from Handbook on Navigation chapter 8: radar range and bearing error, the speed log (percentage correction by BR 45(3) formulas 4.9 and 4.10), the lubber’s line of a wing repeater, and the echo sounder against the hand lead line.',
-    steps: [
-      'Radar: enter the charted and radar range of an object for the index error, or the two ranges when passing between two objects (half the difference). Enter the visual and radar bearing for the bearing error.',
-      'Speed log: choose two runs (stream steady) or four runs (stream changing, two each way). Enter the measured distance, the time of each run and the mean log speed. The tool gives the ground speeds, the percentage correction, the log error in knots and per cent, and corrects a log reading.',
-      'Lubber’s line: enter the repeater’s offset from the centre line and its fore-and-aft distance to the Jackstaff for the toe-in angle, and the ship’s head for what the Jackstaff should read.',
-      'Echo sounder: enter the lead line and echo depths for the error, and the depth for how often to report soundings.',
-    ],
-    formulas: ['Index error = true range - radar range; two-mark: (charted - (r1 + r2)) / 2', 'Two runs: C = 100 ((V1 + V2) / (L1 + L2) - 1)', 'Four runs: C = 100 ((V1 + 3V2 + 3V3 + V4) / (L1 + 3L2 + 3L3 + L4) - 1)', 'Ground speed V = 3600 x distance / time; toe-in E = atan (offset / distance ahead)'],
-    limits: ['The log correction is a percentage of the log (water) speed, not of the ground speed, and is good to about ±1 %.', 'Ground speeds assume the measured distance is in international n miles (1852 m).', 'Compass swings and EM log records are kept in the ship’s records; this tool does not change them.'],
-  },
   'Corpen': {
     concept: 'When to alter course by Corpen, from the Mathematics of Manoeuvres notes. In column, the ship stationed astern alters after distance / speed (stopwatch) or turns early so that, after her 90 degree turn, she ends the stationed distance astern (radian rule). Abreast (Corpen S), the Guide turns at once and the other ship turns early by the distance the Guide draws ahead.',
     steps: ['Choose Corpen (Guide ahead) or Corpen S (abreast), and enter your speed, the station distance in cables and the side you turn to.', 'Open the turn data: advance and transfer for a 90 degree turn (transfer is taken as the advance if blank), the time to turn, and the time to regain speed (column) or the distance lost (abreast).', 'Stopwatch: alter that long after the Guide orders the wheel over. Radian rule: alter when the Guide bears the angle shown off your bow on the side you turn toward.', 'True mark and follow-the-wake are described as checks: watch the Guide and keep checking bearing and range.'],

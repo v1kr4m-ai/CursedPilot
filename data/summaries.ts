@@ -3,7 +3,7 @@
 import type { Ship, SimpleRecord } from '../types.ts';
 
 export interface Summary {
-  id: 'turning' | 'accel' | 'fishtails' | 'em' | 'compass';
+  id: 'turning' | 'accel' | 'fishtails' | 'em' | 'compass' | 'radarIndex' | 'radarBearing' | 'speedLog' | 'lubber' | 'echo';
   title: string;
   count: number;
   /** a short line describing the latest record(s); '' when there are none */
@@ -51,5 +51,10 @@ export function calibrationSummaries(ship: Ship): Summary[] {
     { id: 'fishtails', title: 'Fishtails', count: ship.fishtails.length, latest: recordLine(ship.fishtails) },
     { id: 'em', title: 'EM Log Calibration', count: ship.emLogCalibration.length, latest: recordLine(ship.emLogCalibration) },
     { id: 'compass', title: 'Compass Swing', count: ship.compassSwing.length, latest: recordLine(ship.compassSwing) },
+    { id: 'radarIndex', title: 'Radar Index Error', count: (ship.radarIndex ?? []).length, latest: recordLine(ship.radarIndex ?? []) },
+    { id: 'radarBearing', title: 'Radar Bearing Error', count: (ship.radarBearing ?? []).length, latest: recordLine(ship.radarBearing ?? []) },
+    { id: 'speedLog', title: 'Speed Log Calibration', count: (ship.speedLog ?? []).length, latest: recordLine(ship.speedLog ?? []) },
+    { id: 'lubber', title: "Lubber's Line Alignment", count: (ship.lubberLine ?? []).length, latest: recordLine(ship.lubberLine ?? []) },
+    { id: 'echo', title: 'Echo Sounder Calibration', count: (ship.echoSounder ?? []).length, latest: recordLine(ship.echoSounder ?? []) },
   ];
 }

@@ -88,6 +88,12 @@ export interface Ship {
   fishtails: SimpleRecord[];
   emLogCalibration: SimpleRecord[];
   compassSwing: SimpleRecord[];
+  /** calibration checks saved for the ship (Handbook on Navigation chapter 8) */
+  radarIndex?: SimpleRecord[];
+  radarBearing?: SimpleRecord[];
+  speedLog?: SimpleRecord[];
+  lubberLine?: SimpleRecord[];
+  echoSounder?: SimpleRecord[];
   info?: ShipInfo;
   /** extra particulars and details the user has added */
   custom?: CustomField[];

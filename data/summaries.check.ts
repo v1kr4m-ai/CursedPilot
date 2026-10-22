@@ -8,7 +8,7 @@ const row = (n: number, adv: number, transfer = 1) => ({ id: `r${n}`, turnAmount
 
 // nothing recorded: counts are zero and no text
 for (const x of s.calibrationSummaries(base)) { assert.equal(x.count, 0); assert.equal(x.latest, ''); }
-assert.deepEqual(s.calibrationSummaries(base).map(x => x.id), ['turning', 'accel', 'fishtails', 'em', 'compass']);
+assert.deepEqual(s.calibrationSummaries(base).map(x => x.id), ['turning', 'accel', 'fishtails', 'em', 'compass', 'radarIndex', 'radarBearing', 'speedLog', 'lubber', 'echo']);
 
 // dates
 assert.equal(s.shortDate('2026-10-04'), '4 Oct 2026'); assert.equal(s.shortDate('2023-10-02'), '2 Oct 2023'); assert.equal(s.shortDate('last week'), 'last week'); assert.equal(s.shortDate('2026-13-01'), '2026-13-01');

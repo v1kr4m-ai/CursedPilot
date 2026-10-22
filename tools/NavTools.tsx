@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Anchor, ClipboardCheck, Crosshair, Shuffle, Spline, MoveHorizontal as Ship2, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
+import { Anchor, Crosshair, Shuffle, Spline, MoveHorizontal as Ship2, ArrowLeftRight, BookOpen, Wind as WindIcon, Camera, ArrowUpDown, Target, Calculator, Clock, Compass, Eye, LifeBuoy, MapPin, Navigation, Radar, RotateCw, Ship as ShipIcon, Sun, Waves } from 'lucide-react';
 import { Ship } from '../types';
 import { interpolateData } from '../fishtail/utils/interpolation';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
@@ -19,7 +19,6 @@ import { AnchorTool } from './AnchorTool';
 import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
 import { StationTurnTool } from './StationTurnTool';
-import { ShipChecksTool } from './ShipChecksTool';
 import { RelMotionTool } from './RelMotionTool';
 import { CorpenTool, RasApproachTool, RegainTrackTool } from './ManoeuvreTools';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
@@ -657,7 +656,6 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
   { name: 'Station Turn', short: 'Station turn', desc: 'Wheel-over point for the turn onto station on a Guide, worked back from the station with the ship’s advance, transfer and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationTurnTool },
-  { name: 'Ship Checks', short: 'Ship checks', desc: 'Radar index error, speed log calibration, lubber’s line toe-in and echo sounder checks (Handbook chapter 8)', icon: <ClipboardCheck size={18} className="text-teal-600" />, Component: ShipChecksTool },
   { name: 'Corpen', short: 'Corpen', desc: 'When to alter course by Corpen: stopwatch and radian rule, in column or abreast (Corpen ’S’)', icon: <Shuffle size={18} className="text-violet-500" />, Component: CorpenTool },
   { name: 'Regain Track', short: 'Regain track', desc: 'Time or throw-off to regain track by the radian rule, and the allowance for a stream', icon: <Spline size={18} className="text-cyan-600" />, Component: RegainTrackTool },
   { name: 'RAS Approach', short: 'RAS approach', desc: 'Course to steer for the working distance and when to come down in speed when coming alongside', icon: <Ship2 size={18} className="text-sky-600" />, Component: RasApproachTool },

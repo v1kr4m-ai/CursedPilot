@@ -23,7 +23,7 @@ assert.equal(r.rowHasData(blank), false); assert.equal(r.rowHasData(filled), tru
 assert.equal(r.rowHasData({ ...blank, time: '01:00' }), true);
 
 const sheets = r.vesselSheets(ship);
-assert.deepEqual(sheets.map(s => s.name), ['Vessel', 'Turning data', 'Acceleration and deceleration', 'Fishtails', 'EM log calibration', 'Compass swing']);
+assert.deepEqual(sheets.map(s => s.name), ['Vessel', 'Turning data', 'Acceleration and deceleration', 'Fishtails', 'EM log calibration', 'Compass swing', 'Radar index error', 'Radar bearing error', 'Speed log calibration', 'Lubber line alignment', 'Echo sounder calibration']);
 assert.ok(sheets.every(s => s.name.length <= 31));
 assert.deepEqual(sheets[0].rows.slice(0, 7), [['Name', 'HMS <Evil> & "Co"'], ['Type', 'Destroyer'], ['Class', 'Test class'], ['Pennant', 'D99'], ['Commissioned', '2014-08'], ['Status', 'In service'], ['Speed', '30 kn']]);   // blank details are left out
 // the user's own headings come after the built-in ones; rows without a heading or without a value are left out

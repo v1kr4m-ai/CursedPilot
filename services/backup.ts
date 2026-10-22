@@ -64,6 +64,11 @@ export function parseBackup(text: string): Backup {
       fishtails: Array.isArray(s.fishtails) ? s.fishtails : [],
       emLogCalibration: Array.isArray(s.emLogCalibration) ? s.emLogCalibration : [],
       compassSwing: Array.isArray(s.compassSwing) ? s.compassSwing : [],
+      radarIndex: Array.isArray(s.radarIndex) ? s.radarIndex : [],
+      radarBearing: Array.isArray(s.radarBearing) ? s.radarBearing : [],
+      speedLog: Array.isArray(s.speedLog) ? s.speedLog : [],
+      lubberLine: Array.isArray(s.lubberLine) ? s.lubberLine : [],
+      echoSounder: Array.isArray(s.echoSounder) ? s.echoSounder : [],
     } as Ship;
   });
   const meta = (data as Record<string, unknown>).fleetMeta;
