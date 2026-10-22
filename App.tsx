@@ -863,6 +863,8 @@ const App: React.FC = () => {
                 { l: 'Stem to RAS Point', v: selectedShip.particulars.stemToRas, u: 'm' },
                 { l: 'Stem to Fueling Point', v: selectedShip.particulars.stemToFueling, u: 'm' },
                 ...(selectedShip.particulars.heightOfEye ? [{ l: 'Height of Eye', v: selectedShip.particulars.heightOfEye, u: 'm' }] : []),
+                ...(selectedShip.particulars.repeaterOffset ? [{ l: 'Wing Repeater off Centre Line', v: selectedShip.particulars.repeaterOffset, u: 'm' }] : []),
+                ...(selectedShip.particulars.repeaterToJackstaff ? [{ l: 'Wing Repeater to Jackstaff', v: selectedShip.particulars.repeaterToJackstaff, u: 'm' }] : []),
                 ...(selectedShip.particulars.anchorCableShackles ? [{ l: 'Anchor Cable', v: `${selectedShip.particulars.anchorCableShackles} shackles${selectedShip.particulars.anchorCableType === 'bronze' ? ', aluminium bronze' : selectedShip.particulars.anchorCableType === 'steel' ? ', forged steel' : ''}` as unknown as number, u: '' }] : []),
                 ...shownFields(selectedShip, 'particulars').map(f => ({ l: f.label, v: f.value, u: f.unit ?? '' })),
               ].map((item, idx) => (
@@ -1103,6 +1105,8 @@ const App: React.FC = () => {
           <ParticularField label="Stem to RAS Point" value={selectedShip.particulars.stemToRas} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToRas: v })} />
           <ParticularField label="Stem to Fueling Point" value={selectedShip.particulars.stemToFueling} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToFueling: v })} />
           <ParticularField label="Height of Eye (m)" value={selectedShip.particulars.heightOfEye ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, heightOfEye: v || undefined })} />
+          <ParticularField label="Wing repeater off centre line (m)" value={selectedShip.particulars.repeaterOffset ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, repeaterOffset: v || undefined })} />
+          <ParticularField label="Wing repeater to Jackstaff, fore and aft (m)" value={selectedShip.particulars.repeaterToJackstaff ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, repeaterToJackstaff: v || undefined })} />
           <ParticularField label="Anchor cable available (shackles)" value={selectedShip.particulars.anchorCableShackles ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, anchorCableShackles: v || undefined })} />
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-500 ml-1 uppercase" htmlFor="cable-type">Anchor cable type</label>

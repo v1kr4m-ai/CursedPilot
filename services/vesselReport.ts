@@ -50,6 +50,8 @@ export const rowHasData = (r: TurningDataRow) =>
 export const particularRows = (ship: Ship): Cell[][] => [
   ...PARTICULARS.map(([label, key, unit]): Cell[] => [label, ship.particulars[key] ?? 0, unit]),
   ...(ship.particulars.heightOfEye ? [['Height of eye', ship.particulars.heightOfEye, 'm'] as Cell[]] : []),
+  ...(ship.particulars.repeaterOffset ? [['Wing repeater off centre line', ship.particulars.repeaterOffset, 'm'] as Cell[]] : []),
+  ...(ship.particulars.repeaterToJackstaff ? [['Wing repeater to Jackstaff', ship.particulars.repeaterToJackstaff, 'm'] as Cell[]] : []),
   ...(ship.particulars.anchorCableShackles ? [['Anchor cable', ship.particulars.anchorCableShackles, `shackles${ship.particulars.anchorCableType === 'bronze' ? ', aluminium bronze' : ship.particulars.anchorCableType === 'steel' ? ', forged steel' : ''}`] as Cell[]] : []),
   ...shownFields(ship, 'particulars').map((f): Cell[] => [f.label.trim(), f.value.trim(), (f.unit ?? '').trim()]),
 ];

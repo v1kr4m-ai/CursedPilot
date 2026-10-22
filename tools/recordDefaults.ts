@@ -1,4 +1,4 @@
-// What a new calibration record starts with, taken from the ship's own data: her particulars, and what she entered last time for that kind of
+// What a new calibration record starts with, taken from the ship's own data: her particulars (the wing repeater's distances), and what she entered last time for that kind of
 // record (the radar and its scale, the repeater and its distances, the sounder, the log runs). Everything stays editable on the form.
 // Pure; `node tools/recordDefaults.check.ts`.
 
@@ -27,7 +27,12 @@ export function recordDefaults(kind: string, ship: Pick<Ship, 'particulars' | 'r
   const k = kind as Kind, out: Record<string, string> = {};
   const last = latest(ship[LIST[k]]);
   for (const key of CARRY[k]) if (last?.fields?.[key] !== undefined && last.fields[key] !== '') out[key] = last.fields[key];
-  // the repeater's distance to the Jackstaff: from the ship's stem to her bridge, when she has no earlier record to go on
-  if (k === 'lubberLine' && out.ahead === undefined) { const a = metres(ship.particulars.stemToBridge); if (a) out.ahead = a; }
+  if (k === 'lubberLine') {
+    // the ship's own data comes first: the repeater's offset and its distance to the Jackstaff, once they are in her particulars; otherwise the last record, then stem to bridge
+    const off = metres(ship.particulars.repeaterOffset), ahead = metres(ship.particulars.repeaterToJackstaff);
+    if (off) out.offset = off;
+    if (ahead) out.ahead = ahead;
+    else if (out.ahead === undefined) { const a = metres(ship.particulars.stemToBridge); if (a) out.ahead = a; }
+  }
   return out;
 }

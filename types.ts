@@ -12,6 +12,9 @@ export interface ShipParticulars {
   /** shackles of cable that can be veered on the bower anchor, and what it is made of: used by the Anchor tool */
   anchorCableShackles?: number;
   anchorCableType?: 'steel' | 'bronze';
+  /** a wing repeater's distance off the centre line, metres, and its fore and aft distance to the Jackstaff: used by the lubber's line records */
+  repeaterOffset?: number;
+  repeaterToJackstaff?: number;
 }
 
 export interface TurningDataRow {

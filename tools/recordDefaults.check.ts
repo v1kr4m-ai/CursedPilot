@@ -17,6 +17,10 @@ assert.deepEqual(recordDefaults('radarIndex', ship), { radar_name: 'Nav radar 1'
 // lubber line: the earlier distances win over the particulars
 const lub = { ...base, lubberLine: [{ id: '1', date: '2026-02-02', description: '', fields: { repeater: 'Bridge wing, port', method: 'Toe-in angle', side: 'Port', offset: '6', ahead: '30' } }] };
 assert.equal(recordDefaults('lubberLine', lub).ahead, '30'); assert.equal(recordDefaults('lubberLine', lub).offset, '6');
+// the ship's own repeater data wins over an earlier record, and fills both distances
+const own = { ...lub, particulars: { ...base.particulars, repeaterOffset: 5.5, repeaterToJackstaff: 42 } };
+assert.equal(recordDefaults('lubberLine', own).offset, '5.5'); assert.equal(recordDefaults('lubberLine', own).ahead, '42');
+assert.equal(recordDefaults('lubberLine', { ...base, particulars: { ...base.particulars, repeaterOffset: 5.5, repeaterToJackstaff: 42 } }).ahead, '42');
 // a record kept before editing existed has no fields: ignored
 assert.deepEqual(recordDefaults('echoSounder', { ...base, echoSounder: [{ id: '1', date: '2026-01-01', description: 'old', value: 'x' }] }), {});
 console.log('recordDefaults: all checks passed');
