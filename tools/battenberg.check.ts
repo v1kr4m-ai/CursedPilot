@@ -72,4 +72,6 @@ assert.deepEqual(b.solve({ guideCourse: 0, guideSpeed: 10, stationingSpeed: 15, 
   // with no deceleration figure: constant speed to the station
   const flat = b.profile(prob, s, null); near(flat.totalHours, 2.5 / 10, 1e-12); near(flat.at(0.1).pos.x, -3 + 1, 1e-9);
 }
+// stations given as true bearings are the same points as the angle off the Guide's bow: Guide 040, starboard beam (090 off the bow) is 130 true
+{ const p1 = b.place(b.stationBearing(40, 90), 1.5), p2 = b.place(130, 1.5); if (Math.abs(p1.x - p2.x) > 1e-9 || Math.abs(p1.y - p2.y) > 1e-9) throw new Error('true bearing and angle off the bow disagree'); if (b.stationBearing(40, -90) !== 310) throw new Error('port beam'); }
 console.log('battenberg: all checks passed');

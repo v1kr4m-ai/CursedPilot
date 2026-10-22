@@ -2,6 +2,9 @@ import React from 'react';
 import { Field, Grid, Panel, Result, Seg, bearing, useForm, useMemory } from './kit';
 import { OwnFormula } from './OwnFormula';
 import { solve } from './stationTurn';
+import { lookupTurn } from './turnLookup';
+import { shipParams } from './shipParams';
+import type { Ship } from '../types';
 
 // Station from Bows (Joining from Ahead, BR 45(6) para 0425): the Wheel-Over Point for the turn that brings own ship onto station on the
 // Guide, worked back from the station (see stationTurn.ts). The plot has the Guide at the centre, north up; B to G are the points of the working.
@@ -11,11 +14,23 @@ const STATIONS: [string, number][] = [['Ahead', 0], ['Bow 045', 45], ['Beam 090'
 const relName = (rel: number) => (Math.abs(rel) < 0.5 || Math.abs(Math.abs(rel) - 180) < 0.5 ? String(Math.round(Math.abs(rel))).padStart(3, '0') : `${rel > 0 ? 'Green' : 'Red'} ${String(Math.round(Math.abs(rel))).padStart(2, '0')}`) + '°';
 const SIZE = 300, C = SIZE / 2;
 
-export const StationFromBowsTool: React.FC = () => {
-  const f = useForm('stturn', FIELDS);
+export const StationFromBowsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const typed = useForm('stturn', FIELDS);
   const [mside, setMside] = useMemory<'Starboard' | 'Port'>('stturn:mside', 'Starboard');
   const [sSide, setSSide] = useMemory<'Port' | 'Starboard'>('stturn:sside', 'Starboard');
   const [turn, setTurn] = useMemory<'Auto' | 'Port' | 'Starboard'>('stturn:turn', 'Auto');
+  const [wheelRaw, setWheelRaw] = useMemory<string>('stturn:wheel', '');
+  // the ship's own turning data for this turn: the side and amount follow from the approach and Guide courses
+  const tgc = typed.n('gc'), tac = typed.n('ac'), tas = typed.n('as');
+  const raw = tgc !== null && tac !== null ? ((tgc - tac + 540) % 360) - 180 : null;
+  const turnAngle = raw === null ? null : turn === 'Port' ? (raw > 0 ? raw - 360 : raw) : turn === 'Starboard' ? (raw < 0 ? raw + 360 : raw) : raw;
+  const pick = ship && turnAngle !== null && tas !== null && tas > 0 ? lookupTurn(ship, turnAngle < 0 ? 'Port' : 'Starboard', tas, turnAngle, wheelRaw === '' ? undefined : Number(wheelRaw)) : null;
+  const decelYd = ship ? shipParams(ship).decelMetresPerKnot : undefined;
+  const r1 = (v: number) => String(Math.round(v * 10) / 10);
+  const f = useForm('stturn', FIELDS, pick ? {
+    adv: r1(pick.advance), tr: r1(pick.transfer), tm: String(Math.floor(pick.seconds / 60)), ts: String(Math.round(pick.seconds % 60)),
+    ...(pick.loss !== undefined ? { loss: r1(pick.loss) } : {}), ...(decelYd !== undefined ? { dec: r1(decelYd / 0.9144) } : {}),
+  } : decelYd !== undefined ? { dec: r1(decelYd / 0.9144) } : undefined);
   const n = (k: typeof FIELDS[number]) => f.n(k);
   const gc = n('gc'), gs = n('gs'), ac = n('ac'), aspd = n('as'), sb = n('sb'), sd = n('sd');
   const ready = gc !== null && gs !== null && gs >= 0 && ac !== null && aspd !== null && aspd >= 0 && sb !== null && sd !== null && sd >= 0;
@@ -43,7 +58,15 @@ export const StationFromBowsTool: React.FC = () => {
         <Field label="Lateral safety margin" unit="yd" {...f.bind('mg')} />
         <Seg value={mside} onChange={v => setMside(v as 'Starboard' | 'Port')} options={[['Starboard', 'Margin to starboard'], ['Port', 'Margin to port']]} />
       </Panel>
-      <Panel title="The turn" note="From the ship's turning data at the approach speed: advance and transfer, the speed lost in the turn, the deceleration distance per knot (about 33 yards a knot) and the time the turn takes.">
+      {pick && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-2.5 space-y-1.5">
+          <p className="text-[11px] font-bold text-emerald-800">Turning data of {ship!.name}: {pick.interpolatedSpeed ? `between ${pick.speedFrom} and ${pick.speedTo} kn` : `${pick.speed} kn`}, {pick.wheel}° wheel, {Math.round(Math.abs(turnAngle!))}° to {turnAngle! < 0 ? 'port' : 'starboard'}</p>
+          {pick.wheels.length > 1 && <div className="flex gap-1 flex-wrap">{pick.wheels.map(w => <button key={w} type="button" onClick={() => setWheelRaw(String(w))} className={`px-2 py-1 rounded-lg text-[11px] font-bold border ${pick.wheel === w ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'}`}>{w}° wheel</button>)}</div>}
+          <p className="text-[10px] text-emerald-700 font-medium leading-snug">Advance, transfer, turn time{pick.loss !== undefined ? ', loss of speed' : ''}{decelYd !== undefined ? ' and deceleration distance' : ''} below come from it; type over any to use another figure.{pick.outsideTurn ? ' The turn is more than the largest recorded: the largest is used.' : ''}{pick.loss === undefined ? ' The speed after the turn is not recorded, so the loss of speed is not filled in.' : ''}</p>
+        </div>
+      )}
+      {!pick && ship && turnAngle !== null && tas !== null && <p className="text-[10px] font-semibold text-slate-400">{ship.name} has no turning data for a turn to {turnAngle < 0 ? 'port' : 'starboard'}: enter the figures below by hand, or add them under Calibration Data, Turning Trials.</p>}
+      <Panel title="The turn" note="From the ship's turning data at the approach speed when it is recorded: advance and transfer, the speed lost in the turn, the deceleration distance per knot (about 33 yards a knot) and the time the turn takes.">
         <Grid><Field label="Advance" unit="yd" {...f.bind('adv')} /><Field label="Transfer" unit="yd" {...f.bind('tr')} /></Grid>
         <Grid><Field label="Loss of speed in turn" unit="kn" {...f.bind('loss')} /><Field label="Deceleration distance" unit="yd/kn" {...f.bind('dec')} /></Grid>
         <Grid><Field label="Turn time" unit="min" {...f.bind('tm')} /><Field label="and" unit="sec" {...f.bind('ts')} /></Grid>

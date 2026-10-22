@@ -26,7 +26,7 @@ const HOLD_MS = 450;
  * remembered until the clear-all icon is pressed. Today it holds the offline tools; the input row at the bottom is where the text and voice
  * assistant (prefed data, local or online AI) will plug in.
  */
-const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
+const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[]; /** open this tool (a new stamp each time), as from a slot on the home bar */ launch?: { name: string; stamp: number } }> = ({ ship, fleet, launch }) => {
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
   const [tool, setTool] = useState<NavTool | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -78,6 +78,12 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
   });
   const panelRef = useRef<HTMLDivElement>(null);
   const hasEntries = !useSyncExternalStore(toolMemory.subscribe, () => toolMemory.isEmpty());
+  useEffect(() => {          // a tool launched from outside (the home bar): open the panel on it
+    if (!launch) return;
+    const t = NAV_TOOLS.find(x => x.name === launch.name);
+    if (t) { setTool(t); setShowInfo(false); setPhase('open'); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [launch?.stamp]);
   const open = phase !== 'closed';
   const collapse = useCallback(() => setPhase(p => (p === 'open' ? 'closing' : p)), []);
 
@@ -252,7 +258,7 @@ const NavYeo: React.FC<{ ship?: Ship }> = ({ ship }) => {
                       className={`p-1.5 rounded-full border transition-colors ${showInfo ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-slate-200'}`}><Info size={16} /></button>
                   </div>
                   {showInfo && <ToolInfoCard name={tool.name} />}
-                  <ResultSlot.Provider value={resultSlot}><tool.Component ship={ship} /></ResultSlot.Provider>
+                  <ResultSlot.Provider value={resultSlot}><tool.Component ship={ship} fleet={fleet} /></ResultSlot.Provider>
                 </div>
               ) : (
                 <div className="space-y-3">

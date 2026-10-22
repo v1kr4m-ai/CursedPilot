@@ -6,14 +6,14 @@ import { PlayBar, mmss, usePlayer } from './PlayBar';
 import { Field, Grid, Panel, Result, Seg, SideToggle, UnitPick, Warn, bearing, useForm, useMemory, useUnit } from './kit';
 import { shipParams } from './shipParams';
 import { OwnFormula } from './OwnFormula';
-import { stationInTime, stationRun } from './relvel';
+import { approach, courseOf, stationInTime, stationRun, vec } from './relvel';
 
 // Battenberg: the course to steer to take or change station on a Guide (BR 45(6) paras 0423-0424), with the stations
 // marked on a Battenberg-style diagram: the Guide at the centre heading up, range rings, and the bearings on her bow,
 // beam, quarter and astern. Tap the diagram to place a station. The sums are in battenberg.ts.
 
 type Side = 'Port' | 'Starboard';
-const FIELDS = ['gc', 'gs', 'ss', 'a1', 'd1', 'a2', 'd2', 'loss', 'tm', 'vis'] as const;
+const FIELDS = ['gc', 'gs', 'ss', 'a1', 'd1', 'a2', 'd2', 'loss', 'tm', 'vis', 'oc', 'os'] as const;
 const NM_PER_YD = 1 / 2025.37;
 
 const hms = (hours: number) => { const s = Math.round(hours * 3600); return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`; };
@@ -104,14 +104,19 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const [side1, setSide1] = useMemory<Side>('batt:side1', 'Port');
   const [side2, setSide2] = useMemory<Side>('batt:side2', 'Starboard');
   const [placing, setPlacing] = useMemory<'now' | 'station'>('batt:placing', 'station');
+  const [given, setGiven] = useMemory<'relative' | 'true'>('batt:given', 'relative');   // stations as the angle off the Guide's bow, or as true bearing and distance
+  const trueIn = given === 'true';
 
-  const gc = f.n('gc'), gs = f.n('gs'), ss = f.n('ss'), a1 = f.n('a1'), a2 = f.n('a2'), loss = f.n('loss');
+  const gc = f.n('gc'), gs = f.n('gs'), a1 = f.n('a1'), a2 = f.n('a2'), loss = f.n('loss'), oc = f.n('oc'), os = f.n('os');
+  const ss = f.n('ss') ?? os;                       // the stationing speed: as typed, or own present speed when that is given
   const toNm = (v: number | null) => (v === null ? null : nav.convertLength(v, unit, 'nm'));
   const d1 = toNm(f.n('d1')), d2 = toNm(f.n('d2'));
   const ang = (a: number | null, s: Side) => (a === null ? null : s === 'Starboard' ? a : -a);
   const o1 = ang(a1, side1), o2 = ang(a2, side2);
-  const ready = gc !== null && gs !== null && gs >= 0 && ss !== null && ss > 0 && o1 !== null && o2 !== null && d1 !== null && d1 >= 0 && d2 !== null && d2 >= 0;
-  const now = ready ? place(stationBearing(gc!, o1!), d1!) : null, st = ready ? place(stationBearing(gc!, o2!), d2!) : null;
+  const trueB = (a: number | null) => (a !== null && a >= 0 && a < 360 ? a : null);
+  const b1 = trueIn ? trueB(a1) : o1 !== null && gc !== null ? stationBearing(gc, o1) : null, b2 = trueIn ? trueB(a2) : o2 !== null && gc !== null ? stationBearing(gc, o2) : null;
+  const ready = gc !== null && gs !== null && gs >= 0 && ss !== null && ss > 0 && b1 !== null && b2 !== null && d1 !== null && d1 >= 0 && d2 !== null && d2 >= 0;
+  const now = ready ? place(b1!, d1!) : null, st = ready ? place(b2!, d2!) : null;
   const prob = ready ? { guideCourse: gc!, guideSpeed: gs!, stationingSpeed: ss!, from: now!, to: st! } : null;
   const sols = prob ? solve(prob) : [];
   const best = sols[0] ?? null;
@@ -123,14 +128,15 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
     const side: Side = offBow <= 180 ? 'Starboard' : 'Port', a = offBow <= 180 ? offBow : 360 - offBow;
     const dist = nav.convertLength(nm, 'nm', unit), dp = unit === 'nm' || unit === 'km' ? 2 : dist < 100 ? 0 : 1;
     const text = String(Math.round(dist * 10 ** dp) / 10 ** dp);
-    if (placing === 'now') { setSide1(side); f.bind('a1').onChange(String(Math.round(a))); f.bind('d1').onChange(text); }
-    else { setSide2(side); f.bind('a2').onChange(String(Math.round(a))); f.bind('d2').onChange(text); }
+    const tb = String(Math.round(nav.norm360((gc ?? 0) + offBow)));                // the same point as a true bearing from the Guide
+    if (placing === 'now') { setSide1(side); f.bind('a1').onChange(trueIn ? tb : String(Math.round(a))); f.bind('d1').onChange(text); }
+    else { setSide2(side); f.bind('a2').onChange(trueIn ? tb : String(Math.round(a))); f.bind('d2').onChange(text); }
   };
 
   // the run played in time
   const pr = prob && best ? profile(prob, best, slow) : null;
   const totalMin = pr ? Math.max(pr.totalHours * 60, 0.01) : 0.01;
-  const player = usePlayer(totalMin, `${gc}|${gs}|${ss}|${o1}|${d1}|${o2}|${d2}|${loss}`);
+  const player = usePlayer(totalMin, `${gc}|${gs}|${ss}|${b1}|${d1}|${b2}|${d2}|${loss}`);
   const [pmode, setPmode] = useMemory<'relative' | 'true'>('batt:pmode', 'relative');
   const hoursNow = player.t / 60, atNow = pr ? pr.at(hoursNow) : null;
   const nTrail = pr ? Math.max(2, Math.ceil((hoursNow / Math.max(pr.totalHours, 1e-9)) * 60) + 1) : 0;
@@ -141,35 +147,49 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
   return (
     <div className="space-y-2">
-      <Panel title="Guide and own speed" note="True course and speed of the Guide, and the speed you will use to close or change station (the stationing speed).">
+      <Seg value={given} onChange={v => setGiven(v as 'relative' | 'true')} options={[['relative', 'Stations off the Guide\'s bow'], ['true', 'True bearings and courses']]} />
+      <Panel title="Guide and own speed" note={trueIn ? 'True course and speed of the Guide, and of your own ship now. The stationing speed is the speed you will use to close or change station (own speed now if left blank).' : 'True course and speed of the Guide, and the speed you will use to close or change station (the stationing speed).'}>
         <Grid>
           <Field label="Guide's course" unit="°T" {...f.bind('gc')} />
           <Field label="Guide's speed" unit="kn" units {...f.bind('gs')} />
         </Grid>
+        {trueIn && <Grid><Field label="Own course now" unit="°T" sensor="course" {...f.bind('oc')} /><Field label="Own speed now" unit="kn" sensor="speed" {...f.bind('os')} /></Grid>}
         <Field label="Stationing speed (own)" unit="kn" units {...f.bind('ss')} />
         <UnitPick label="Distances in" unit={unit} onChange={setUnit} />
       </Panel>
 
-      <Panel title="Where you are now" note="Your position from the Guide: the angle off her bow, on her port or starboard side, and the distance.">
-        <SideToggle label="On the Guide's" value={side1} onChange={setSide1} />
-        <Presets side={side1} onPick={a => f.bind('a1').onChange(String(a))} />
+      <Panel title="Where you are now" note={trueIn ? 'Your position from the Guide: the true bearing of you from her, and the distance.' : 'Your position from the Guide: the angle off her bow, on her port or starboard side, and the distance.'}>
+        {!trueIn && <SideToggle label="On the Guide's" value={side1} onChange={setSide1} />}
+        {!trueIn && <Presets side={side1} onPick={a => f.bind('a1').onChange(String(a))} />}
         <Grid>
-          <Field label="Angle off her bow" unit="°" {...f.bind('a1')} />
+          {trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a1')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a1')} />}
           <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d1')} />
         </Grid>
       </Panel>
 
-      <Panel title="Ordered station" note="Where you are to take station, in the same way. Stations are measured from the Guide's head: 000 right ahead, 090 on the starboard beam, 180 astern.">
-        <SideToggle label="On the Guide's" value={side2} onChange={setSide2} />
-        <Presets side={side2} onPick={a => f.bind('a2').onChange(String(a))} />
+      <Panel title="Ordered station" note={trueIn ? 'Where you are to take station: the true bearing of the station from the Guide, and the distance.' : "Where you are to take station, in the same way. Stations are measured from the Guide's head: 000 right ahead, 090 on the starboard beam, 180 astern."}>
+        {!trueIn && <SideToggle label="On the Guide's" value={side2} onChange={setSide2} />}
+        {!trueIn && <Presets side={side2} onPick={a => f.bind('a2').onChange(String(a))} />}
         <button type="button" onClick={() => { setSide2(side1); f.bind('a2').onChange(f.bind('a1').value); }} className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600">Open or close on the steady bearing: use my bearing, change the distance</button>
         <Grid>
-          <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />
+          {trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a2')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />}
           <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d2')} />
         </Grid>
         <Field label="Loss of speed (yards per knot)" unit="yd/kn" {...f.bind('loss')} />
       </Panel>
 
+      {trueIn && ready && gc !== null && gs !== null && (() => {
+        const off = (b: number) => { const a = ((b - gc + 540) % 360) - 180; return Math.abs(a) < 0.5 || Math.abs(Math.abs(a) - 180) < 0.5 ? String(Math.round(Math.abs(a))).padStart(3, '0') + '°' : `${a > 0 ? 'Starboard' : 'Port'} ${Math.round(Math.abs(a))}°`; };
+        const rows: [string, string][] = [['You are now', `${off(b1!)} off her bow (${bearing(b1!)}T) at ${unitLabel(d1!)}`], ['Ordered station', `${off(b2!)} off her bow (${bearing(b2!)}T) at ${unitLabel(d2!)}`]];
+        if (oc !== null && os !== null && os >= 0) {
+          const rel = { x: vec(oc, os).x - vec(gc, gs).x, y: vec(oc, os).y - vec(gc, gs).y };
+          const rs = Math.hypot(rel.x, rel.y);
+          rows.push(['Own motion relative to the Guide', rs < 0.05 ? 'none: you hold station' : `${bearing(courseOf(rel))} at ${rs.toFixed(1)} kn`]);
+          const ap = rs >= 0.05 ? approach(now!, rel) : null;
+          if (ap) rows.push(['Holding course and speed', ap.cpaMinutes > 0 ? `closest to the Guide ${unitLabel(ap.cpa)} after ${ap.cpaMinutes.toFixed(1)} min` : 'opening from the Guide']);
+        }
+        return <Result inline rows={rows} />;
+      })()}
       <Panel title="Battenberg diagram" note="Tap the diagram to place the station (or where you are now) instead of typing it.">
         <Seg value={placing} onChange={v => setPlacing(v as 'now' | 'station')} options={[['station', 'Tap sets the station'], ['now', 'Tap sets where I am']]} />
         {pr && <Seg value={pmode} onChange={v => setPmode(v as 'relative' | 'true')} options={[['relative', 'Relative to the Guide'], ['true', 'True motion']]} />}

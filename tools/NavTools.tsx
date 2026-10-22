@@ -641,7 +641,7 @@ const HsaLengthPanel: React.FC = () => {
 
 // ---- registry ----------------------------------------------------------------------------------
 
-export interface NavTool { name: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship }> }
+export interface NavTool { name: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship; fleet?: Ship[] }> }
 
 export const NAV_TOOLS: NavTool[] = [
   { name: 'Bearing Calculator', short: 'Bearings', desc: 'Reciprocal and relative to true bearings', icon: <Navigation size={18} className="text-blue-500" />, Component: BearingTool },

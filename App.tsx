@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Anchor, 
-  PlusCircle, 
+  PlusCircle, Database, 
   Settings, 
   ChevronRight, 
   Search, 
@@ -257,6 +257,10 @@ const App: React.FC = () => {
   const [ships, setShips] = useState<Ship[]>(loadShips);
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [meta, setMeta] = useState<FleetMeta>(loadMeta);
+  const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); return Array.isArray(a) ? [a[0] ?? null, a[1] ?? null] : [null, null]; } catch { return [null, null]; } });
+  useEffect(() => { try { localStorage.setItem('cursedpilot.homeTools', JSON.stringify(homeTools)); } catch { /* storage unavailable */ } }, [homeTools]);
+  const [launch, setLaunch] = useState<{ name: string; stamp: number } | null>(null);
+  const [anchorMenu, setAnchorMenu] = useState(false);
   const [dataSheetOpen, setDataSheetOpen] = useState(false);
   const [calOpen, setCalOpen] = useState<string | null>(null);
   /** which top-level sections of the ship screen are expanded; all start collapsed */
@@ -1016,7 +1020,18 @@ const App: React.FC = () => {
                 {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Eye size={16} />}
                 {THEME_LABEL[theme]}
               </button>
-              <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200"><Anchor size={24} /></div>
+              <div className="relative">
+                <button onClick={() => setAnchorMenu(o => !o)} aria-label="Menu: add a ship, backup" aria-expanded={anchorMenu} aria-haspopup="menu" className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-xl shadow-blue-200 active:scale-95 transition-transform"><Anchor size={24} /></button>
+                {anchorMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setAnchorMenu(false)} />
+                    <div role="menu" className="absolute right-0 mt-2 z-50 w-44 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+                      <button role="menuitem" onClick={() => { setAnchorMenu(false); setView('add'); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"><PlusCircle size={18} className="text-blue-600" /> Add Ship</button>
+                      <button role="menuitem" onClick={() => { setAnchorMenu(false); setDataSheetOpen(true); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 border-t border-slate-100"><Database size={18} className="text-blue-600" /> Backup</button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <p className="text-slate-500 font-semibold tracking-wide">Long ND made Short</p>
@@ -1158,7 +1173,7 @@ const App: React.FC = () => {
       )}
       <input ref={restoreInput} type="file" accept="application/json,.json" onChange={handleImport} className="hidden" />
       {(view === 'home' || view === 'select' || view === 'add') && (
-        <BottomBar view={view} onHome={() => setView('home')} onFleet={() => setView('select')} onAdd={() => setView('add')} onData={() => setDataSheetOpen(true)} />
+        <BottomBar view={view} onHome={() => setView('home')} onFleet={() => setView('select')} slots={homeTools} onSlots={setHomeTools} onLaunch={name => setLaunch({ name, stamp: Date.now() })} />
       )}
       {dataSheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setDataSheetOpen(false)}>
@@ -1225,7 +1240,7 @@ const App: React.FC = () => {
         />
       )}
 
-      <NavYeo ship={selectedShip} />
+      <NavYeo ship={selectedShip} fleet={ships} launch={launch ?? undefined} />
     </div>
   );
 };
