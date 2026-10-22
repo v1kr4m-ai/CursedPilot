@@ -18,7 +18,7 @@ import { TidesTool } from './TidesTool';
 import { AnchorTool } from './AnchorTool';
 import { DistanceOffTool } from './DistanceOffTool';
 import { BattenbergTool } from './BattenbergTool';
-import { StationTurnTool } from './StationTurnTool';
+import { StationFromBowsTool } from './StationTurnTool';
 import { RelMotionTool } from './RelMotionTool';
 import { CorpenTool, RasApproachTool, RegainTrackTool } from './ManoeuvreTools';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
@@ -655,7 +655,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Tides', short: 'Tides', desc: 'Height of tide at a time, flood or ebb, springs or neaps', icon: <ArrowUpDown size={18} className="text-teal-500" />, Component: TidesTool },
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
-  { name: 'Station Turn', short: 'Station turn', desc: 'Wheel-over point for the turn onto station on a Guide, worked back from the station with the ship’s advance, transfer and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationTurnTool },
+  { name: 'Station from Bows', short: 'Station from bows', desc: 'Joining from ahead (BR 45(6) 0425): the wheel-over bearing and range of the Guide, worked back from the station with advance, transfer, speed loss and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationFromBowsTool },
   { name: 'Corpen', short: 'Corpen', desc: 'When to alter course by Corpen: stopwatch and radian rule, in column or abreast (Corpen ’S’)', icon: <Shuffle size={18} className="text-violet-500" />, Component: CorpenTool },
   { name: 'Regain Track', short: 'Regain track', desc: 'Time or throw-off to regain track by the radian rule, and the allowance for a stream', icon: <Spline size={18} className="text-cyan-600" />, Component: RegainTrackTool },
   { name: 'RAS Approach', short: 'RAS approach', desc: 'Course to steer for the working distance and when to come down in speed when coming alongside', icon: <Ship2 size={18} className="text-sky-600" />, Component: RasApproachTool },
