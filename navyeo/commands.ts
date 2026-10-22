@@ -146,6 +146,7 @@ const OPEN_ONLY: [RegExp, string][] = [
   [/\b(?:regain(?:ing)? (?:the )?track|throw[- ]?off)\b/, 'Regain Track'],
   [/\b(?:ras approach|coming alongside|come alongside|ras point)\b/, 'RAS Approach'],
   [/\b(?:rel[- ]?vel|relative (?:velocity|motion)|closing a faster|close a faster|pass(?:ing)? (?:ahead|astern) at|speed triangle)\b/, 'Relative Motion'],
+  [/\b(?:fuel|endurance|fuel planning|how far on)\b/, 'Fuel Planning'],
   [/\b(?:round the clock|reverse (?:the )?order|reversing the order|losing distance|lose distance|station change)\b/, 'Station Changes'],
   [/\b(?:station (?:from|on) (?:the )?bows?|joining from ahead|join(?:ing)? from ahead|station turn|turn onto station|wheel[- ]?over for (?:the )?station)\b/, 'Station from Bows'],
   [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg'],

@@ -22,4 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-tools/private/
+tools/private/*
+!tools/private/ror/

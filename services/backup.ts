@@ -69,6 +69,7 @@ export function parseBackup(text: string): Backup {
       speedLog: Array.isArray(s.speedLog) ? s.speedLog : [],
       lubberLine: Array.isArray(s.lubberLine) ? s.lubberLine : [],
       echoSounder: Array.isArray(s.echoSounder) ? s.echoSounder : [],
+      fuelData: s.fuelData && typeof s.fuelData === 'object' && Array.isArray((s.fuelData as { regimes?: unknown }).regimes) ? s.fuelData : undefined,
     } as Ship;
   });
   const meta = (data as Record<string, unknown>).fleetMeta;

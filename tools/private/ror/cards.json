@@ -1,0 +1,3760 @@
+[
+ {
+  "n": 1,
+  "page": 1,
+  "label": "1",
+  "img": "c001.png",
+  "lines": [
+   "1. P.D. v/l less than 50 m underway seen end on",
+   "2. One short blast, a/c to stbd.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 2,
+  "page": 1,
+  "label": "2",
+  "img": "c002.png",
+  "lines": [
+   "1. P.D. v/l less than 50 m underway seen From",
+   "Stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast",
+   "Stopped - Two prolonged blasts with 2 secs",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 3,
+  "page": 1,
+  "label": "3",
+  "img": "c003.png",
+  "lines": [
+   "1. P.D. v/l less than 50 m underway seen From",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast",
+   "Stopped - Two prolonged blasts with 2 secs",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 4,
+  "page": 1,
+  "label": "4",
+  "img": "c004.png",
+  "lines": [
+   "1. P.D. v/l seen end on -",
+   "a) Probably 50 m. or more underway.",
+   "b) less than 50 m. towing or pushing underway",
+   "two 200 m. or less.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. a) Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 5,
+  "page": 2,
+  "label": "5",
+  "img": "c005.png",
+  "lines": [
+   "1. P.D. v/l less than 50 m or more underway",
+   "seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast",
+   "Snopped - Two prolonged blasts with 2 secs",
+   "intervat in between."
+  ]
+ },
+ {
+  "n": 6,
+  "page": 2,
+  "label": "6",
+  "img": "c006.png",
+  "lines": [
+   "1. P.D. v/l less than 50 m or more underway",
+   "seen from stbd side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast",
+   "Snopped - Two prolonged blasts with 2 secs",
+   "intervat in between."
+  ]
+ },
+ {
+  "n": 7,
+  "page": 2,
+  "label": "7",
+  "img": "c007.png",
+  "lines": [
+   "1. a) v/I probably 50 m. or more but less than",
+   "100 m. at anchor, seen from ahead or astern.",
+   "b) P.D. v/I probably 50 m. or more underway",
+   "seen end on, out of range of side lignts.",
+   "c) P.D. v/I towing or pushing less than 50 m.",
+   "underway, tow 200 m. or less, out of range of",
+   "side lights.",
+   "2. a) & b) One short blast a/c to stbd.",
+   "c) As per side light when sighted.",
+   "3. a) A bali in fore part.",
+   "b) & c) No day signal.",
+   "4. As per possibility."
+  ]
+ },
+ {
+  "n": 8,
+  "page": 2,
+  "label": "8",
+  "img": "c008.png",
+  "lines": [
+   "1. a) v/I probably 50 m. or more but less than",
+   "100 m. at anchor, seen from port side.",
+   "b) P.D. v/I probably 50 m. or more underway",
+   "seen from stbd side out of range of side lights.",
+   "2. a) One short blast a/c to stbd.",
+   "b) Maintain course and speed.",
+   "3. a) A bali in fore part.",
+   "b) No day signal.",
+   "4. a) Rapid ringing of bell for 5 secs.",
+   "Additional - Short. prolonged and short blasts",
+   "may be sounded.",
+   "b) Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 sects.",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 9,
+  "page": 3,
+  "label": "9",
+  "img": "c009.png",
+  "lines": [
+   "1. a) P.D. v/I or S.V. underway seen from astern.",
+   "b) P.D. v/I less than 50 m. underway out of range of",
+   "side lights.",
+   "c) All - round light of :",
+   "i) v/I less than 50 m. at anchor. ii) v/I under oars.",
+   "iii) P.D. v/I less than 12 m., speed not exceeding 7 knots.",
+   "iv) P.D. v/I less than 12m., out of range side lights.",
+   "v) Sailing v/I less than 7 m.",
+   "2. a) One short blast a/c stbd.",
+   "b) As per side light when sighted.",
+   "c) i), ii) & v) One short blast a/c to stbd. iii) Port blow-",
+   "Maintain course and speed. Right ahead & stbd bow-",
+   "One short blast a/c to stbd. iv) As per side light when",
+   "sighted.",
+   "3. Anchored v/I - One ball in fore part. Others - No",
+   "day signal.",
+   "4. As per possibility."
+  ]
+ },
+ {
+  "n": 10,
+  "page": 3,
+  "label": "10",
+  "img": "c010.png",
+  "lines": [
+   "1. Air - cushion v/I less than 50 m. in non -",
+   "displacement mode underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way)"
+  ]
+ },
+ {
+  "n": 11,
+  "page": 3,
+  "label": "11",
+  "img": "c011.png",
+  "lines": [
+   "1. Air - cushion v/I less than 50 m. in non -",
+   "displacement mode underway seen from",
+   "stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way)"
+  ]
+ },
+ {
+  "n": 12,
+  "page": 3,
+  "label": "12",
+  "img": "c012.png",
+  "lines": [
+   "1. Air - cushion v/I less than 50 m. in non -",
+   "displacement mode underway seen from",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way)"
+  ]
+ },
+ {
+  "n": 13,
+  "page": 4,
+  "label": "13",
+  "img": "c013.png",
+  "lines": [
+   "1. a) Air - cushion v/I in non - displacement",
+   "mode underway seen from astern.",
+   "b) Air - cushion v/I less than 12 m. in non -",
+   "displacement mode underway out of range",
+   "of side lights.",
+   "2. a) One short blast a/c to stbd.",
+   "b) As per side light when sighted.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way.)"
+  ]
+ },
+ {
+  "n": 14,
+  "page": 4,
+  "label": "14",
+  "img": "c014.png",
+  "lines": [
+   "1. a) Air - cushion v/I in non - displacement",
+   "mode underway seen from astern.",
+   "b) Air - cushion v/I less than 12 m. in non -",
+   "displacement mode underway out of range",
+   "of side lights. seen from stbd. side.",
+   "2. a) One short blast a/c to stbd.",
+   "b) Maintain course and speed.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way.)"
+  ]
+ },
+ {
+  "n": 15,
+  "page": 4,
+  "label": "15",
+  "img": "c015.png",
+  "lines": [
+   "1. a) Air - cushion v/I in non - displacement",
+   "mode underway seen from astern.",
+   "b) Air - cushion v/I less than 12 m. in non -",
+   "displacement mode underway out of range",
+   "of side lights. seen from stbd. side.",
+   "2. a) Two short blast a/c to stbd.",
+   "b) One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. one prolonged blast.",
+   "(v/I assumed to be making way.)"
+  ]
+ },
+ {
+  "n": 16,
+  "page": 4,
+  "label": "16",
+  "img": "c016.png",
+  "lines": [
+   "1. a) P.D. v/I less than 20 m. underway, seen end on.",
+   "b) P.D. v/I less than 12 m. underway, mast head",
+   "it. displaced from centre line, line, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "interval in between."
+  ]
+ },
+ {
+  "n": 17,
+  "page": 5,
+  "label": "17",
+  "img": "c017.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m underway tow",
+   "200 m. or less from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 18,
+  "page": 5,
+  "label": "18",
+  "img": "c018.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m underway tow",
+   "200 m. or less from port side.",
+   "2. Maintain course and spee.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 19,
+  "page": 5,
+  "label": "19",
+  "img": "c019.png",
+  "lines": [
+   "1. P.D. v/I towing underway seen end on -",
+   "a) less than 50 m, tow exceeds 200 m.",
+   "b) probably 50 m or more, tow 200 m or less.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 20,
+  "page": 5,
+  "label": "20",
+  "img": "c020.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow 200 m or less from stbd side.",
+   "2. Maintain course and spee.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 21,
+  "page": 6,
+  "label": "21",
+  "img": "c021.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow 200 m or less, seen from stbd side.",
+   "2. Maintain course and spee.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 22,
+  "page": 6,
+  "label": "22",
+  "img": "c022.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow 200 m or less, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 23,
+  "page": 6,
+  "label": "23",
+  "img": "c023.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow 200 m or less, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 24,
+  "page": 6,
+  "label": "24",
+  "img": "c024.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow exceeds 200 m. seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 25,
+  "page": 7,
+  "label": "25",
+  "img": "c025.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m underway tow",
+   "exceeds 200 m. seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 26,
+  "page": 7,
+  "label": "26",
+  "img": "c026.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more",
+   "underway, tow exceeds 200 m. seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 27,
+  "page": 7,
+  "label": "27",
+  "img": "c027.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow exceeds 200 m., seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 28,
+  "page": 7,
+  "label": "28",
+  "img": "c028.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m or more underway",
+   "tow exceeds 200 m. seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 29,
+  "page": 8,
+  "label": "29",
+  "img": "c029.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway tow exceeds 200 m. seen from",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 30,
+  "page": 8,
+  "label": "30",
+  "img": "c030.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway tow exceeds 200 m. seen from",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 31,
+  "page": 8,
+  "label": "31",
+  "img": "c031.png",
+  "lines": [
+   "1. P.D. v/I towing underway seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond if tow exceeds 200 m.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 32,
+  "page": 8,
+  "label": "32",
+  "img": "c032.png",
+  "lines": [
+   "1. P.D. v/I towing less than probably 50 m.",
+   "underway with tow 200 m. or seen from",
+   "stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 33,
+  "page": 9,
+  "label": "33",
+  "img": "c033.png",
+  "lines": [
+   "1. P.D. v/I towing less than probably 50 m.",
+   "underway with tow 200 m. or seen from",
+   "port side",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 34,
+  "page": 9,
+  "label": "34",
+  "img": "c034.png",
+  "lines": [
+   "1. P.D. v/I towing less than probably 50 m.",
+   "underway with tow exceeding 200 m. or seen",
+   "from port side.",
+   "2. Maintain course and speed.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 35,
+  "page": 9,
+  "label": "35",
+  "img": "c035.png",
+  "lines": [
+   "1. P.D. v/I towing less than probably 50 m.",
+   "underway with tow exceeding 200 m. or seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 36,
+  "page": 9,
+  "label": "36",
+  "img": "c036.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m. or",
+   "less seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 37,
+  "page": 10,
+  "label": "37",
+  "img": "c037.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m. or",
+   "less seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 38,
+  "page": 10,
+  "label": "38",
+  "img": "c038.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow 200 m. or less seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 39,
+  "page": 10,
+  "label": "39",
+  "img": "c039.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow 200 m. or less seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 40,
+  "page": 10,
+  "label": "40",
+  "img": "c040.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m. seen",
+   "from stbd side.",
+   "2. Maintain course and speed.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 41,
+  "page": 11,
+  "label": "41",
+  "img": "c041.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m.",
+   "seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 42,
+  "page": 11,
+  "label": "42",
+  "img": "c042.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m.",
+   "seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 43,
+  "page": 11,
+  "label": "43",
+  "img": "c043.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more",
+   "underway with tow exceeding 200 m.",
+   "seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. One diamond each on towing and towed v/Is",
+   "4. Towing v/I - One prolonged and two short blasts.",
+   "Towed v/I - One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 44,
+  "page": 11,
+  "label": "44",
+  "img": "c044.png",
+  "lines": [
+   "1. P.D. v/I pushing ahead less than 50 m.",
+   "underway seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 45,
+  "page": 12,
+  "label": "45",
+  "img": "c045.png",
+  "lines": [
+   "1. P.D. v/I pushing ahead less than 50 m.",
+   "underway seen from stbd side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 46,
+  "page": 12,
+  "label": "46",
+  "img": "c046.png",
+  "lines": [
+   "1. P.D. v/I pushing ahead probably 50 m. or more",
+   "underway seen from stbd side.",
+   "2. Maintain course and speed.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 47,
+  "page": 12,
+  "label": "48",
+  "img": "c047.png",
+  "lines": [
+   "1. P.D. v/I pushing ahead probably 50 m. or more",
+   "underway seen from stbd side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 48,
+  "page": 12,
+  "label": "49",
+  "img": "c048.png",
+  "lines": [
+   "1. P.D. v/I pushing ahead probably 50 m. or more",
+   "underway seen from stbd side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 49,
+  "page": 13,
+  "label": "50",
+  "img": "c049.png",
+  "lines": [
+   "1. P.D. v/I towing alongside less than 50 m.",
+   "underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 50,
+  "page": 13,
+  "label": "51",
+  "img": "c050.png",
+  "lines": [
+   "1. P.D. v/I towing alongside Probably 50 m. or",
+   "more underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 51,
+  "page": 13,
+  "label": "52",
+  "img": "c051.png",
+  "lines": [
+   "1. Inconspicuous partly submerged v/I or object",
+   "or their combination towed, breadth less than",
+   "25 m., lenth 100 m. or less.",
+   "2. Action according to position of tug.",
+   "3. One diamond at or near aftermost extremity of",
+   "last v/I or object. If tow exceeds 200 m., one",
+   "additional diamond forward.",
+   "4. No fog signal."
+  ]
+ },
+ {
+  "n": 52,
+  "page": 13,
+  "label": "54",
+  "img": "c052.png",
+  "lines": [
+   "1. Inconspicuous partly submerged v/I or object",
+   "or their combination towed, length 200 m. or less.",
+   "2. Action according to position of tug.",
+   "3. One diamond at or near aftermost extremity of",
+   "last v/I or object. If tow exceeds 200 m. one",
+   "additional diamond forward.",
+   "4. No fog signal."
+  ]
+ },
+ {
+  "n": 53,
+  "page": 14,
+  "label": "55",
+  "img": "c053.png",
+  "lines": [
+   "1. S.V. underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 54,
+  "page": 14,
+  "label": "56",
+  "img": "c054.png",
+  "lines": [
+   "1. a) S.V. underway seen from stbd side.",
+   "b) v/I being towed seen from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. a) No day signal.",
+   "b) If length of tow exceeds 200 m. a diamond.",
+   "4. a) One prolonged and two short blasts.",
+   "b) One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 55,
+  "page": 14,
+  "label": "57",
+  "img": "c055.png",
+  "lines": [
+   "1. a) S.V. underway seen from port side.",
+   "b) v/I being towed seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. a) No day signal.",
+   "b) If length of tow exceeds 200 m. a diamond.",
+   "4. a) One prolonged and two short blasts.",
+   "b) One prolonged and three short blasts."
+  ]
+ },
+ {
+  "n": 56,
+  "page": 14,
+  "label": "58",
+  "img": "c056.png",
+  "lines": [
+   "1. S.V. less than 20 m underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 57,
+  "page": 15,
+  "label": "59",
+  "img": "c057.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 58,
+  "page": 15,
+  "label": "60",
+  "img": "c058.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 59,
+  "page": 15,
+  "label": "61",
+  "img": "c059.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 60,
+  "page": 15,
+  "label": "62",
+  "img": "c060.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 61,
+  "page": 16,
+  "label": "63",
+  "img": "c061.png",
+  "lines": [
+   "1. S.V. probably 20 m. or more underway seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 62,
+  "page": 16,
+  "label": "64",
+  "img": "c062.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 63,
+  "page": 16,
+  "label": "65",
+  "img": "c063.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from astern.",
+   "2. Two short blast a/c to port.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 64,
+  "page": 16,
+  "label": "66",
+  "img": "c064.png",
+  "lines": [
+   "1. S.V. probably 20 m or more underway seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. No day signal.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 65,
+  "page": 17,
+  "label": "67",
+  "img": "c065.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 66,
+  "page": 17,
+  "label": "68",
+  "img": "c066.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 67,
+  "page": 17,
+  "label": "69",
+  "img": "c067.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 68,
+  "page": 17,
+  "label": "",
+  "img": "c068.png",
+  "lines": [
+   "7700",
+   "11.. TTrraawwlleerr lleessss tthhaann 5500 mm.. mmaakkiinngg wwaayy sseeeenn",
+   "ffrroomm ppoorrtt ssiiddee..",
+   "22.. OOnnee sshhoorrtt bbllaasstt aa//cc ttoo ssttbbdd..",
+   "33.. TTwwoo ccoonneess wwiitthh aappeexxeess ttooggeetthheerr iinn vveerrttiiccaall lliinnee..",
+   "44.. OOnnee pprroolloonnggeedd aanndd ttwwoo sshhoorrtt bbllaassttss.."
+  ]
+ },
+ {
+  "n": 69,
+  "page": 18,
+  "label": "71",
+  "img": "c069.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 70,
+  "page": 18,
+  "label": "72",
+  "img": "c070.png",
+  "lines": [
+   "1. Trawler probably 50 m. making way seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 71,
+  "page": 18,
+  "label": "73",
+  "img": "c071.png",
+  "lines": [
+   "1. Trawler probably 50 m. making way seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 72,
+  "page": 18,
+  "label": "74",
+  "img": "c072.png",
+  "lines": [
+   "1. Trawler probably 50 m. making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd .",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 73,
+  "page": 19,
+  "label": "75",
+  "img": "c073.png",
+  "lines": [
+   "1. Trawler making way seen from astern.",
+   "2. One short blast a/c to stbd .",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 74,
+  "page": 19,
+  "label": "76",
+  "img": "c074.png",
+  "lines": [
+   "1. Trawler making way seen from astern.",
+   "2. Twe short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 75,
+  "page": 19,
+  "label": "77",
+  "img": "c075.png",
+  "lines": [
+   "1. Trawler making way seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 76,
+  "page": 19,
+  "label": "78",
+  "img": "c076.png",
+  "lines": [
+   "1. Trawler underway but stopped or at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 77,
+  "page": 20,
+  "label": "79",
+  "img": "c077.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 78,
+  "page": 20,
+  "label": "80",
+  "img": "c078.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 79,
+  "page": 20,
+  "label": "81",
+  "img": "c079.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, seen from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 80,
+  "page": 20,
+  "label": "82",
+  "img": "c080.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending 150 m. or less, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 81,
+  "page": 21,
+  "label": "83",
+  "img": "c081.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending 150 m. or less, seen from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 82,
+  "page": 21,
+  "label": "84",
+  "img": "c082.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending 150 m. or less, seen from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 83,
+  "page": 21,
+  "label": "85",
+  "img": "c083.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending 150 m. or less, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 84,
+  "page": 21,
+  "label": "86",
+  "img": "c084.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending 150 m. or less, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 85,
+  "page": 22,
+  "label": "87",
+  "img": "c085.png",
+  "lines": [
+   "1. F.V. other than trawler",
+   "a) making way, gear extending 150 m. or less,",
+   "seen from astern.",
+   "b) underway but stopped or at anchor, gear",
+   "extending more than 150 m.",
+   "2. One short blast a/c to stbd.",
+   "3. a) Two cones with apexes together in vertical line.",
+   "b) Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 86,
+  "page": 22,
+  "label": "88",
+  "img": "c086.png",
+  "lines": [
+   "1. F.V. other than trawler",
+   "a) making way, gear extending 150 m. or less,",
+   "seen from astern.",
+   "b) underway but stopped or at anchor, gear",
+   "extending more than 150 m.",
+   "2. a) Two short blast a/c to port.",
+   "b) One short blast a/c to stbd.",
+   "3. a) Two cones with apexes together in vertical line.",
+   "b) Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 87,
+  "page": 22,
+  "label": "89",
+  "img": "c087.png",
+  "lines": [
+   "1. F.V. other than trawler -",
+   "a) making way, gear extending 150 m. or less",
+   "seen from astern.",
+   "b) underway but stopped or at anchor, gear",
+   "extending more than 150 m.",
+   "2. a) One short blast a/c to stbd.",
+   "b) Two short blast a/c to port.",
+   "3. a) Two cones with apexes together in vertical line.",
+   "b) Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 88,
+  "page": 22,
+  "label": "90",
+  "img": "c088.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 89,
+  "page": 23,
+  "label": "91",
+  "img": "c089.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from stbd",
+   "side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 90,
+  "page": 23,
+  "label": "92",
+  "img": "c090.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from stbd",
+   "side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 91,
+  "page": 23,
+  "label": "93",
+  "img": "c091.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from port",
+   "side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 92,
+  "page": 23,
+  "label": "94",
+  "img": "c092.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from port",
+   "side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 93,
+  "page": 24,
+  "label": "95",
+  "img": "c093.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from astern.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 94,
+  "page": 24,
+  "label": "96",
+  "img": "c094.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from astern.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 95,
+  "page": 24,
+  "label": "97",
+  "img": "c095.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from astern.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear .",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 96,
+  "page": 24,
+  "label": "98",
+  "img": "c096.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 97,
+  "page": 25,
+  "label": "99",
+  "img": "c097.png",
+  "lines": [
+   "1. F.V. other than trawler making way, gear",
+   "extending more than 150 m., seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction of",
+   "gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 98,
+  "page": 25,
+  "label": "100",
+  "img": "c098.png",
+  "lines": [
+   "1. F.V. other than trawler underway but stopped",
+   "or at anchor, gear extending 150 m. or less.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 99,
+  "page": 26,
+  "label": "101",
+  "img": "c099.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way shooting",
+   "nets seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 100,
+  "page": 26,
+  "label": "102",
+  "img": "c100.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way hauling",
+   "nets seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 101,
+  "page": 26,
+  "label": "103",
+  "img": "c101.png",
+  "lines": [
+   "1. Trawler underway but stopped or at anchor,",
+   "hauling nets.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 102,
+  "page": 26,
+  "label": "104",
+  "img": "c102.png",
+  "lines": [
+   "1. Trawler underway but stopped or at anchor,",
+   "nets fast on an obstruction.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 103,
+  "page": 27,
+  "label": "105",
+  "img": "c103.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way shooting",
+   "nets seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 104,
+  "page": 27,
+  "label": "106",
+  "img": "c104.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way hauling",
+   "nets seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 105,
+  "page": 27,
+  "label": "107",
+  "img": "c105.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way shooting",
+   "nets seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 106,
+  "page": 27,
+  "label": "108",
+  "img": "c106.png",
+  "lines": [
+   "1. Trawler less than 50 m. making way hauling",
+   "nets seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 107,
+  "page": 28,
+  "label": "109",
+  "img": "c107.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more making way",
+   "shooting nets seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 108,
+  "page": 28,
+  "label": "110",
+  "img": "c108.png",
+  "lines": [
+   "1. Trawler probaly 50 m. or more making way",
+   "hauling nets seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 109,
+  "page": 28,
+  "label": "111",
+  "img": "c109.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, hauling nets, seen from",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 110,
+  "page": 28,
+  "label": "112",
+  "img": "c110.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, hauling nets, seen from",
+   "stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 111,
+  "page": 29,
+  "label": "113",
+  "img": "c111.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, nets fast on an",
+   "obstruction, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 112,
+  "page": 29,
+  "label": "114",
+  "img": "c112.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more making way",
+   "shooting nets seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 113,
+  "page": 29,
+  "label": "115",
+  "img": "c113.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more making way",
+   "hauling nets seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 114,
+  "page": 29,
+  "label": "116",
+  "img": "c114.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, nets fast on an",
+   "obstruction, seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 115,
+  "page": 30,
+  "label": "117",
+  "img": "c115.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more making way",
+   "shooting nets seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 116,
+  "page": 30,
+  "label": "118",
+  "img": "c116.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more making way",
+   "hauling nets seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 117,
+  "page": 30,
+  "label": "119",
+  "img": "c117.png",
+  "lines": [
+   "1. Trawler probably 50 m. or more underway but",
+   "stopped or at anchor, nets fast on an",
+   "obstruction, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 118,
+  "page": 30,
+  "label": "120",
+  "img": "c118.png",
+  "lines": [
+   "1. Trawler making way shooting nets seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 119,
+  "page": 31,
+  "label": "121",
+  "img": "c119.png",
+  "lines": [
+   "1. Trawler making way hauling nets seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 120,
+  "page": 31,
+  "label": "122",
+  "img": "c120.png",
+  "lines": [
+   "1. Trawler making way shooting nets seen from",
+   "astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 121,
+  "page": 31,
+  "label": "123",
+  "img": "c121.png",
+  "lines": [
+   "1. Trawler making way hauling nets seen from",
+   "astern.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 122,
+  "page": 31,
+  "label": "124",
+  "img": "c122.png",
+  "lines": [
+   "1. Trawler making way shooting nets seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag Z.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 123,
+  "page": 32,
+  "label": "125",
+  "img": "c123.png",
+  "lines": [
+   "1. Trawler making way hauling nets seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also flag G.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 124,
+  "page": 32,
+  "label": "126",
+  "img": "c124.png",
+  "lines": [
+   "1. Two v/Is each less than 50 m. pair trawling",
+   "making way hauling nets seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Each v/I shows two cones with apexes together",
+   "in vertical line. Also flags G & T.",
+   "4. Each v/I sounds one prolonged and two short",
+   "blasts."
+  ]
+ },
+ {
+  "n": 125,
+  "page": 32,
+  "label": "127",
+  "img": "c125.png",
+  "lines": [
+   "1. Two v/sI each probably 50 m. or more pair",
+   "trawling making way shooting nets, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Each v/I shows two cones with apexes together",
+   "in vertical line. Also flags Z & T.",
+   "4. Each v/I sounds one prolonged and two short",
+   "blasts."
+  ]
+ },
+ {
+  "n": 126,
+  "page": 32,
+  "label": "128",
+  "img": "c126.png",
+  "lines": [
+   "1. Two v/Is each probably 50 m. or more pair",
+   "trawling underway but stopped or at anchor,",
+   "nets fast on an obstruction, seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Each vessel shows two cones with apexes",
+   "together in vertical line. Also flag T.",
+   "4. Each v/I sounds one prolonged and two short",
+   "blasts."
+  ]
+ },
+ {
+  "n": 127,
+  "page": 33,
+  "label": "129",
+  "img": "c127.png",
+  "lines": [
+   "1. Two v/Is pair trawling making way shooting nets",
+   "seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Each v/I shows two cones with apexes together",
+   "in vertical line. Also flags Z & T.",
+   "4. Each v/I sounds one prolonged and two short",
+   "blasts."
+  ]
+ },
+ {
+  "n": 128,
+  "page": 33,
+  "label": "130",
+  "img": "c128.png",
+  "lines": [
+   "1. Two v/Is pair trawling underway but stopped",
+   "or at anchor, nets fast on an obstruction.",
+   "2. One short blast a/c to stbd.",
+   "3. Each vessel shows two cones with apexes",
+   "together in vertical line. Also flag T.",
+   "4. Each v/I sounds one prolonged and two short",
+   "blasts."
+  ]
+ },
+ {
+  "n": 129,
+  "page": 33,
+  "label": "131",
+  "img": "c129.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 130,
+  "page": 33,
+  "label": "132",
+  "img": "c130.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from stbd side.",
+   "2. Two short blast a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 131,
+  "page": 34,
+  "label": "133",
+  "img": "c131.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 132,
+  "page": 34,
+  "label": "134",
+  "img": "c132.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending more than 150 m., making way seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 133,
+  "page": 34,
+  "label": "135",
+  "img": "c133.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending more than 150 m., making way seen",
+   "from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 134,
+  "page": 34,
+  "label": "136",
+  "img": "c134.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending more than 150 m., making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 135,
+  "page": 35,
+  "label": "137",
+  "img": "c135.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 136,
+  "page": 35,
+  "label": "138",
+  "img": "c136.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 137,
+  "page": 35,
+  "label": "139",
+  "img": "c137.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 138,
+  "page": 35,
+  "label": "140",
+  "img": "c138.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending more than 150 m., making way seen",
+   "from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 139,
+  "page": 36,
+  "label": "141",
+  "img": "c139.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending more than 150 m., making way seen",
+   "from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 140,
+  "page": 36,
+  "label": "142",
+  "img": "c140.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less making way seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 141,
+  "page": 36,
+  "label": "143",
+  "img": "c141.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. or less underway but",
+   "stopped or at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 142,
+  "page": 36,
+  "label": "144",
+  "img": "c142.png",
+  "lines": [
+   "1. F.V. other than trawler using purse seine gear",
+   "extending 150 m. underway but stopped or",
+   "at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Two cones with apexes together in vertical line.",
+   "Also a cone with apex upwards in direction",
+   "of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 143,
+  "page": 37,
+  "label": "145",
+  "img": "c143.png",
+  "lines": [
+   "1. N.U.C. v/I making seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 144,
+  "page": 37,
+  "label": "146",
+  "img": "c144.png",
+  "lines": [
+   "1. N.U.C. v/I making way seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 145,
+  "page": 37,
+  "label": "147",
+  "img": "c145.png",
+  "lines": [
+   "1. N.U.C. v/I making way seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 146,
+  "page": 37,
+  "label": "148",
+  "img": "c146.png",
+  "lines": [
+   "1. N.U.C. v/I making way seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 147,
+  "page": 38,
+  "label": "149",
+  "img": "c147.png",
+  "lines": [
+   "1. N.U.C. v/I making way seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 148,
+  "page": 38,
+  "label": "150",
+  "img": "c148.png",
+  "lines": [
+   "1. a) Aground v/I less than 50 m.",
+   "b) N.U.C. v/I making way seen from astern.",
+   "2. a) One short blast a/c to stbd.",
+   "b) One short blast a/c to stbd, reverse course",
+   "inform master.",
+   "3. a) Two balls in vertical line.",
+   "b) Three balls in vertical line.",
+   "4. a) One prolonged and two short blasts.",
+   "b) Three stokes on bell before and after rapid",
+   "ringing of bell for 5 secs. Also may sound",
+   "two short and one prolonged blasts."
+  ]
+ },
+ {
+  "n": 149,
+  "page": 38,
+  "label": "151",
+  "img": "c149.png",
+  "lines": [
+   "1. a) Aground v/I less than 50 m.",
+   "b) N.U.C. v/I making way seen from astern.",
+   "2. a) One short blast a/c to stbd.",
+   "b) One short blast a/c to stbd, reverse course",
+   "inform master.",
+   "3. a) Two balls in vertical line.",
+   "b) Three balls in vertical line.",
+   "4. a) One prolonged and two short blasts.",
+   "b) Three stokes on bell before and after rapid",
+   "ringing of bell for 5 secs. Also may sound",
+   "short and one prolonged blasts."
+  ]
+ },
+ {
+  "n": 150,
+  "page": 38,
+  "label": "152",
+  "img": "c150.png",
+  "lines": [
+   "1. a) Aground v/I less than 50 m.",
+   "b) N.U.C. v/I making way seen from astern.",
+   "2. a) Two short blast a/c to port.",
+   "b) One short blast a/c to stbd, reverse course",
+   "and inform master.",
+   "3. a) Two balls in vertical line.",
+   "b) Three balls in vertical line.",
+   "4. a) One prolonged and two short blasts.",
+   "b) Three stokes on bell before and after rapid",
+   "ringing of bell for 5 secs. Also may sound",
+   "two short and one prolonged blasts."
+  ]
+ },
+ {
+  "n": 151,
+  "page": 39,
+  "label": "153",
+  "img": "c151.png",
+  "lines": [
+   "1. N.U.C. v/I underway but stopped.",
+   "2. One short blast a/c stbd.",
+   "3. Two balls in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 152,
+  "page": 39,
+  "label": "154",
+  "img": "c152.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. making way seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 153,
+  "page": 39,
+  "label": "155",
+  "img": "c153.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. making way seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 154,
+  "page": 39,
+  "label": "156",
+  "img": "c154.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. making way seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 155,
+  "page": 40,
+  "label": "157",
+  "img": "c155.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. making way seen from port side.",
+   "2. One short blast a/c in stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 156,
+  "page": 40,
+  "label": "158",
+  "img": "c156.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. making way seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 157,
+  "page": 40,
+  "label": "159",
+  "img": "c157.png",
+  "lines": [
+   "1. a) v/I R.A.M. or dredger / uwo without",
+   "obstruction probably 50 m. or more",
+   "making way seen end on.",
+   "b) P.D. v/I towing less than 50 m. underway,",
+   "tow 200 m. or less R.A.M. seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 158,
+  "page": 40,
+  "label": "160",
+  "img": "c158.png",
+  "lines": [
+   "1. a) v/I R.A.M. or dredger / uwo without",
+   "obstruction probably 50 m. or more",
+   "making way seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 159,
+  "page": 41,
+  "label": "161",
+  "img": "c159.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "probably 50 m. or more making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 160,
+  "page": 41,
+  "label": "162",
+  "img": "c160.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. at anchor, or making way seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and if at",
+   "anchor also a ball in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 161,
+  "page": 41,
+  "label": "163",
+  "img": "c161.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. at anchor, or making way seen",
+   "from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line and if at",
+   "anchor also a ball in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 162,
+  "page": 41,
+  "label": "164",
+  "img": "c162.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "less than 50 m. at anchor, or making way seen",
+   "from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and if at",
+   "anchor also a ball in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 163,
+  "page": 42,
+  "label": "165",
+  "img": "c163.png",
+  "lines": [
+   "1. v/I R.A.M. or dredger / uwo without obstruction",
+   "probably 50 m. or more but less than 100 m. at",
+   "anchor, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and a ball",
+   "in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 164,
+  "page": 42,
+  "label": "166",
+  "img": "c164.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m. underway tow",
+   "200 m. or less R.A.M. seen from stbd. side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 165,
+  "page": 42,
+  "label": "167",
+  "img": "c165.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m. underway tow",
+   "200 m. or less R.A.M. seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 166,
+  "page": 42,
+  "label": "168",
+  "img": "c166.png",
+  "lines": [
+   "1. P.D. v/I towing underway R.A.M. seen on,",
+   "a) less than 50 m. tow exceeds 200 m.",
+   "b) probably 50 m or more, tow 200 m or less.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and if tow",
+   "exceeds 200 m. also a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 167,
+  "page": 43,
+  "label": "169",
+  "img": "c167.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow 200 m. or less R.A.M. seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 168,
+  "page": 43,
+  "label": "170",
+  "img": "c168.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow 200 m. or less R.A.M. seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 169,
+  "page": 43,
+  "label": "171",
+  "img": "c169.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow 200 m. or less R.A.M. seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 170,
+  "page": 43,
+  "label": "172",
+  "img": "c170.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow 200 m. or less R.A.M. seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 171,
+  "page": 44,
+  "label": "173",
+  "img": "c171.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m. underway tow",
+   "exceeds 200 m. or less R.A.M. seen from",
+   "stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 172,
+  "page": 44,
+  "label": "174",
+  "img": "c172.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m. underway tow",
+   "exceeds 200 m. or less R.A.M. seen from",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 173,
+  "page": 44,
+  "label": "175",
+  "img": "c173.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow exceeds 200 m. R.A.M. seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 174,
+  "page": 44,
+  "label": "176",
+  "img": "c174.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow exceeds 200 m. R.A.M. seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 175,
+  "page": 45,
+  "label": "177",
+  "img": "c175.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow exceeds 200 m, R.A.M. seen from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 176,
+  "page": 45,
+  "label": "178",
+  "img": "c176.png",
+  "lines": [
+   "1. P.D. v/I towing less than 50 m. or more",
+   "underway tow exceeds 200 m. R.A.M. seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 177,
+  "page": 45,
+  "label": "179",
+  "img": "c177.png",
+  "lines": [
+   "1. P.D. v/I towing probably 50 m. or more underway",
+   "tow exceeds 200 m. R.A.M. seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and also",
+   "a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 178,
+  "page": 45,
+  "label": "180",
+  "img": "c178.png",
+  "lines": [
+   "1. P.D. v/I towing underway R.A.M. seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and it",
+   "tow exceeds 200 m. also a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 179,
+  "page": 46,
+  "label": "181",
+  "img": "c179.png",
+  "lines": [
+   "1. P.D. v/I towing underway R.A.M. seen from",
+   "astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line and if",
+   "tow exceeds 200 m. also a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 180,
+  "page": 46,
+  "label": "182",
+  "img": "c180.png",
+  "lines": [
+   "1. P.D. v/I towing underway R.A.M. seen from",
+   "astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line and if",
+   "tow exceeds 200 m. also a diamond.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 181,
+  "page": 46,
+  "label": "191",
+  "img": "c181.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on stbd side making way seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 182,
+  "page": 46,
+  "label": "192",
+  "img": "c182.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on port side making way seen",
+   "end on.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 183,
+  "page": 47,
+  "label": "193",
+  "img": "c183.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on port side making way seen",
+   "from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 184,
+  "page": 47,
+  "label": "194",
+  "img": "c184.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on stbd side making way seen",
+   "from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 185,
+  "page": 47,
+  "label": "195",
+  "img": "c185.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on stbd side making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 186,
+  "page": 47,
+  "label": "196",
+  "img": "c186.png",
+  "lines": [
+   "1. Dredger / uwo less than 50 m. R.A.M. with",
+   "obstruction on port side making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 187,
+  "page": 48,
+  "label": "197",
+  "img": "c187.png",
+  "lines": [
+   "1. Dredger / uwo probably 50 m. or more R.A.M.",
+   "with obstruction on port side making way seen",
+   "end on.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 188,
+  "page": 48,
+  "label": "198",
+  "img": "c188.png",
+  "lines": [
+   "1. Dredger / uwo probably 50 m. or more R.A.M.",
+   "with obstruction on stbd side making way seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 189,
+  "page": 48,
+  "label": "199",
+  "img": "c189.png",
+  "lines": [
+   "1. Dredger / uwo probably 50 m. or more R.A.M.",
+   "with obstruction on port side making way seen",
+   "from stbd side.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 190,
+  "page": 48,
+  "label": "200",
+  "img": "c190.png",
+  "lines": [
+   "1. Dredger / uwo probably 50 m. or more R.A.M.",
+   "with obstruction on port side making way seen",
+   "end on.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 191,
+  "page": 49,
+  "label": "201",
+  "img": "c191.png",
+  "lines": [
+   "1. Dredger probably 50 m. more R.A.M. with",
+   "obstruction on stbd side making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 192,
+  "page": 49,
+  "label": "202",
+  "img": "c192.png",
+  "lines": [
+   "1. Dredger / uwo probably 50 m. more R.A.M. with",
+   "obstruction on port side making way seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 193,
+  "page": 49,
+  "label": "203",
+  "img": "c193.png",
+  "lines": [
+   "1. Dredger R.A.M. with obstruction on stbd side",
+   "making way seen from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 194,
+  "page": 49,
+  "label": "204",
+  "img": "c194.png",
+  "lines": [
+   "1. Dredger R.A.M. with obstruction on port side",
+   "making way seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 195,
+  "page": 50,
+  "label": "205",
+  "img": "c195.png",
+  "lines": [
+   "1. Dredger / uwo R.A.M. with obstruction on stbd",
+   "side making way seen from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 196,
+  "page": 50,
+  "label": "206",
+  "img": "c196.png",
+  "lines": [
+   "1. Dredger / uwo R.A.M. with obstruction on port",
+   "side making way seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 197,
+  "page": 50,
+  "label": "207",
+  "img": "c197.png",
+  "lines": [
+   "1. Dredger / uwo R.A.M. with obstruction underway",
+   "but stopped or at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Ball, diamond and ball in vertical line. Also two",
+   "diamonds in vertical line on safe side and two",
+   "balls in vertical line on obstruction side.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 198,
+  "page": 50,
+  "label": "208",
+  "img": "c198.png",
+  "lines": [
+   "1. a) v/I R.A.M. or dredger / uwo without",
+   "obstruction underway but stopped.",
+   "b) Small v/I engaged in diving operations.",
+   "2. One short blast a/c to stbd.",
+   "3. a) Ball, diamond and ball in vertical line.",
+   "b) Rigid flag A.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 199,
+  "page": 51,
+  "label": "209",
+  "img": "c199.png",
+  "lines": [
+   "1. Mine clearance v/I less than 50 m. underway",
+   "seen end on.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 200,
+  "page": 51,
+  "label": "210",
+  "img": "c200.png",
+  "lines": [
+   "1. Mine clearance v/I less than 50 m. underway",
+   "seen form stbd side.",
+   "2. Two short blasts a/c to port and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 201,
+  "page": 51,
+  "label": "211",
+  "img": "c201.png",
+  "lines": [
+   "1. Mine clearance v/I less than 50 m. underway",
+   "seen form port side.",
+   "2. One short blast a/c to stbd. and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 202,
+  "page": 51,
+  "label": "212",
+  "img": "c202.png",
+  "lines": [
+   "1. Mine clearance v/I probably 50 m. or more",
+   "underway seen end on.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 203,
+  "page": 52,
+  "label": "213",
+  "img": "c203.png",
+  "lines": [
+   "1. Mine clearance v/I probably 50 m. or more",
+   "underway seen from stbd side.",
+   "2. Two short blasts a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 204,
+  "page": 52,
+  "label": "214",
+  "img": "c204.png",
+  "lines": [
+   "1. Mine clearance v/I probably 50 m. or more",
+   "underway seen from port side.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 205,
+  "page": 52,
+  "label": "215",
+  "img": "c205.png",
+  "lines": [
+   "1. Mine clearance v/I underway seen from astern",
+   "or less than 50 m. at anchor.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard. Also it at anchor, a ball",
+   "in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 206,
+  "page": 52,
+  "label": "216",
+  "img": "c206.png",
+  "lines": [
+   "1. Mine clearance v/I underway seen from astern",
+   "or less than 50 m. at anchor.",
+   "2. Two short blasts a/c to port and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard. Also it at anchor, a ball",
+   "in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 207,
+  "page": 53,
+  "label": "217",
+  "img": "c207.png",
+  "lines": [
+   "1. Mine clearance v/I underway seen from astern",
+   "or less than 50 m. at anchor.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard. Also it at anchor, a ball",
+   "in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 208,
+  "page": 53,
+  "label": "218",
+  "img": "c208.png",
+  "lines": [
+   "1. Mine clearance v/I probably 50 m. or more but",
+   "less than 100 m. at anchor, seen from port side.",
+   "2. One short blast a/c to stbd and pass more than",
+   "1000 m.",
+   "3. Three balls - one at foremast head and one at",
+   "each end of fore yard. Also a ball in fore part.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 209,
+  "page": 53,
+  "label": "219",
+  "img": "c209.png",
+  "lines": [
+   "1. v/I C.B.D. less than 50 m. underway seen",
+   "end on.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 210,
+  "page": 53,
+  "label": "220",
+  "img": "c210.png",
+  "lines": [
+   "1. v/I C.B.D. less than 50 m. underway seen",
+   "from stbd side.",
+   "2. One short blast a/c to stbd and go round her",
+   "stern.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 211,
+  "page": 54,
+  "label": "221",
+  "img": "c211.png",
+  "lines": [
+   "1. v/I C.B.D. less than 50 m. underway seen",
+   "from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 212,
+  "page": 54,
+  "label": "222",
+  "img": "c212.png",
+  "lines": [
+   "1. v/I C.B.D. probably 50 m. or more underway",
+   "seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 213,
+  "page": 54,
+  "label": "223",
+  "img": "c213.png",
+  "lines": [
+   "1. v/I C.B.D. probably 50 m. or more underway",
+   "seen from stbd side.",
+   "2. One short blast a/c to stbd and go round her",
+   "stern.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 214,
+  "page": 54,
+  "label": "224",
+  "img": "c214.png",
+  "lines": [
+   "1. v/I C.B.D. probably 50 m. underway seen",
+   "port side.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 215,
+  "page": 55,
+  "label": "225",
+  "img": "c215.png",
+  "lines": [
+   "1. v/I C.B.D. underway seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 216,
+  "page": 55,
+  "label": "226",
+  "img": "c216.png",
+  "lines": [
+   "1. v/I C.B.D. underway seen from astern.",
+   "2. Two short blasts a/c to port.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 217,
+  "page": 55,
+  "label": "227",
+  "img": "c217.png",
+  "lines": [
+   "1. v/I C.B.D. underway seen from astern.",
+   "2. One short blast a/c to stbd.",
+   "3. A Cylinder.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 218,
+  "page": 55,
+  "label": "228",
+  "img": "c218.png",
+  "lines": [
+   "1. Pilot vessel underway seen end on.",
+   "2. One short blast a/c to stbd.",
+   "3. Flag H. (As per Int. Code of Signals).",
+   "4. Making way - One prolonged blasts.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 219,
+  "page": 56,
+  "label": "229",
+  "img": "c219.png",
+  "lines": [
+   "1. Pilot vessel underway seen from stbd side",
+   "2. Maintain course and speed.",
+   "3. Flag H. (As per Int. Code of Signals).",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 220,
+  "page": 56,
+  "label": "230",
+  "img": "c220.png",
+  "lines": [
+   "1. Pilot vessel underway seen from port side",
+   "2. One short blast a/c to stbd.",
+   "3. Flag H. (As per Int. Code of Signals).",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 221,
+  "page": 56,
+  "label": "231",
+  "img": "c221.png",
+  "lines": [
+   "1. Pilot vessel underway seen from astern or less",
+   "than 50 m. at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Flag H. (As per Int. Code of Signals). Also if at",
+   "anchor, a ball in fore part.",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Anchored - Rapid ringing of bell for 5 secs.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 222,
+  "page": 56,
+  "label": "232",
+  "img": "c222.png",
+  "lines": [
+   "1. Pilot vessel underway seen from astern or less",
+   "than 50 m. at anchor.",
+   "2. Two short blasts a/c to port.",
+   "3. Flag H. (As per Int. Code of Signals). Also, if at",
+   "anchor, a ball in fore part.",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Anchored - Rapid ringing of bell for 5 secs.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 223,
+  "page": 57,
+  "label": "233",
+  "img": "c223.png",
+  "lines": [
+   "1. Pilot vessel underway seen from astern or less",
+   "than 50 m. at anchor.",
+   "2. One short blast a/c to stbd.",
+   "3. Flag H. (As per Int. Code of Signals). Also if at",
+   "anchor, a ball in fore part.",
+   "4. Making way - One prolonged blast.",
+   "Stopped - Two prolonged blasts with 2 secs.",
+   "Interval in between.",
+   "Anchored - Rapid ringing of bell for 5 secs.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 224,
+  "page": 57,
+  "label": "234",
+  "img": "c224.png",
+  "lines": [
+   "1. Pilot v/I probably 50 m. or more but less than",
+   "100 m. at anchor, seen from port side.",
+   "2. One short blast a/c to stbd.",
+   "3. A ball in fore part flag H. (As per Int. Code of",
+   "Signals).",
+   "4. Rapid ringing of bell for 5 secs.",
+   "Additional - Four short blasts may be sounded."
+  ]
+ },
+ {
+  "n": 225,
+  "page": 57,
+  "label": "235",
+  "img": "c225.png",
+  "lines": [
+   "1. Aground v/I probably 50 m. or more, seen from",
+   "port side.",
+   "2. One short blast a/c to stbd, reverse course and",
+   "inform Master.",
+   "3. Three balls in vertical line.",
+   "4. Less than 100 m. - Three strokes on bell before",
+   "and after rapid ringing of bell for 5 secs.",
+   "100 m. or more - Three strokes on bell before and",
+   "after rapid ringing of bell for 5 secs. in fore part and",
+   "rapid ringing of gong for 5 secs. in after par.",
+   "Additional - Two short and one prolonged blasts may",
+   "be sounded."
+  ]
+ },
+ {
+  "n": 226,
+  "page": 58,
+  "label": "1",
+  "img": "c226.png",
+  "lines": [
+   "1. a) P.D. v/I towing, tow length > 200 m., underway seen",
+   "from stbd side.",
+   "b) v/I object towed, tow length > 200 m., seen from",
+   "stbd side.",
+   "2. Maintain course and speed.",
+   "a) Two short blasts, a/c to port and pass round stem of",
+   "last v/i or object towed.",
+   "3. a) i) Masthead its ford and aft.",
+   "ii) Side its and stern light.",
+   "iii) Length < 50 m - aft masthead it not compulsory.",
+   "iv) Two addl masthead its in vert line with ford or aft",
+   "masthead it.",
+   "v) Yellow towing it above stern it.",
+   "b) Side its an stern it or adequately illuminated.",
+   "4. a) One prolonged and two short blasts.",
+   "b) Last v/I towed, if manned - one prolonged and three",
+   "short blasts."
+  ]
+ },
+ {
+  "n": 227,
+  "page": 58,
+  "label": "2",
+  "img": "c227.png",
+  "lines": [
+   "1. a) P.D. v/I towing, tow length > 200 m., underway seen",
+   "from port side.",
+   "b) v/I object towed, tow length > 200 m seen from",
+   "port side.",
+   "2. One short blast, a/c to stbd and pass round stem of last",
+   "v/I or object towed",
+   "3. a) i) Masthead its ford and aft.",
+   "ii) Side its and stern light.",
+   "iii) Length < 50 m - aft masthead it not compulsory.",
+   "iv) Two addl masthead its in vert line with ford or aft",
+   "masthead it.",
+   "v) Yellow towing it above stern it.",
+   "b) Side its an stern it or adequately illuminated.",
+   "4. a) One prolonged and two short blasts.",
+   "b) Last v/I towed, if manned - one prolonged and three",
+   "short blasts."
+  ]
+ },
+ {
+  "n": 228,
+  "page": 58,
+  "label": "3",
+  "img": "c228.png",
+  "lines": [
+   "1. Lost of inconspicuous, partly submerged v/I or object",
+   "towed, tow length < 200 m see from stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. a) Breadth < 25 m - all round white its ford and aft.",
+   "b) Breadth > 25 m - Addl - all round white its at",
+   "extremeties of breadth.",
+   "c) Length > 100 m - Addl - all round white its in between",
+   "above its at horz intervals < 100 m.",
+   "d) Dracones - Ford it not compulsory.",
+   "4. Nil"
+  ]
+ },
+ {
+  "n": 229,
+  "page": 58,
+  "label": "4",
+  "img": "c229.png",
+  "lines": [
+   "1. Lost of inconspicuous, partly submerged v/I or object",
+   "towed, tow length > 200 m see from stbd side.",
+   "2. a/c away from tug giving appropriate singal.",
+   "3. a) Breadth < 25 m - all round white its ford and aft.",
+   "b) Breadth > 25 m - Addl - all round white its at",
+   "extremeties of breadth.",
+   "c) Length > 100 m - Addl - all round white its in between",
+   "above its at horz intervals < 100 m.",
+   "d) Dracones - Ford it not compulsory.",
+   "4. Nil"
+  ]
+ },
+ {
+  "n": 230,
+  "page": 59,
+  "label": "5",
+  "img": "c230.png",
+  "lines": [
+   "1. S.V. underway, also propelled by machinery, seen from",
+   "stbd side.",
+   "2. Manitain course and speed.",
+   "3. a) Masthead its ford and aft.",
+   "b) Side its and stern light.",
+   "c) Length < 50 m - aft masthead it not compulsory.",
+   "4. a) Making way - one prolonged blast.",
+   "b) Stopped - two prolonged blasts with two secs.",
+   "interval in between"
+  ]
+ },
+ {
+  "n": 231,
+  "page": 59,
+  "label": "6",
+  "img": "c231.png",
+  "lines": [
+   "1. S.V. underway, also propelled by machinery, seen from",
+   "stbd side.",
+   "2. One short blast, a/c to stbd.",
+   "3. a) Masthead its ford and aft.",
+   "b) Side its and stern light.",
+   "c) Length < 50 m - aft masthead it not compulsory.",
+   "4. a) Making way - one prolonged blast.",
+   "b) Stopped - two prolonged blasts with two secs.",
+   "interval in between"
+  ]
+ },
+ {
+  "n": 232,
+  "page": 59,
+  "label": "7",
+  "img": "c232.png",
+  "lines": [
+   "1. v/I fishing with nets or lines extending < 150 m horizontally",
+   "from v/I, underway or at anchor, seen from stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. a) i) All round red over white its in vert line.",
+   "ii) Making way - side Its and stern It.",
+   "b) i) All round green over white Its in vert line.",
+   "ii) Masthead It abaft of and higher than green It.",
+   "iii) Making way - side Its and stern it.",
+   "iv) Length < 50 m - masthead It not compulsory.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 233,
+  "page": 59,
+  "label": "9",
+  "img": "c233.png",
+  "lines": [
+   "1. v/I fishing with nets or lines extending > 150 m horizontally",
+   "from v/I, underway or at anchor, seen end on from ahead",
+   "or astern.",
+   "2. Two short blasts, a/c to port away from gear.",
+   "3. a) All round red over white its in vert line.",
+   "b) Making way - side Its and stern It.",
+   "c) All round white It in direction of gear.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 234,
+  "page": 60,
+  "label": "11",
+  "img": "c234.png",
+  "lines": [
+   "1. v/I NUC, underway, seen from stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. a) Two all round red Its in vert line.",
+   "b) Making way - side Its and stern It.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 235,
+  "page": 60,
+  "label": "12",
+  "img": "c235.png",
+  "lines": [
+   "1. v/I RAM, except mine clearance v/I, underway, seen from",
+   "stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. a) All round, white and red Its in vert line.",
+   "b) Making way - masthead Its ford and aft, side Its",
+   "and stern It.",
+   "c) Length < 50 m - aft masthead It not compulsory.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 236,
+  "page": 60,
+  "label": "13",
+  "img": "c236.png",
+  "lines": [
+   "1. v/I RAM, except mine clearance v/I, at anchor, seen from",
+   "port side.",
+   "2. One short blasts, a/c to stbd.",
+   "3. a) All round, white and red Its in vert line.",
+   "b) All round white Its ford and deck.",
+   "c) Working Its to illuminate deck.",
+   "d) Length < 100 m - working Its not compulsory.",
+   "e) Length < 50 m - working Its and white It at stern",
+   "not compulsory, and ford white It placed where it",
+   "can best be seen",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 237,
+  "page": 60,
+  "label": "14",
+  "img": "c237.png",
+  "lines": [
+   "1. P.D. v/I towing, RAM, tow length > 200 m, underway,",
+   "seen from stbd side.",
+   "2. Two short blasts, a/c to port and pass round stern of last",
+   "v/I or object towed.",
+   "3. a) Masthead Its ford and aft.",
+   "b) Side Its and stern It.",
+   "c) Length < 50 m - aft masthead It not compulsory.",
+   "d) Two addl masthead Its in vert line with ford or aft",
+   "masthead Its.",
+   "e) Yellow towing it above stern it.",
+   "f) All round, white and red Its in vert line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 238,
+  "page": 61,
+  "label": "15",
+  "img": "c238.png",
+  "lines": [
+   "1. Dredge, RAM, underway or at anchor, seen end on",
+   "from ahead or astern.",
+   "2. Two short blasts, a/c to port towards safe side.",
+   "3. a) All round red, white and red Its in vert line.",
+   "b) Two All round red Its vert line on obstruction side.",
+   "c) Two All round green Its vert line on safe side.",
+   "d) Making way -",
+   "i) Masthead Its ford and aft, side Its and stern It.",
+   "ii) Length < 50 m - aft masthead It not compulsory.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 239,
+  "page": 61,
+  "label": "16",
+  "img": "c239.png",
+  "lines": [
+   "1. Small v/I engaged in diving operations, seen from",
+   "stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. All round red, white and red Its in vert line.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 240,
+  "page": 61,
+  "label": "17",
+  "img": "c240.png",
+  "lines": [
+   "1. v/I engaged in mine clearance operation, underway,",
+   "seen end on blast, a/c to stbd or astern.",
+   "2. One short blast, a/c to stbd and pass > 1000 m clear of v/I.",
+   "3. a) Three all round green Its - one at foremast head",
+   "and one at each of fore yard.",
+   "b) Masthead Its ford and aft. side Its and stern It.",
+   "c) Length < 50 m - aft masthead It not compulsory.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 241,
+  "page": 61,
+  "label": "18",
+  "img": "c241.png",
+  "lines": [
+   "1. v/I engaged in mine clearance operation, underway,",
+   "seen from port side.",
+   "2. One short blast, a/c to stbd and pass > 1000 m clear of v/I.",
+   "3. a) Three all round green Its - one at foremast head",
+   "and one at each of fore yard.",
+   "b) All round white Its ford and at stern.",
+   "c) Working Its to illuminate deck.",
+   "d) Length < 100 m - working Its not compulsory.",
+   "e) Length < 50 m - working Its and white It at stern not",
+   "compulsory. and ford white It placed where it can",
+   "best bee seen.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 242,
+  "page": 62,
+  "label": "19",
+  "img": "c242.png",
+  "lines": [
+   "1. P.D. v/I constrained by draught, underway, seen from",
+   "stbd side.",
+   "2. One short blast, a/c to stbd and pass round her stern.",
+   "3. a) Three all round red Its in vert line.",
+   "b) Masthead its ford and aft, side Its and stern It.",
+   "c) Length < 50 m - at Masthead it compulsory.",
+   "e) Length < 50 m - working Its and white It at stern not",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 243,
+  "page": 62,
+  "label": "20",
+  "img": "c243.png",
+  "lines": [
+   "1. Pilot v/I underway, seen from stbd side.",
+   "2. Maintain course speed.",
+   "3. a) All round white over red Its in vert line at or near",
+   "masthead.",
+   "b) Side Its and stern It.",
+   "4. a) Making way - one prolonged blast.",
+   "b) Stopped - two prolonged blasts with two secs.",
+   "interval in between.",
+   "c) Optional - four short blasts."
+  ]
+ },
+ {
+  "n": 244,
+  "page": 62,
+  "label": "21",
+  "img": "c244.png",
+  "lines": [
+   "1. Pilot v/I underway, seen from stbd side.",
+   "2. One short blast, a/c to stbd.",
+   "3. a) All round white over red Its in vert line at or near",
+   "masthead.",
+   "b) Side Its and stern It.",
+   "4. a) Making way - one prolonged blast.",
+   "b) Stopped - two prolonged blasts with two secs.",
+   "interval in between.",
+   "c) Optional - four short blasts."
+  ]
+ },
+ {
+  "n": 245,
+  "page": 62,
+  "label": "22",
+  "img": "c245.png",
+  "lines": [
+   "1. Pilot v/I at anchor, seen from stbd side.",
+   "2. Two short blast, a/c to port.",
+   "3. a) All round white over red Its in vert line at or near",
+   "masthead.",
+   "b) All round white Its ford and at stern.",
+   "c) Working Its to illuminate deck.",
+   "d) Length < 100 m - working Its not compulsory.",
+   "e) Length < 50 m - working Its and white It at stern not",
+   "compulsory, and ford white It placed where it can best",
+   "seen.",
+   "4. a) Length < 100 m - ringing of bell for 5 secs.",
+   "b) Length > 100 m - ringing of bell for five secs and rapid",
+   "ringing of gong aft for five secs.",
+   "c) Optional - four short blasts."
+  ]
+ },
+ {
+  "n": 246,
+  "page": 63,
+  "label": "23",
+  "img": "c246.png",
+  "lines": [
+   "1. v/I at anchor, seen from stbd side.",
+   "2. One short blast, a/c to stbd.",
+   "3. a) All round white Its ford and at stern.",
+   "b) Working Its to illuminate deck.",
+   "c) Length < 100 m - working Its not compulsory.",
+   "d) Length < 50 m - working Its and white It at stern not",
+   "compulsory, and ford white It placed where it can best",
+   "seen.",
+   "4. a) Length < 100 m - ringing of bell for 5 secs.",
+   "b) Length > 100 m - ringing of bell for five secs and rapid",
+   "ringing of gong aft for five secs.",
+   "c) Optional - four short blasts."
+  ]
+ },
+ {
+  "n": 247,
+  "page": 63,
+  "label": "24",
+  "img": "c247.png",
+  "lines": [
+   "1. v/I aground, seen from stbd side.",
+   "2. One short blast, a/c to stbd. reverse course and inform",
+   "Master.",
+   "3. a) Two All round red Its in vert line.",
+   "b) All round white Its ford and at stern.",
+   "c) Length < 50 m - white light at stern not compulsory.",
+   "and ford white Light placed where it can best be seen.",
+   "4. a) Length < 100 m - rapid ringing of bell for five secs.",
+   "b) Length > 100 m - rapid ringing of bell for five secs",
+   "and rapid ringing of gong aft for five secs.",
+   "c) Optional - appropriate whistle signal (two short and",
+   "one prolonged blasts)."
+  ]
+ },
+ {
+  "n": 248,
+  "page": 63,
+  "label": "25",
+  "img": "c248.png",
+  "lines": [
+   "1. Trawler, underway, shooting nets, seen from stbd side.",
+   "2. Two short blasts, a/c to port.",
+   "3. a) All round green, white Its in vert line.",
+   "b) Masthead It abaft of and higher than green It.",
+   "c) Making way - side Its and stern It.",
+   "d) Length < 50 m - masthead It not compulsory.",
+   "e) Two all round white lights in vertical line at tower",
+   "level than green and white lights.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 249,
+  "page": 63,
+  "label": "26",
+  "img": "c249.png",
+  "lines": [
+   "1. Trawler, underway or at anchor hauling nets, seen",
+   "from port side.",
+   "2. One short blasts, a/c to stbd.",
+   "3. a) All round green over white Its in vert line.",
+   "b) Masthead light abaft of and higher than green light.",
+   "c) Making way - side Its and stern It.",
+   "d) Length < 50 m - masthead light not compulsory.",
+   "e) All round white over red lights in vertical line",
+   "at tower level than green and white lights.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 250,
+  "page": 64,
+  "label": "28",
+  "img": "c250.png",
+  "lines": [
+   "1. Two trawlers engaged in pair trawling, underway,",
+   "shooting nets, seen end on from ahead or astern.",
+   "2. One short blasts, a/c to stbd.",
+   "3. a) All round green over white Its in vert line.",
+   "b) Masthead It abaft of and higher than green It.",
+   "c) Making way - side Its and stern It.",
+   "d) Length < 50 m - masthead It not compulsory.",
+   "e) i) Two all round white Its in vertical line at tower",
+   "level than green and white Its.",
+   "ii) Search It directed forward and in direction of",
+   "other trawler.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 251,
+  "page": 64,
+  "label": "29",
+  "img": "c251.png",
+  "lines": [
+   "1. Two trawlers engaged in pair trawling, underway,",
+   "shooting nets, seen end on from ahead or astern.",
+   "2. One short blasts, a/c to stbd.",
+   "3. a) All round green over white Its in vert line.",
+   "b) Masthead light abaft of and higher than green light.",
+   "c) Making way - side Its and stern It.",
+   "d) Length < 50 m - masthead It not compulsory.",
+   "e) i) All round white over red lights in vertical line",
+   "at tower level than green and white lights.",
+   "ii) Search It directed forward and in direction of",
+   "other trawler.",
+   "4. One prolonged and two short blasts."
+  ]
+ },
+ {
+  "n": 252,
+  "page": 64,
+  "label": "30",
+  "img": "c252.png",
+  "lines": [
+   "1. Two trawlers engaged in pair trawling, underway,",
+   "shooting nets, seen end on from ahead or astern.",
+   "2. One short blasts, a/c to stbd, and pass well clear",
+   "3. a) All round green over white Its in vert line.",
+   "b) Masthead light abaft of and higher than green light.",
+   "c) Making way - side Its and stern It.",
+   "d) Length < 50 m - masthead It not compulsory.",
+   "e) i) Two all round white Its in vertical line at tower",
+   "level than green and white Its.",
+   "ii) Search It directed forward and in direction of",
+   "other trawler.",
+   "4. One prolonged and two short blasts."
+  ]
+ }
+]

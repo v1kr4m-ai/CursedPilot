@@ -54,6 +54,9 @@ import EmLogList from './components/EmLogList';
 import { SWING_HEADINGS, coefficients, readDeviations, swingSummary } from './tools/compassSwing';
 import ShipInfoForm from './components/ShipInfoForm';
 import CalibrationData from './components/CalibrationData';
+import FuelDataEditor from './components/FuelDataEditor';
+import CalibrationMethods from './components/CalibrationMethods';
+import { recordDefaults } from './tools/recordDefaults';
 import { RADAR_METHODS, echoSummary, lubberResult, lubberSummary, radarBearingSummary, radarIndexError, radarIndexSummary, radarMethodHelp, speedLogResult, speedLogSummary } from './tools/shipChecks';
 import CustomFieldsEditor from './components/CustomFieldsEditor';
 import { fieldsOf, formatField, shownFields, tidy, withGroup } from './data/customFields';
@@ -810,6 +813,9 @@ const App: React.FC = () => {
         content: <DetailCard embedded title="Lubber's Line Alignment" icon={null} items={ship.lubberLine ?? []} onAdd={() => openRecordForm('lubberLine')} onEdit={item => openRecordForm('lubberLine', item)} onDelete={id => deleteRecord(ship.id, 'lubberLine', id)} /> },
       { id: 'echo', title: 'Echo Sounder Calibration', icon: <ClipboardCheck size={18} className="text-sky-600" />, count: sum.echo.count, latest: sum.echo.latest,
         content: <DetailCard embedded title='Echo Sounder Calibration' icon={null} items={ship.echoSounder ?? []} onAdd={() => openRecordForm('echoSounder')} onEdit={item => openRecordForm('echoSounder', item)} onDelete={id => deleteRecord(ship.id, 'echoSounder', id)} /> },
+      { id: 'fuel', title: 'Fuel Data', icon: <ClipboardCheck size={18} className="text-orange-600" />, count: (ship.fuelData?.regimes ?? []).reduce((n, r) => n + r.rows.filter(x => x.speed.trim() && x.rate.trim()).length, 0), latest: ship.fuelData ? `${ship.fuelData.regimes.length} ${ship.fuelData.regimes.length === 1 ? 'regime' : 'regimes'}` : 'Template to fill in',
+        content: <FuelDataEditor data={ship.fuelData} onChange={d => setShips(prev => prev.map(x => x.id === ship.id ? { ...x, fuelData: d } : x))} /> },
+      { id: 'methods', title: 'Calibration Methods', icon: <ClipboardCheck size={18} className="text-slate-500" />, badge: 'reference', latest: 'Radar, speed log, danbuoy, lubber line, swing, echo sounder', content: <CalibrationMethods /> },
     ];
   };
 
@@ -884,7 +890,8 @@ const App: React.FC = () => {
     setEditingRecordId(record?.id ?? null);
     setEditingLegacy(!!record && !record.fields);
     setRecordDate(record?.date ?? todayISO());
-    setRecordValues(record?.fields ? { ...initialValues(kind), ...record.fields } : initialValues(kind));
+    const ship = ships.find(x => x.id === selectedShipId);
+    setRecordValues(record?.fields ? { ...initialValues(kind), ...record.fields } : { ...initialValues(kind), ...(ship ? recordDefaults(kind, ship) : {}) });   // a new record starts from the ship's own data; all of it can be edited
     setRecordRemarks(record && record.description !== def.defaultNote ? record.description : '');
     setView('record_form');
   };

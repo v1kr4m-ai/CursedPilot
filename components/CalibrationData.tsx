@@ -7,6 +7,8 @@ export interface CalibrationSection {
   icon: React.ReactNode;
   /** how many records the section holds, shown beside the title */
   count?: number;
+  /** shown in place of the count for sections that hold no records (default: calculators) */
+  badge?: string;
   /** the latest record(s) in a line, shown under the title so the card shows data and not just a number */
   latest?: string;
   content: React.ReactNode;
@@ -34,7 +36,7 @@ const CalibrationData: React.FC<{ sections: CalibrationSection[]; open: string |
               <button onClick={() => onToggle(s.id)} aria-expanded={isOpen} className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-slate-50 transition-colors">
                 <span className="shrink-0">{s.icon}</span>
                 <span className="flex-1 min-w-0"><span className="block font-bold text-slate-800 text-sm">{s.title}</span>{s.latest && <span className="block text-[11px] text-slate-400 font-medium truncate">{s.latest}</span>}</span>
-                {s.count === undefined ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">calculators</span> : <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.count ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-300'}`}>{s.count}</span>}
+                {s.count === undefined ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">{s.badge ?? 'calculators'}</span> : <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.count ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-300'}`}>{s.count}</span>}
                 <ChevronDown size={18} className={`text-slate-300 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
               </button>
               {isOpen && <div className="px-4 pb-5 pt-1 bg-slate-50/50">{s.content}</div>}

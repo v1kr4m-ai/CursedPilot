@@ -94,6 +94,8 @@ export interface Ship {
   speedLog?: SimpleRecord[];
   lubberLine?: SimpleRecord[];
   echoSounder?: SimpleRecord[];
+  /** the ship's own fuel data: engine regimes with RPM, speed and fuel rate; filled in by the user */
+  fuelData?: import('./tools/fuel').FuelData;
   info?: ShipInfo;
   /** extra particulars and details the user has added */
   custom?: CustomField[];

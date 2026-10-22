@@ -18,7 +18,7 @@ const pick = (pool: Card[], not?: number) => { const p = pool.length > 1 ? pool.
 export const RorQuiz: React.FC = () => {
   const [marks, setMarks] = useMemory<Record<string, Mark>>('ror:marks', {});
   const [deck, setDeck] = useMemory<string>('ror:deck', 'all');
-  const [cur, setCur] = useMemory<number>('ror:cur', 0);
+  const [cur, setCur] = React.useState<number>(() => (CARDS.length ? CARDS[Math.floor(Math.random() * CARDS.length)].n : 0));   // a random card each time the quiz opens
   const [shown, setShown] = React.useState(false);
   if (!CARDS.length) return <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2 font-medium">The ROR cards are not part of this build. They come from your own card set and are kept out of the public copy of the app (tools/private/ror).</p>;
 
