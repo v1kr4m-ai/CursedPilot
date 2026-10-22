@@ -49,7 +49,7 @@ export interface ClassSpec {
 }
 
 /** [name, pennant, commissioned (YYYY-MM), optional overrides] */
-export type ShipRow = [string, string, string, { builder?: string; status?: string; notes?: string; wiki?: string }?];
+export type ShipRow = [string, string, string, { builder?: string; status?: string; notes?: string; wiki?: string; /** name prefix when it differs from the navy's (USNS...) */ prefix?: string }?];
 
 const MDL = 'Mazagon Dock Limited';
 const GRSE = 'Garden Reach Shipbuilders & Engineers';

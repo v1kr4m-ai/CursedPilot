@@ -22,14 +22,15 @@ export function buildCatalog(n: NavyData): CatalogShip[] {
     const cls = n.classes[key];
     if (!cls) throw new Error(`${n.navy.label}: no class ${key}`);
     const under = name.replace(/ /g, '_');
+    const prefix = extra.prefix ?? n.navy.prefix;
     return {
       id: `${n.navy.id}-${slug(pennant || name)}-${slug(name)}`,
-      name, pennant, commissioned, cls, navy: n.navy.id, prefix: n.navy.prefix,
+      name, pennant, commissioned, cls, navy: n.navy.id, prefix,
       builder: extra.builder ?? cls.builder, status: extra.status ?? 'In service', notes: extra.notes ?? '',
       wikiCandidates: [
         ...(extra.wiki ? [extra.wiki] : []),
-        ...(pennant ? [`${n.navy.prefix}_${under}_(${pennant})`] : []),
-        `${n.navy.prefix}_${under}`,
+        ...(pennant ? [`${prefix}_${under}_(${pennant})`] : []),
+        `${prefix}_${under}`,
         cls.wiki,
       ],
     };

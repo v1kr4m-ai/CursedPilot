@@ -98,7 +98,7 @@ console.log('fleet: all checks passed');
   for (const c of FOREIGN_CATALOG) {
     assert.ok((NAVY_CATEGORIES as readonly string[]).includes(c.cls.category), `${c.name}: bad category`);
     assert.match(c.commissioned, /^(\d{4}(-\d{2})?)?$/, `${c.name}: bad date ${c.commissioned}`);
-    assert.ok(NAVY_LIST.some(n => n.id === c.navy && n.prefix === c.prefix), `${c.name}: bad navy`);
+    assert.ok(NAVY_LIST.some(n => n.id === c.navy) && !!c.prefix, `${c.name}: bad navy`);
   }
   const all = f.mergeCatalog([]);
   const q = (query: string, navies: string[] = []) => f.orderShips(all, { ...f.defaultMeta(), navies }, query).groups.flatMap(g => g.ships);
@@ -109,7 +109,7 @@ console.log('fleet: all checks passed');
   assert.ok(q('ddg-51').some(s => s.name === 'USS Arleigh Burke'));
   assert.equal(f.sanitizeMeta({ navies: ['pk', 'zz'] }).navies.join(), 'pk');
   const ford = FOREIGN_CATALOG.filter(c => c.navy === 'us').map(c => f.catalogToShip(c).name);
-  assert.ok(ford.includes('USS Gerald R. Ford') && ford.includes('USS Zumwalt'));
+  assert.ok(ford.includes('USS Gerald R. Ford') && ford.includes('USS Zumwalt') && ford.includes('USNS Lewis and Clark') && ford.includes('USS Ted Stevens'));
   // Janes flag: only figures that differ from the class (Wikipedia) figure are kept
   const withJ = { ...FOREIGN_CATALOG[0], cls: { ...FOREIGN_CATALOG[0].cls, displacement: '1,000 t', janes: { displacement: '1,200 t', length: FOREIGN_CATALOG[0].cls.length } } };
   const sj = f.catalogToShip(withJ); assert.deepEqual(sj.info!.janes, { displacement: '1,200 t' });
