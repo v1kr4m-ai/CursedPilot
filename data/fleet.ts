@@ -3,6 +3,7 @@
 import type { Ship, ShipInfo } from '../types.ts';
 import { CATALOG, NAVY_CATEGORIES } from './indianNavy.ts';
 import type { CatalogShip } from './indianNavy.ts';
+import { FOREIGN_CATALOG, NAVY_LIST } from './foreignNavies.ts';
 
 export const CATEGORIES: readonly string[] = NAVY_CATEGORIES;
 export const MAX_PINS = 5;
@@ -15,7 +16,13 @@ const LEGACY: Record<string, string> = {
 /** Maps the category names older versions saved ("Destroyer", "NOPVs"...) onto the current list. */
 export const normalizeCategory = (t: string) => (CATEGORIES.includes(t) ? t : LEGACY[t] ?? 'Other');
 
-const displayName = (c: CatalogShip) => (/^INSV /.test(c.name) ? c.name : `INS ${c.name}`);
+const displayName = (c: CatalogShip) => (c.prefix ? `${c.prefix} ${c.name}` : /^INSV /.test(c.name) ? c.name : `INS ${c.name}`);
+
+/** Janes figures that differ from the (Wikipedia) class figures, for the Wiki / Janes flags. */
+function differing(cls: CatalogShip['cls']): { janes?: Record<string, string> } {
+  const j = Object.fromEntries(Object.entries(cls.janes ?? {}).filter(([k, v]) => v && v.trim() !== String((cls as unknown as Record<string, unknown>)[k] ?? '').trim())) as Record<string, string>;
+  return Object.keys(j).length ? { janes: j } : {};
+}
 
 export function catalogToShip(c: CatalogShip): Ship {
   const info: ShipInfo = {
@@ -23,12 +30,13 @@ export function catalogToShip(c: CatalogShip): Ship {
     displacement: c.cls.displacement, length: c.cls.length, beam: c.cls.beam, draught: c.cls.draught, speed: c.cls.speed,
     propulsion: c.cls.propulsion, complement: c.cls.complement, armament: c.cls.armament, sensors: c.cls.sensors,
     aircraft: c.cls.aircraft, notes: c.notes, wiki: c.wikiCandidates.join(','),
+    ...differing(c.cls),
   };
   return {
     id: c.id, name: displayName(c), type: c.cls.category,
     particulars: { lengthOverall: c.cls.loa, breadthOverall: c.cls.breadth, displacement: c.cls.tons, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 },
     turningDataSets: [], accelDecelData: [], fishtails: [], emLogCalibration: [], compassSwing: [],
-    info, catalog: true,
+    info, catalog: true, ...(c.navy ? { navy: c.navy } : {}),
   };
 }
 
@@ -39,7 +47,7 @@ export function catalogToShip(c: CatalogShip): Ship {
 export function mergeCatalog(stored: Ship[]): Ship[] {
   const have = new Set(stored.map(s => s.id));
   const fixed = stored.map(s => (CATEGORIES.includes(s.type) ? s : { ...s, type: normalizeCategory(s.type) }));
-  return [...fixed, ...CATALOG.filter(c => !have.has(c.id)).map(catalogToShip)];
+  return [...fixed, ...[...CATALOG, ...FOREIGN_CATALOG].filter(c => !have.has(c.id)).map(catalogToShip)];
 }
 
 // ---- commissioning date --------------------------------------------------------------------------
@@ -78,9 +86,11 @@ export interface FleetMeta {
   myShipId: string | null;
   sort: SortKey;
   category: string | null;
+  /** foreign navies whose ships are listed in the Fleet (ids from NAVY_LIST) */
+  navies: string[];
 }
 
-export const defaultMeta = (): FleetMeta => ({ pinned: [], usage: {}, lastUsed: {}, myShipId: null, sort: 'category', category: null });
+export const defaultMeta = (): FleetMeta => ({ pinned: [], usage: {}, lastUsed: {}, myShipId: null, sort: 'category', category: null, navies: [] });
 
 const META_KEY = 'cursedpilot.fleet.v1';
 
@@ -97,6 +107,7 @@ export function sanitizeMeta(p: any): FleetMeta {
     myShipId: typeof p.myShipId === 'string' ? p.myShipId : null,
     sort: p.sort in SORT_LABELS ? p.sort : d.sort,
     category: typeof p.category === 'string' ? p.category : null,
+    navies: Array.isArray(p.navies) ? p.navies.filter((x: unknown) => NAVY_LIST.some(n => n.id === x)) : d.navies,
   };
 }
 
@@ -138,9 +149,12 @@ export interface ShipGroup { title: string; ships: Ship[] }
  */
 export function orderShips(ships: Ship[], meta: FleetMeta, query: string): { pinned: Ship[]; groups: ShipGroup[] } {
   const q = query.trim().toLowerCase();
+  // ships of another navy are listed only while its country is switched on, or when the search finds them
+  const words = (id: string) => NAVY_LIST.find(n => n.id === id)?.words ?? '';
   const matches = (s: Ship) =>
     (!meta.category || s.type === meta.category) &&
-    (!q || [s.name, s.info?.pennant ?? '', s.info?.shipClass ?? ''].some(t => t.toLowerCase().includes(q)));
+    (!s.navy || meta.navies.includes(s.navy) || (!!q && s.catalog === true)) &&
+    (!q || [s.name, s.info?.pennant ?? '', s.info?.shipClass ?? '', s.info?.builder ?? '', s.navy ? words(s.navy) : ''].some(t => t.toLowerCase().includes(q)));
   const visible = ships.filter(matches);
 
   const pinned = meta.pinned.map(id => visible.find(s => s.id === id)).filter((s): s is Ship => !!s);

@@ -1,0 +1,30 @@
+// People's Liberation Army Navy: carriers, Type 055, 052C/D, 054A/AG, Type 071 and 075 (names, hull numbers and dates from Wikipedia's class tables, Oct 2026).
+// NOT the whole PLAN: Type 056/056A corvettes, Type 022 boats, submarines, auxiliaries and older classes are left out, and nothing is checked against an official list.
+import type { NavyData } from '../foreignNavies.ts';
+import { cls } from './_util.ts';
+
+export const CHINA: NavyData = {
+  navy: { id: 'cn', label: 'China', prefix: 'PLANS', words: 'china chinese plan pla people liberation' },
+  classes: {
+    liaoning: cls('Type 001 (Liaoning)', 'Aircraft Carriers', 'Chinese_aircraft_carrier_Liaoning', { builder: 'Mykolaiv (ex-Varyag) / Dalian refit', displacement: '60,000 t (full load)', length: '304.5 m', speed: '32 kn' }),
+    shandong: cls('Type 002 (Shandong)', 'Aircraft Carriers', 'Chinese_aircraft_carrier_Shandong', { builder: 'Dalian Shipbuilding', displacement: '66,000 t (full load)', length: '315 m' }),
+    fujian: cls('Type 003 (Fujian)', 'Aircraft Carriers', 'Chinese_aircraft_carrier_Fujian', { builder: 'Jiangnan Shipyard', displacement: '80,000 t (full load)', length: '316 m' }),
+    t055: cls('Type 055 (Renhai) class', 'Cruisers', 'Type_055_destroyer', { builder: 'Jiangnan / Dalian', displacement: '12,000 t (full load)', length: '180 m', beam: '20 m', speed: '30 kn' }),
+    t052d: cls('Type 052D (Luyang III) class', 'Destroyers', 'Type_052D_destroyer', { builder: 'Jiangnan / Dalian', displacement: '7,500 t (full load)', length: '157 m', beam: '18 m', speed: '30 kn' }),
+    t054a: cls('Type 054A (Jiangkai II) class', 'Frigates', 'Type_054A_frigate', { builder: 'Hudong-Zhonghua / Huangpu Wenchong / Guangzhou', displacement: '4,053 t (full load)', length: '134.1 m', beam: '16 m', draught: '4.8 m', speed: '27 kn' }),
+    t071: cls('Type 071 (Yuzhao) class', 'Amphibious Ships', 'Type_071_amphibious_transport_dock', { builder: 'Hudong-Zhonghua / Shanghai', displacement: '25,000 t (full load)', length: '210 m', beam: '28 m', draught: '7 m', speed: '25 kn' }),
+    t052c: cls('Type 052C (Luyang II) class', 'Destroyers', 'Type_052C_destroyer', { builder: 'Jiangnan Shipyard', displacement: '7,000 t (full load)', length: '155 m', beam: '17 m', speed: '30 kn' }),
+    t075: cls('Type 075 (Yushen) class', 'Amphibious Ships', 'Type_075_landing_helicopter_dock', { builder: 'Hudong-Zhonghua / Shanghai', displacement: '36,000 t (full load)', length: '237 m', beam: '36 m', speed: '25 kn' }),
+  },
+  ships: {
+    liaoning: [['Liaoning', '16', '2012-09']],
+    shandong: [['Shandong', '17', '2019-12']],
+    fujian: [['Fujian', '18', '2025-11']],
+    t055: [['Nanchang', '101', '2020-01'], ['Lhasa', '102', '2020-07'], ['Anshan', '103', ''], ['Wuxi', '104', ''], ['Dalian', '105', ''], ['Yan\'an', '106', ''], ['Zunyi', '107', ''], ['Xianyang', '108', '']],
+    t052d: [['Kunming', '172', '2014-03'], ['Changsha', '173', '2015-08'], ['Hefei', '174', '2015-12'], ['Yinchuan', '175', '2016-07'], ['Xining', '117', '2017-01'], ['Xiamen', '154', '2017-06'], ['Ürümqi', '118', '2018-03'], ['Nanjing', '155', '2018-04'], ['Taiyuan', '131', '2018-12'], ['Guiyang', '119', '2019-02'], ['Hohhot', '161', '2019-01'], ['Chengdu', '120', '2019-11'], ['Qiqihar', '121', '2020-08'], ['Zibo', '156', '2020-01', { notes: 'Type 052DL' }], ['Tangshan', '122', '2020-08'], ['Suzhou', '132', '2021-01'], ['Huainan', '123', '2021-02'], ['Nanning', '162', '2021-04'], ['Kaifeng', '124', '2021-04'], ['Guilin', '164', '2021-09'], ['Zhanjiang', '165', '2021-12'], ['Baotou', '133', '2021-12'], ['Jiaozuo', '163', '2022-01'], ['Shaoxing', '134', '2022-02'], ['Lishui', '157', '2022-06'], ['Cangzhou', '125', ''], ['Heze', '126', ''], ['Zhumadian', '127', ''], ['Ganzi', '128', ''], ['Dazhou', '135', ''], ['Rikaze', '159', ''], ['Weinan', '166', ''], ['Loudi', '176', ''], ['Tongchuan', '177', '']],
+    t054a: [['Zhoushan', '529', '2008-01'], ['Xuzhou', '530', '2008-01'], ['Huangshan', '570', '2008-05'], ['Hengyang', '568', '2008-06'], ['Yuncheng', '571', '2009-12'], ['Yulin', '569', '2010-02'], ['Yiyang', '548', '2010-10'], ['Changzhou', '549', '2011-05'], ['Yantai', '538', '2011-06'], ['Yancheng', '546', '2012-06'], ['Hengshui', '572', '2012-07'], ['Linyi', '547', '2012-12'], ['Liuzhou', '573', '2012-12'], ['Yueyang', '575', '2013-05'], ['Weifang', '550', '2013-06'], ['Sanya', '574', '2013-12'], ['Huanggang', '577', '2015-01'], ['Daqing', '576', '2015-01'], ['Yangzhou', '578', '2015-09'], ['Handan', '579', '2015-08'], ['Jingzhou', '532', '2016-01'], ['Xiangtan', '531', '2016-02'], ['Binzhou', '515', '2016-12'], ['Xuchang', '536', '2017-06'], ['Wuhu', '539', '2017-06'], ['Rizhao', '598', '2018-01'], ['Anyang', '599', '2018-04'], ['Xianning', '500', '2018-08'], ['Nantong', '601', '2019-01'], ['Zaozhuang', '542', '2019-02'], ['Ziyang', '522', '2022-05'], ['Hebi', '534', '2022-12'], ['Bayannao\'er', '551', '2022-12'], ['Xichang', '540', '2023'], ['Yixing', '537', '2023-01'], ['Huaibei', '516', '2023-07'], ['Honghe', '523', ''], ['Chenzhou', '552', ''], ['Dali', '553', ''], ['Tongliao', '554', ''], ['Linfen', '543', '2024', { notes: 'Type 054AG' }], ['Ordos', '580', '2024', { notes: 'Type 054AG' }]],
+    t071: [['Kunlun Shan', '998', '2007-11'], ['Jinggang Shan', '999', '2011-10'], ['Changbai Shan', '989', '2012-09'], ['Yimeng Shan', '988', '2016-02'], ['Longhu Shan', '980', '2018-09'], ['Wuzhi Shan', '987', '2019-01'], ['Siming Shan', '986', '2020'], ['Qilian Shan', '985', '2020-11']],
+    t052c: [['Lanzhou', '170', '2004-11'], ['Haikou', '171', '2005'], ['Changchun', '150', '2013'], ['Zhengzhou', '151', '2013'], ['Jinan', '152', '2014'], ['Xi\'an', '153', '2014']],
+    t075: [['Hainan', '31', '2021-04'], ['Guangxi', '32', '2022'], ['Anhui', '33', '2023']],
+  },
+};

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as f from './fleet.ts';
 import { CATALOG, CLASSES, NAVY_CATEGORIES } from './indianNavy.ts';
 import type { Ship } from '../types.ts';
+import { FOREIGN_CATALOG, NAVY_LIST } from './foreignNavies.ts';
 
 // ---- catalogue integrity
 assert.ok(CATALOG.length > 120, `only ${CATALOG.length} ships`);
@@ -16,7 +17,7 @@ for (const c of CATALOG) {
   assert.ok(c.cls.loa > 0 && c.cls.breadth > 0 && c.cls.tons > 0, `${c.name}: missing numbers`);
   assert.ok(c.cls.name && c.cls.displacement && c.cls.length, `${c.name}: missing class text`);
 }
-for (const cat of NAVY_CATEGORIES.filter(c => c !== 'Other')) assert.ok(CATALOG.some(c => c.cls.category === cat), `no ships in ${cat}`);
+for (const cat of NAVY_CATEGORIES.filter(c => !['Other', 'Cruisers', 'Mine Countermeasures'].includes(c))) assert.ok(CATALOG.some(c => c.cls.category === cat), `no ships in ${cat}`);
 assert.ok(Object.keys(CLASSES).every(k => CATALOG.some(c => c.cls === CLASSES[k])), 'a class has no ships');
 
 // ---- converting and merging
@@ -28,7 +29,7 @@ assert.equal(f.catalogToShip(CATALOG.find(c => c.name === 'INSV Mhadei')!).name,
 const custom: Ship = { id: 'mine', name: 'My Boat', type: 'Destroyer', particulars: { lengthOverall: 1, breadthOverall: 1, displacement: 1, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 }, turningDataSets: [], accelDecelData: [], fishtails: [], emLogCalibration: [], compassSwing: [] };
 const edited = { ...kolkata, name: 'INS Kolkata (edited)', info: { ...kolkata.info!, speed: '99 kn' } };
 const merged = f.mergeCatalog([custom, edited]);
-assert.equal(merged.length, CATALOG.length + 1);
+assert.equal(merged.length, CATALOG.length + FOREIGN_CATALOG.length + 1);
 assert.equal(merged.find(s => s.id === kolkata.id)!.name, 'INS Kolkata (edited)');                 // edits survive
 assert.equal(merged.find(s => s.id === 'mine')!.type, 'Destroyers');                               // legacy category updated
 assert.equal(f.mergeCatalog(merged).length, merged.length);                                       // idempotent
@@ -87,3 +88,30 @@ const good = { ...f.defaultMeta(), pinned: ['a'], usage: { a: 2 }, lastUsed: { a
 assert.deepEqual(f.sanitizeMeta(JSON.parse(JSON.stringify(good))), good);   // a valid one survives a round trip unchanged
 
 console.log('fleet: all checks passed');
+
+// ---- other navies: unique ids, valid rows, shown only when the country is on or a search finds them
+{
+  const fids = FOREIGN_CATALOG.map(c => c.id);
+  assert.equal(new Set(fids).size, fids.length, `foreign ids must be unique: ${fids.filter((p, i) => fids.indexOf(p) !== i)}`);
+  assert.ok(!fids.some(i => ids.includes(i)));
+  assert.equal(NAVY_LIST.length, 8);
+  for (const c of FOREIGN_CATALOG) {
+    assert.ok((NAVY_CATEGORIES as readonly string[]).includes(c.cls.category), `${c.name}: bad category`);
+    assert.match(c.commissioned, /^(\d{4}(-\d{2})?)?$/, `${c.name}: bad date ${c.commissioned}`);
+    assert.ok(NAVY_LIST.some(n => n.id === c.navy && n.prefix === c.prefix), `${c.name}: bad navy`);
+  }
+  const all = f.mergeCatalog([]);
+  const q = (query: string, navies: string[] = []) => f.orderShips(all, { ...f.defaultMeta(), navies }, query).groups.flatMap(g => g.ships);
+  assert.equal(q('').length, CATALOG.length);                                          // foreign ships hidden by default
+  assert.ok(q('', ['pk']).some(s => s.name === 'PNS Tughril') && !q('', ['pk']).some(s => s.navy === 'tr'));   // only the toggled country
+  assert.ok(q('F261').some(s => s.name === 'PNS Tughril'));                            // a search finds a hidden navy's ship by pennant
+  assert.ok(q('korea').some(s => s.name === 'ROKS Sejong the Great') && q('korea').length > 50);
+  assert.ok(q('ddg-51').some(s => s.name === 'USS Arleigh Burke'));
+  assert.equal(f.sanitizeMeta({ navies: ['pk', 'zz'] }).navies.join(), 'pk');
+  const ford = FOREIGN_CATALOG.filter(c => c.navy === 'us').map(c => f.catalogToShip(c).name);
+  assert.ok(ford.includes('USS Gerald R. Ford') && ford.includes('USS Zumwalt'));
+  // Janes flag: only figures that differ from the class (Wikipedia) figure are kept
+  const withJ = { ...FOREIGN_CATALOG[0], cls: { ...FOREIGN_CATALOG[0].cls, displacement: '1,000 t', janes: { displacement: '1,200 t', length: FOREIGN_CATALOG[0].cls.length } } };
+  const sj = f.catalogToShip(withJ); assert.deepEqual(sj.info!.janes, { displacement: '1,200 t' });
+}
+console.log('foreign navies: ok', FOREIGN_CATALOG.length, 'ships');

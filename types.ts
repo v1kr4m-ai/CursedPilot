@@ -79,9 +79,13 @@ export interface ShipInfo {
   notes: string;
   /** comma-separated Wikipedia article titles to try for the picture and description */
   wiki: string;
+  /** figures that Janes gives differently from the ones above (which follow Wikipedia): shown with a small Wiki / Janes flag */
+  janes?: Partial<Record<string, string>>;
 }
 
 export interface Ship {
+  /** id of a foreign navy (see data/foreignNavies.ts); absent for Indian ships and the user's own */
+  navy?: string;
   id: string;
   name: string;
   type: string;

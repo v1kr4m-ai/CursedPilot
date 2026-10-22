@@ -25,6 +25,9 @@ const MORE_FACTS: [string, keyof ShipInfo][] = [
   ['Complement', 'complement'], ['Propulsion', 'propulsion'], ['Armament', 'armament'], ['Sensors', 'sensors'], ['Aircraft', 'aircraft'], ['Notes', 'notes'],
 ];
 
+/** small source flag, shown where Wikipedia and Janes give different figures */
+const Flag: React.FC<{ t: 'Wiki' | 'Janes' }> = ({ t }) => <span className={`ml-1.5 align-middle px-1.5 py-px rounded text-[9px] font-bold uppercase tracking-wider ${t === 'Wiki' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'}`}>{t}</span>;
+
 const ShipInfoPanel: React.FC<Props> = ({ ship, wiki, lookup, isMine, isPinned, onToggleMine, onTogglePin, onEdit, onPhoto }) => {
   const [more, setMore] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -100,7 +103,11 @@ const ShipInfoPanel: React.FC<Props> = ({ ship, wiki, lookup, isMine, isPinned, 
             {more && (
               <dl className="mt-3 space-y-3">
                 {extra.map(([label, k]) => (
-                  <div key={k}><dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</dt><dd className="text-sm text-slate-700 font-medium">{value(k)}</dd></div>
+                  <div key={k}>
+                    <dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{label}</dt>
+                    <dd className="text-sm text-slate-700 font-medium">{value(k)}{info?.janes?.[k] && <Flag t="Wiki" />}</dd>
+                    {info?.janes?.[k] && <dd className="text-sm text-slate-700 font-medium">{info.janes[k]}<Flag t="Janes" /></dd>}
+                  </div>
                 ))}
                 {mine.map(f => (
                   <div key={f.id}><dt className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{f.label}</dt><dd className="text-sm text-slate-700 font-medium whitespace-pre-line">{f.value}</dd></div>

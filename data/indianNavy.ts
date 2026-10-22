@@ -8,12 +8,14 @@
 
 export const NAVY_CATEGORIES = [
   'Aircraft Carriers',
+  'Cruisers',
   'Destroyers',
   'Frigates',
   'Corvettes',
   'Submarines',
   'Offshore Patrol Vessels',
   'Fast Attack Craft',
+  'Mine Countermeasures',
   'Amphibious Ships',
   'Fleet Tankers',
   'Survey & Research Vessels',
@@ -40,6 +42,8 @@ export interface ClassSpec {
   loa: number;
   breadth: number;
   tons: number;
+  /** where Janes gives a figure differently from the one above (which follows Wikipedia) */
+  janes?: Partial<Record<'displacement' | 'length' | 'beam' | 'draught' | 'speed' | 'propulsion' | 'complement' | 'armament' | 'sensors', string>>;
   /** Wikipedia article used for the picture and short description when online */
   wiki: string;
 }
@@ -424,6 +428,9 @@ export interface CatalogShip {
   notes: string;
   /** Wikipedia titles to try for the picture and description, most specific first */
   wikiCandidates: string[];
+  /** foreign navy id and name prefix (PNS, USS...); absent for the Indian Navy */
+  navy?: string;
+  prefix?: string;
 }
 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
