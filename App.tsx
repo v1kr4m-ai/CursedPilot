@@ -258,7 +258,7 @@ const App: React.FC = () => {
   const [ships, setShips] = useState<Ship[]>(loadShips);
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [meta, setMeta] = useState<FleetMeta>(loadMeta);
-  const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); return Array.isArray(a) ? [a[0] ?? null, a[1] ?? null] : [null, null]; } catch { return [null, null]; } });
+  const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); return !Array.isArray(a) ? [null, null, null] : a.length === 2 ? [null, a[0] ?? null, a[1] ?? null] : [a[0] ?? null, a[1] ?? null, a[2] ?? null]; } catch { return [null, null, null]; } });   // slots: left of My Ship, then the two on the right (older saves had only the two on the right)
   useEffect(() => { try { localStorage.setItem('cursedpilot.homeTools', JSON.stringify(homeTools)); } catch { /* storage unavailable */ } }, [homeTools]);
   const [pageTool, setPageTool] = useState<string | null>(null);   // the NavYeo tool open as a page from the home bar
   const [anchorMenu, setAnchorMenu] = useState(false);

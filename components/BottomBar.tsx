@@ -5,7 +5,7 @@ import { NAV_TOOLS } from '../tools/NavTools';
 
 /**
  * The main navigation. Shown on the top-level screens; ship screens use their own back arrow.
- * Fleet on the left, My Ship in the centre (a little raised and highlighted), and two slots on the right that each hold a NavYeo tool:
+ * Fleet and a slot on the left, My Ship in the centre (a little raised and highlighted), and two slots on the right; each slot holds a NavYeo tool:
  * tap an empty slot to choose one, tap a filled slot to open that tool, press and hold it to change or remove it.
  * Add Ship and Backup are in the menu under the anchor on the home screen.
  */
@@ -30,30 +30,32 @@ const BottomBar: React.FC<{
   };
   const choose = (i: number, name: string | null) => { const next = [...slots]; next[i] = name; onSlots(next); setPicking(null); if (name) onLaunch(name); };
 
+  const slot = (i: number) => {
+    const name = slots[i] ?? null;
+    const tool = name ? NAV_TOOLS.find(t => t.name === name) : undefined;
+    return (
+      <button key={i} aria-label={tool ? `Open ${tool.name}. Press and hold to change` : 'Add a tool'}
+        onPointerDown={() => press(i)} onPointerUp={release} onPointerLeave={release} onPointerCancel={release} onContextMenu={e => e.preventDefault()} onClick={() => tap(i)}
+        aria-current={tool && openTool === tool.name ? 'page' : undefined} className={`${side(!!tool && openTool === tool.name)} select-none`}>
+        {tool ? <span className="h-[22px] flex items-center">{React.cloneElement(tool.icon as React.ReactElement<{ size?: number }>, { size: 22 })}</span>
+          : <span className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center"><Plus size={13} /></span>}
+        <span className="max-w-[64px] truncate">{tool ? tool.short : 'Tool'}</span>
+      </button>
+    );
+  };
   const side = (active: boolean) => `flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold uppercase tracking-wider transition-colors active:scale-95 ${active ? 'text-blue-600' : 'text-slate-400 hover:text-slate-600'}`;
   return (
     <>
       <nav aria-label="Main" className="fixed bottom-0 inset-x-0 z-30 bg-white/90 backdrop-blur-md border-t border-slate-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="max-w-xl mx-auto grid grid-cols-[1fr_auto_1fr] items-center">
+        <div className="max-w-xl mx-auto grid grid-cols-[1fr_1fr_auto_1fr_1fr] items-center">
           <button onClick={onFleet} aria-current={view === 'select' ? 'page' : undefined} className={side(view === 'select')}><ShipIcon size={22} />Fleet</button>
+          {slot(0)}
           <button onClick={onHome} aria-current={view === 'home' ? 'page' : undefined}
             className={`mx-2 my-1.5 px-6 py-2 rounded-2xl flex flex-col items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider border transition-colors active:scale-95 ${view === 'home' ? 'bg-blue-50 border-blue-200 text-blue-600 shadow-sm' : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-700'}`}>
             <Anchor size={22} />My Ship
           </button>
-          <div className="grid grid-cols-2">
-            {slots.slice(0, 2).map((name, i) => {
-              const tool = name ? NAV_TOOLS.find(t => t.name === name) : undefined;
-              return (
-                <button key={i} aria-label={tool ? `Open ${tool.name}. Press and hold to change` : 'Add a tool'}
-                  onPointerDown={() => press(i)} onPointerUp={release} onPointerLeave={release} onPointerCancel={release} onContextMenu={e => e.preventDefault()} onClick={() => tap(i)}
-                  aria-current={tool && openTool === tool.name ? 'page' : undefined} className={`${side(!!tool && openTool === tool.name)} select-none`}>
-                  {tool ? <span className="h-[22px] flex items-center">{React.cloneElement(tool.icon as React.ReactElement<{ size?: number }>, { size: 22 })}</span>
-                    : <span className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center"><Plus size={13} /></span>}
-                  <span className="max-w-[64px] truncate">{tool ? tool.short : 'Tool'}</span>
-                </button>
-              );
-            })}
-          </div>
+          {slot(1)}
+          {slot(2)}
         </div>
       </nav>
       {picking !== null && (
