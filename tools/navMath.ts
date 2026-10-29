@@ -10,6 +10,25 @@ export const reciprocal = (h: number) => norm360(h + 180);
 /** Range-and-angle rule: angle subtended = distance / range, in degrees. */
 export const radianAngle = (distance: number, range: number) => deg(distance / range);
 
+/** The radian rule of the notes: L = (R x angle) / 60, with the angle in degrees. */
+export const RADIAN_K = 60;
+export interface RadianInput { length: number | null; range: number | null; angle: number | null }
+export interface RadianResult { length: number; range: number; angle: number; solved: keyof RadianInput }
+/**
+ * The radian rule has three variables, L (the length across the line of sight), R (the range) and the angle in degrees: L = (R x angle) / 60.
+ * With any two of them the third follows. `length` and `range` are in the same unit (the answer comes back in it). Needs exactly two.
+ */
+export function solveRadian(v: RadianInput): RadianResult | null {
+  const missing = (Object.keys(v) as (keyof RadianInput)[]).filter(x => v[x] === null || !Number.isFinite(v[x] as number));
+  if (missing.length !== 1) return null;
+  const { length: L, range: R, angle: a } = v;
+  switch (missing[0]) {
+    case 'angle': return R! > 0 && L! >= 0 ? { length: L!, range: R!, angle: (RADIAN_K * L!) / R!, solved: 'angle' } : null;
+    case 'length': return R! >= 0 && a! >= 0 ? { length: (R! * a!) / RADIAN_K, range: R!, angle: a!, solved: 'length' } : null;
+    case 'range': return a! > 0 && L! >= 0 ? { length: L!, range: (L! * RADIAN_K) / a!, angle: a!, solved: 'range' } : null;
+  }
+}
+
 /**
  * Interpolates between two readings (x1, y1) and (x2, y2) to x, as from a table.
  * 'linear' is the straight-line interpolation of the tables. 'inverse' suits the radian rule, where the angle varies
@@ -299,6 +318,10 @@ export const LENGTH_UNIT_KEYS = Object.keys(LENGTH_UNITS) as LengthUnit[];
 /** Distances default to cables; heights (of eye, of a light) to metres. */
 export const DEFAULT_DISTANCE_UNIT: LengthUnit = 'cables';
 export const DEFAULT_HEIGHT_UNIT: LengthUnit = 'metres';
+
+/** Yards in each unit by the school's convention, used with the quick (1 in 60) radian rule: a mile is 2000 yards and a cable 200 yards, as in the notes. */
+const NAVY_YARDS: Record<LengthUnit, number> = { nm: 2000, cables: 200, yards: 1, metres: 1 / 0.9144, km: 1000 / 0.9144, feet: 1 / 3, fathoms: 2 };
+export const navyLength = (value: number, from: LengthUnit, to: LengthUnit) => (value * NAVY_YARDS[from]) / NAVY_YARDS[to];
 
 export const isLengthUnit = (u: unknown): u is LengthUnit => typeof u === 'string' && Object.prototype.hasOwnProperty.call(LENGTH_UNITS, u);
 export const convertLength = (value: number, from: LengthUnit, to: LengthUnit) => (value * LENGTH_UNITS[from].metres) / LENGTH_UNITS[to].metres;

@@ -1,4 +1,7 @@
 
+/** A tanker's replenishment rig (RAS station): its name, the side it serves, and its distance from the stem in metres (0 until it is known). */
+export interface RasRig { name: string; side?: 'Port' | 'Starboard' | 'Astern'; stemDistance: number }
+
 export interface ShipParticulars {
   lengthOverall: number;
   breadthOverall: number;
@@ -7,6 +10,10 @@ export interface ShipParticulars {
   stemToBridge: number;
   stemToRas: number;
   stemToFueling: number;
+  /** the radar aerial's distance from the stem, metres: the RAS approach gives the radar range of the Guide's stern */
+  stemToRadar?: number;
+  /** a tanker's replenishment rigs, when she has more than one: the RAS tool lets you pick one */
+  rigs?: RasRig[];
   /** height of the observer's eye on the bridge above the waterline, metres: used by the sight and horizon tools */
   heightOfEye?: number;
   /** shackles of cable that can be veered on the bower anchor, and what it is made of: used by the Anchor tool */

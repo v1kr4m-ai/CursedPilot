@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 tools/private/*
 !tools/private/ror/
+
+# NavYeo sentence model: fetched by scripts/fetchModels.mjs before each build
+public/models/

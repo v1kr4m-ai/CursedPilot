@@ -37,9 +37,9 @@ assert.match(say('advance at 15 kn 20 wheel port 90 turn'), /No port turning dat
 // CPA
 let r = open('cpa own course 090 own speed 12 bearing 045 range 6 nm target course 270 speed 8');
 assert.equal(r.tool, 'CPA / TCPA'); assert.deepEqual(r.form, { id: 'cpa', values: { oc: '90', os: '12', rng: '6', brg: '45', tc: '270', ts: '8' } });
-assert.deepEqual(r.memory, { 'pref:cpa:unit': 'nm' });
+assert.deepEqual(r.memory, { 'pref:cpa:range': 'nm' });
 r = open('cpa'); assert.equal(r.form, undefined);
-r = open('cpa contact bearing 120 range 3 cables'); assert.deepEqual(r.form!.values, { brg: '120', rng: '3' }); assert.deepEqual(r.memory, { 'pref:cpa:unit': 'cables' });
+r = open('cpa contact bearing 120 range 3 cables'); assert.deepEqual(r.form!.values, { brg: '120', rng: '3' }); assert.deepEqual(r.memory, { 'pref:cpa:range': 'cables' });
 
 // ATB
 r = open('atb bearing 045 green 30'); assert.deepEqual(r.form, { id: 'atb', values: { brg: '45', angle: '30' } }); assert.deepEqual(r.memory, { 'atb:mode': 'course', 'atb:side': 'Starboard' });
@@ -53,11 +53,12 @@ r = open('speed 12 kn for 2 hours'); assert.deepEqual(r.form!.values, { s: '12',
 
 // just open a tool
 assert.equal(open('williamson').tool, 'Man Overboard Turn'); assert.equal(open('open hsa').tool, 'Horizontal Sextant Angle (HSA)');
-assert.equal(open('compass').tool, 'Compass Conversion'); assert.equal(open('convert units').tool, 'Unit Converter'); assert.equal(open('wheel over').tool, 'Wheel-over Point');
+assert.equal(open('compass').tool, 'Bearings & Positions'); assert.equal(open('convert units').tool, 'Bearings & Positions'); assert.equal(open('wheel over').tool, 'Wheel-over Point');
+assert.equal(open('bearing calculator').tool, 'Bearing Calculator'); assert.equal(open('open track bearings').tool, 'Bearing Calculator');   // a tab of Wheel-over Point (TOOL_TABS) assert.equal(open('bearings').tool, 'Bearings & Positions');
 assert.equal(open('course to steer').tool, 'Course to Steer');
 
 // spoken digits
-assert.equal(c.normaliseSpoken('Reciprocal of zero seven five'), 'reciprocal of 075'); assert.equal(c.normaliseSpoken('speed twelve point five knots'), 'speed twelve point 5 knots');   // spelt-out tens are left alone
+assert.equal(c.normaliseSpoken('Reciprocal of zero seven five'), 'reciprocal of 075'); assert.equal(c.normaliseSpoken('speed twelve point five knots'), 'speed 12.5 knots');   // spelt-out numbers are read as numbers tens are left alone
 assert.equal(c.normaliseSpoken('speed 12 point 5 knots'), 'speed 12.5 knots'); assert.equal(c.normaliseSpoken('bearing zero four five range six'), 'bearing 045 range 6');
 assert.equal(c.normaliseSpoken('range one cable'), 'range 1 cable'); assert.equal(c.normaliseSpoken('Wheel over'), 'wheel over');
 assert.equal(say('reciprocal of two seven zero'), 'Reciprocal of 270 is 090.');
@@ -69,16 +70,53 @@ assert.equal(open('SunRunMerpass').tool, 'Sun Run Merpass (SRM)'); assert.equal(
 
 assert.equal(open('four star fix').tool, 'Four Star Fix'); assert.equal(open('4 star').tool, 'Four Star Fix'); assert.equal(open('rapid sight').tool, 'Four Star Fix');
 
-assert.equal(open('tides').tool, 'Tides'); assert.equal(open('flying corpen').tool, 'Flying Corpen'); assert.equal(open('wind over deck').tool, 'Flying Corpen'); assert.equal(open('helicopter').tool, 'Flying Corpen'); assert.equal(open('battenberg').tool, 'Battenberg'); assert.equal(open('station turn').tool, 'Station from Bows'); assert.equal(open('station from bows').tool, 'Station from Bows'); assert.equal(open('round the clock').tool, 'Station Changes'); assert.equal(open('fuel planning').tool, 'Fuel Planning'); assert.equal(open('reverse order of ships').tool, 'Station Changes'); assert.equal(open('joining from ahead').tool, 'Station from Bows'); assert.equal(open('relvel').tool, 'Relative Motion'); assert.equal(open('closing a faster ship').tool, 'Relative Motion'); assert.equal(open('corpen').tool, 'Corpen'); assert.equal(open('regain track').tool, 'Regain Track'); assert.equal(open('coming alongside').tool, 'RAS Approach'); assert.equal(open('taking station').tool, 'Battenberg'); assert.equal(open('stationing').tool, 'Battenberg'); assert.equal(open('anchor').tool, 'Anchor'); assert.equal(open('swinging circle').tool, 'Anchor'); assert.equal(open('how many shackles').tool, 'Anchor'); assert.equal(open('rule of twelfths').tool, 'Tides'); assert.equal(open('polaris').tool, 'Polaris Latitude'); assert.equal(open('pole star').tool, 'Polaris Latitude');
+assert.equal(open('tides').tool, 'Tides'); assert.equal(open('flying corpen').tool, 'Flying Corpen'); assert.equal(open('wind over deck').tool, 'Flying Corpen'); assert.equal(open('helicopter').tool, 'Flying Corpen'); assert.equal(open('battenberg').tool, 'Battenberg & Stationing'); assert.equal(open('station turn').tool, 'Battenberg & Stationing'); assert.equal(open('station from bows').tool, 'Battenberg & Stationing'); assert.equal(open('round the clock').tool, 'Battenberg & Stationing'); assert.equal(open('fuel planning').tool, 'Fuel Planning'); assert.equal(open('reverse order of ships').tool, 'Battenberg & Stationing'); assert.equal(open('joining from ahead').tool, 'Battenberg & Stationing'); assert.equal(open('relvel').tool, 'Relative Motion'); assert.equal(open('closing a faster ship').tool, 'Relative Motion'); assert.equal(open('corpen').tool, 'Corpen'); assert.equal(open('regain track').tool, 'Regain Track'); assert.equal(open('coming alongside').tool, 'RAS Approach'); assert.equal(open('taking station').tool, 'Battenberg & Stationing'); assert.equal(open('stationing').tool, 'Battenberg & Stationing'); assert.equal(open('anchor').tool, 'Anchor'); assert.equal(open('swinging circle').tool, 'Anchor'); assert.equal(open('how many shackles').tool, 'Anchor'); assert.equal(open('rule of twelfths').tool, 'Tides'); assert.equal(open('polaris').tool, 'Polaris Latitude'); assert.equal(open('pole star').tool, 'Polaris Latitude');
 assert.equal(open('sunrise').tool, 'Rise, Set and Twilight'); assert.equal(open('twilight times').tool, 'Rise, Set and Twilight'); assert.equal(open('gyro error').tool, 'Rise, Set and Twilight');
 
 // nonsense: says so
 assert.match(say('what is the meaning of life'), /did not understand/); assert.match(say('   '), /Type a request/);
 
-// every tool name it can open exists in the registry
+// every tool name it can open exists in the registry, as a tool or as a tab of one (TOOL_TABS)
 import { readFileSync } from 'node:fs';
 const registry = readFileSync(new URL('../tools/NavTools.tsx', import.meta.url), 'utf8');
 const src = readFileSync(new URL('./commands.ts', import.meta.url), 'utf8');
-for (const m of src.matchAll(/(?:\], |tool: )'([A-Z][^']+)'/g)) assert.ok(registry.includes(`name: '${m[1]}'`), `unknown tool "${m[1]}"`);
+for (const m of src.matchAll(/(?:\], |tool: )'([A-Z][^']+)'/g)) assert.ok(registry.includes(`name: '${m[1]}'`) || registry.includes(`'${m[1]}': ['`), `unknown tool "${m[1]}"`);
 
 console.log('commands: all checks passed');
+
+// number words said as numbers
+{
+  const n = (t: string) => c.normaliseSpoken(t);
+  assert.equal(n('fifty miles at fifteen knots'), '50 miles at 15 knots');
+  assert.equal(n('twelve knots'), '12 knots');
+  assert.equal(n('twenty five'), '25'); assert.equal(n('fifty five knots'), '55 knots');
+  assert.equal(n('one hundred and twenty degrees'), '120 degrees'); assert.equal(n('three hundred miles'), '300 miles');
+  assert.equal(n('three thousand yards'), '3000 yards'); assert.equal(n('two thousand five hundred'), '2500');
+  assert.equal(n('twelve thirty north seventy two forty five east'), '12 30 north 72 45 east');
+  assert.equal(n('zero four five'), '045'); assert.equal(n('course zero nine zero at twelve knots'), 'course 090 at 12 knots');   // digits said one at a time are as before
+  assert.equal(n('one hundred yards'), '100 yards'); assert.equal(n('one degree at one mile'), '1 degree at 1 mile');         // a lone digit word is left to the digit pass
+  assert.equal(n('twelve point five knots'), '12.5 knots');
+  assert.equal(n('the wind is ten knots'), 'the wind is 10 knots');
+}
+console.log('number words: ok');
+
+// one thing at a time: an unfinished request asks for the first missing item, and a bare answer ("270") is read as that item
+{
+  const k: c.Context = { tables: [], unit: 'nm' }, iwp = c.interpretWithPending;
+  let r = iwp('cpa bearing 045 range 6', null, k);
+  assert.match(r.reply.say, /What is your course\?/); assert.equal(r.reply.next, 'own course');
+  for (const [said, asks] of [['090', /What is your speed\?/], ['12 knots', /What is the target's course\?/], ['two seven zero', /What is the target's speed\?/]] as [string, RegExp][]) {
+    r = iwp(said, r.pending, k);
+    assert.match(r.reply.say, asks, said);
+  }
+  r = iwp('eight', r.pending, k);
+  assert.equal(r.pending, null); assert.match(r.reply.say, /CPA 4\.24 nm/);
+  let s = iwp('course to steer track 090 set 045', null, k);
+  assert.match(s.reply.say, /What is your speed through the water\?/);
+  s = iwp('12', s.pending, k); assert.match(s.reply.say, /What is the drift\?/);
+  s = iwp('2', s.pending, k); assert.match(s.reply.say, /^Steer \d{3}°/);
+  let v = iwp('compass 045 dev 2 E', null, k);
+  v = iwp('3 west', v.pending, k); assert.match(v.reply.say, /044|True|°/);
+  assert.equal(iwp('270', null, k).reply.kind, 'say');   // with nothing asked, a bare number is still not a request
+}
+console.log('one at a time: ok');

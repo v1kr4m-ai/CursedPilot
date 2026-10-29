@@ -7,6 +7,18 @@ const near = (a: number, b: number, tol = 1e-6) => assert.ok(Math.abs(a - b) <= 
 // angles
 near(m.norm360(-10), 350); near(m.norm360(370), 10); near(m.reciprocal(45), 225); near(m.reciprocal(270), 90);
 near(m.radianAngle(1, 60), 0.954929658551372);
+// the radian rule L = (R x angle) / 60: any one of the three from the other two
+{
+  const a = m.solveRadian({ length: 100, range: null, angle: 1 })!; near(a.range, 6000, 1e-9); assert.equal(a.solved, 'range');
+  const b = m.solveRadian({ length: null, range: 6000, angle: 2 })!; near(b.length, 200, 1e-9); assert.equal(b.solved, 'length');
+  const c = m.solveRadian({ length: 200, range: 6000, angle: null })!; near(c.angle, 2, 1e-9); assert.equal(c.solved, 'angle');
+  near(m.solveRadian({ length: null, range: 1000, angle: 2 })!.length, 1000 * 2 / 60, 1e-9);
+  near(m.solveRadian({ length: 33.3333333, range: 2000, angle: null })!.angle, 1, 1e-6);                         // 1 degree at 2000 yards is 33.3 yards
+  assert.equal(m.solveRadian({ length: 1, range: 2, angle: 3 }), null);                                          // all three: nothing to solve
+  assert.equal(m.solveRadian({ length: 1, range: null, angle: null }), null);                                    // only one given
+  assert.equal(m.solveRadian({ length: 5, range: null, angle: 0 }), null);                                       // no range for a zero angle
+  assert.equal(m.solveRadian({ length: 5, range: 0, angle: null }), null);
+}
 
 // time / speed / distance: any one from the other two
 let r = m.solveTSD({ distance: null, speed: 12, minutes: 30 })!; near(r.distance, 6); assert.equal(r.solved, 'distance');

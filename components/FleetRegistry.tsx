@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Pin, Search, Star, Trash2, X } from 'lucide-react';
 import { Ship } from '../types';
 import { NAVY_LIST } from '../data/foreignNavies';
+
+const COUNTRIES = [{ id: 'in', label: 'India' }, ...NAVY_LIST.map(n => ({ id: n.id, label: n.label }))];
 import { CATEGORIES, FleetMeta, MAX_PINS, SORT_LABELS, SortKey, orderShips, togglePin, setMyShip } from '../data/fleet';
 
 interface Props {
@@ -25,11 +27,16 @@ const FleetRegistry: React.FC<Props> = ({ ships, meta, onMeta, onOpen, onDelete 
   const { pinned, groups } = useMemo(() => orderShips(ships, meta, query), [ships, meta, query]);
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    ships.filter(s => !s.navy || meta.navies.includes(s.navy)).forEach(s => { c[s.type] = (c[s.type] ?? 0) + 1; });
+    ships.filter(s => s.catalog !== true || meta.countries.includes(s.navy ?? 'in')).forEach(s => { c[s.type] = (c[s.type] ?? 0) + 1; });
     return c;
-  }, [ships, meta.navies]);
-  const navyCount = (id: string) => ships.filter(s => s.navy === id).length;
-  const toggleNavy = (id: string) => onMeta({ ...meta, navies: meta.navies.includes(id) ? meta.navies.filter(x => x !== id) : [...meta.navies, id] });
+  }, [ships, meta.countries]);
+  const countryCount = (id: string) => ships.filter(s => s.catalog === true && (s.navy ?? 'in') === id).length;
+  // any one or more countries; the last one stays on, so the list is never empty
+  const toggleCountry = (id: string) => {
+    const on = meta.countries.includes(id);
+    if (on && meta.countries.length === 1) return;
+    onMeta({ ...meta, countries: on ? meta.countries.filter(x => x !== id) : [...meta.countries, id] });
+  };
   const shown = pinned.length + groups.reduce((n, g) => n + g.ships.length, 0);
 
   const pin = (e: React.MouseEvent, ship: Ship) => {
@@ -81,7 +88,7 @@ const FleetRegistry: React.FC<Props> = ({ ships, meta, onMeta, onOpen, onDelete 
     <div className="p-6 pb-28 max-w-xl mx-auto">
       <header className="mb-5">
         <h1 className="text-2xl font-bold text-slate-800">Fleet Registry</h1>
-        <p className="text-sm text-slate-400 font-medium">{shown} ships{ships.some(s => s.navy) && !query && meta.navies.length === 0 ? ' · other navies: switch a country on, or search' : ''}</p>
+        <p className="text-sm text-slate-400 font-medium">{shown} ships{query ? ' · search covers every country' : ''}</p>
       </header>
 
       <div className="relative mb-3">
@@ -91,8 +98,8 @@ const FleetRegistry: React.FC<Props> = ({ ships, meta, onMeta, onOpen, onDelete 
         {query && <button onClick={() => setQuery('')} aria-label="Clear search" className="absolute inset-y-0 right-3 flex items-center text-slate-300"><X size={18} /></button>}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 mb-1" style={{ scrollbarWidth: 'none' }} aria-label="Other navies">
-        {NAVY_LIST.map(n => chip(n.label, meta.navies.includes(n.id), () => toggleNavy(n.id), navyCount(n.id)))}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 mb-1" style={{ scrollbarWidth: 'none' }} aria-label="Countries (choose one or more)">
+        {COUNTRIES.map(c => chip(c.label, meta.countries.includes(c.id), () => toggleCountry(c.id), countryCount(c.id)))}
       </div>
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 mb-2" style={{ scrollbarWidth: 'none' }}>
         {chip('All', meta.category === null, () => onMeta({ ...meta, category: null }), (Object.values(counts) as number[]).reduce((a, b) => a + b, 0))}

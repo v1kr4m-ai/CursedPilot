@@ -101,13 +101,21 @@ console.log('fleet: all checks passed');
     assert.ok(NAVY_LIST.some(n => n.id === c.navy) && !!c.prefix, `${c.name}: bad navy`);
   }
   const all = f.mergeCatalog([]);
-  const q = (query: string, navies: string[] = []) => f.orderShips(all, { ...f.defaultMeta(), navies }, query).groups.flatMap(g => g.ships);
-  assert.equal(q('').length, CATALOG.length);                                          // foreign ships hidden by default
-  assert.ok(q('', ['pk']).some(s => s.name === 'PNS Tughril') && !q('', ['pk']).some(s => s.navy === 'tr'));   // only the toggled country
+  const q = (query: string, countries: string[] = ['in']) => f.orderShips(all, { ...f.defaultMeta(), countries }, query).groups.flatMap(g => g.ships);
+  assert.equal(q('').length, CATALOG.length);                                          // India is the default: foreign ships hidden
+  assert.ok(q('', ['pk']).some(s => s.name === 'PNS Tughril') && !q('', ['pk']).some(s => s.navy === 'tr'));   // only the chosen country
+  assert.ok(q('', ['pk']).every(s => s.navy === 'pk'));                                 // and no Indian ships mixed in
+  assert.equal(q('', ['in', 'pk']).length, CATALOG.length + FOREIGN_CATALOG.filter(c => c.navy === 'pk').length);   // one or more countries together
+  assert.ok(new Set(q('', ['us', 'kr', 'fr']).map(s => s.navy)).size === 3);
   assert.ok(q('F261').some(s => s.name === 'PNS Tughril'));                            // a search finds a hidden navy's ship by pennant
   assert.ok(q('korea').some(s => s.name === 'ROKS Sejong the Great') && q('korea').length > 50);
   assert.ok(q('ddg-51').some(s => s.name === 'USS Arleigh Burke'));
-  assert.equal(f.sanitizeMeta({ navies: ['pk', 'zz'] }).navies.join(), 'pk');
+  assert.equal(f.sanitizeMeta({ navies: ['pk', 'zz'] }).countries.join(), 'in,pk');                 // settings saved by the earlier version: the Indian ships were always shown
+  assert.equal(f.sanitizeMeta({ countries: ['us', 'zz', 'us'] }).countries.join(), 'us');
+  assert.equal(f.sanitizeMeta({ countries: [] }).countries.join(), 'in'); assert.equal(f.sanitizeMeta({}).countries.join(), 'in');
+  // the user's own ships are listed whatever the countries chosen
+  const mine = { ...custom, id: 'mine2', name: 'My Boat 2', type: 'Frigates' };
+  assert.ok(f.orderShips([mine, ...all], { ...f.defaultMeta(), countries: ['us'] }, '').groups.flatMap(g => g.ships).some(s => s.id === 'mine2'));
   const ford = FOREIGN_CATALOG.filter(c => c.navy === 'us').map(c => f.catalogToShip(c).name);
   assert.ok(ford.includes('USS Gerald R. Ford') && ford.includes('USS Zumwalt') && ford.includes('USNS Lewis and Clark') && ford.includes('USS Ted Stevens'));
   // Janes flag: only figures that differ from the class (Wikipedia) figure are kept
@@ -115,3 +123,54 @@ console.log('fleet: all checks passed');
   const sj = f.catalogToShip(withJ); assert.deepEqual(sj.info!.janes, { displacement: '1,200 t' });
 }
 console.log('foreign navies: ok', FOREIGN_CATALOG.length, 'ships');
+
+// ---- the other navies' ships carry their class data inside the app (no connection needed)
+{
+  const { SPECS } = await import('./navies/specs/index.ts');
+  const { NAVY_DATA } = await import('./foreignNavies.ts');
+  for (const k of Object.keys(SPECS)) { const [id, key] = k.split(':'); assert.ok(NAVY_DATA.find(n => n.navy.id === id)?.classes[key], `spec ${k} matches no class`); }
+  for (const c of FOREIGN_CATALOG) {
+    assert.ok(c.cls.armament.trim(), `${c.name}: no armament`);
+  }
+  const share = (field: 'propulsion' | 'complement' | 'speed' | 'length') => FOREIGN_CATALOG.filter(c => String(c.cls[field]).trim()).length / FOREIGN_CATALOG.length;
+  assert.ok(share('speed') > 0.7 && share('propulsion') > 0.6 && share('complement') > 0.6 && share('length') > 0.75, `thin data: speed ${share('speed')}, propulsion ${share('propulsion')}, complement ${share('complement')}, length ${share('length')}`);
+  const tughril = f.catalogToShip(FOREIGN_CATALOG.find(c => c.name === 'Tughril')!);
+  assert.equal(tughril.info!.length, '134 m'); assert.match(tughril.info!.armament, /HQ|LY-80N/); assert.equal(tughril.particulars.lengthOverall, 134); assert.equal(tughril.particulars.breadthOverall, 16);
+  const ford = f.catalogToShip(FOREIGN_CATALOG.find(c => c.name === 'Gerald R. Ford')!);
+  assert.match(ford.info!.armament, /ESSM/); assert.ok(ford.particulars.lengthOverall > 300);
+}
+console.log('class data: ok');
+
+// ---- a ship saved by an earlier version gains the details the catalogue now has, without losing what was typed
+{
+  const fresh = f.catalogToShip(FOREIGN_CATALOG.find(c => c.name === 'Tughril')!);
+  const old = { ...fresh, info: { ...fresh.info!, armament: '', sensors: '', propulsion: '', speed: '31 kn typed', notes: 'my note' }, particulars: { ...fresh.particulars, lengthOverall: 0 } };
+  const [got] = f.mergeCatalog([old]).filter(s => s.id === fresh.id);
+  assert.equal(got.info!.armament, fresh.info!.armament); assert.equal(got.info!.sensors, fresh.info!.sensors); assert.equal(got.info!.propulsion, fresh.info!.propulsion);   // filled
+  assert.equal(got.info!.speed, '31 kn typed'); assert.equal(got.info!.notes, 'my note');                        // typed values kept
+  assert.equal(got.particulars.lengthOverall, 134);                                                              // the empty particular filled
+  const again = f.mergeCatalog([got]).find(s => s.id === fresh.id)!; assert.equal(again, got);                    // nothing missing: same object
+  const mine2: Ship = { ...custom, id: 'mine3', info: { ...fresh.info!, armament: '' } };
+  assert.equal(f.mergeCatalog([mine2]).find(s => s.id === 'mine3')!.info!.armament, '');                           // the user's own ships are never filled
+}
+// tankers carry their replenishment rigs as Wikipedia gives them (positions to be entered); a ship saved before them gains them, a typed list is kept
+{
+  const all = f.mergeCatalog([]);
+  const aditya = all.find(s => /Aditya/.test(s.name) && s.type === 'Fleet Tankers')!, jyoti = all.find(s => /Jyoti/.test(s.name))!;
+  assert.deepEqual(aditya.particulars.rigs!.map(r => r.name), ['Port Fwd', 'Port Aft', 'Stbd Fwd', 'Stbd Aft']);
+  assert.deepEqual(jyoti.particulars.rigs!.map(r => r.side), ['Port', 'Port', 'Starboard', 'Starboard', 'Astern']);
+  assert.ok(aditya.particulars.rigs!.every(r => r.stemDistance === 0));
+  const shakti = all.find(s => /Shakti/.test(s.name) && s.type === 'Fleet Tankers')!;          // not published: two placeholder stations a side
+  assert.deepEqual(shakti.particulars.rigs!.map(r => r.name), ['Port Fwd', 'Port Aft', 'Stbd Fwd', 'Stbd Aft']);
+  const named = { ...aditya, particulars: { ...aditya.particulars, rigs: ['RAS station 1', 'RAS station 2'].map(name => ({ name, stemDistance: 0 })) } };   // the earlier names, nothing entered: renamed
+  assert.deepEqual(f.mergeCatalog([named]).find(s => s.id === aditya.id)!.particulars.rigs!.map(r => r.name), ['Port Fwd', 'Port Aft', 'Stbd Fwd', 'Stbd Aft']);
+  const placed = { ...aditya, particulars: { ...aditya.particulars, rigs: [{ name: 'RAS station 1', stemDistance: 60 }] } };   // a position entered: kept
+  assert.deepEqual(f.mergeCatalog([placed]).find(s => s.id === aditya.id)!.particulars.rigs, placed.particulars.rigs);
+  assert.ok(all.filter(s => s.type === 'Fleet Tankers' && s.catalog).every(s => (s.particulars.rigs?.length ?? 0) > 0), 'every catalogue tanker has rigs');
+  assert.ok(all.filter(s => s.type !== 'Fleet Tankers').every(s => !s.particulars.rigs), 'only tankers');
+  const old = { ...aditya, particulars: { ...aditya.particulars, rigs: undefined } };
+  assert.equal(f.mergeCatalog([old]).find(s => s.id === aditya.id)!.particulars.rigs!.length, 4);
+  const typed = { ...aditya, particulars: { ...aditya.particulars, rigs: [{ name: 'Fwd', side: 'Port' as const, stemDistance: 55 }] } };
+  assert.deepEqual(f.mergeCatalog([typed]).find(s => s.id === aditya.id)!.particulars.rigs, typed.particulars.rigs);
+}
+console.log('older saved ships: ok');

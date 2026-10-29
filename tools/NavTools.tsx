@@ -9,6 +9,7 @@ import * as nav from './navMath';
 import { RescueTurn, Side, TURNS, circleLookup, rescue, turnsFor as mobTurnsFor } from './manOverboard';
 
 import { AstroTool } from './AstroTool';
+import { LatLongTool, PositionCalcTool } from './PositionTools';
 import { CpaPpi } from './CpaPpi';
 import { OwnFormula } from './OwnFormula';
 import { CameraBearing } from './CameraBearing';
@@ -25,6 +26,7 @@ import { FuelTool } from './FuelTool';
 import { CorpenTool, RasApproachTool, RegainTrackTool } from './ManoeuvreTools';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
 import { ReferenceTool } from './ReferenceTool';
+import { BearingCalcTool } from './BearingCalcTool';
 import { parseClock } from './sunSights';
 import { Field, Grid, LengthField, Panel, Result, SELECT, Seg, SideToggle, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
 
@@ -99,11 +101,15 @@ const TsdTool: React.FC = () => {
 const dmText = (v: number) => { const a = Math.abs(v); let d = Math.floor(a), m = Math.round((a - d) * 600) / 10; if (m >= 60) { d += 1; m = 0; } return `${v < 0 ? '-' : ''}${d}\u00B0 ${m.toFixed(1)}'`; };
 
 const RadianTool: React.FC = () => {
-  const f = useForm('radian', ['dist', 'range'] as const);
+  const f = useForm('radian', ['dist', 'range', 'ang'] as const);
   const [ud, setUd] = useUnit('radian:dist');
   const [ur, setUr] = useUnit('radian:range');
+  const cv = nav.navyLength;   // the school's lengths: a mile is 2000 yards and a cable 200
   const d = f.n('dist'), r = f.n('range');
-  const dm = d === null ? null : nav.convertLength(d, ud, 'metres'), rm = r === null ? null : nav.convertLength(r, ur, 'metres');
+  const dm = d === null ? null : cv(d, ud, 'metres'), rm = r === null ? null : cv(r, ur, 'metres');
+  const ang = nav.parseAngle(f.v.ang);
+  const sol = nav.solveRadian({ length: dm, range: rm, angle: ang });
+  const filled = [dm, rm, ang].filter(v => v !== null).length;
 
   // interpolation between two readings of range and angle, as from a table
   const g = useForm('radian-interp', ['r1', 'a1', 'r2', 'a2', 'want'] as const);
@@ -121,10 +127,18 @@ const RadianTool: React.FC = () => {
     : wantAngle !== null && a1 !== null && a2 !== null && (wantAngle < Math.min(a1, a2) || wantAngle > Math.max(a1, a2)));
   return (
     <div className="space-y-2">
-      <Panel title="Radian rule (angle = distance / range)" note="Gives the angle subtended in degrees. The two lengths may be in different units.">
-        <LengthField label="Distance off" unit={ud} onUnit={setUd} {...f.bind('dist')} />
-        <LengthField label="Range" unit={ur} onUnit={setUr} {...f.bind('range')} />
-        {dm !== null && rm !== null && rm > 0 && <Result rows={[['Angle', `${nav.radianAngle(dm, rm).toFixed(2)}\u00B0`]]} />}
+      <Panel title="Radian rule: L = (R × Angle) / 60" note="Three variables: the length across the line of sight (L), the range (R) and the angle subtended. Fill in any two and leave the third empty to solve for it. The two lengths may be in different units.">
+        <LengthField label="Length across (L)" unit={ud} onUnit={setUd} {...f.bind('dist')} />
+        <LengthField label="Range (R)" unit={ur} onUnit={setUr} {...f.bind('range')} />
+        <Field label="Angle" unit="\u00B0 \u2032" kind="angle" {...f.bind('ang')} />
+        <p className="text-[10px] text-slate-400 font-medium leading-snug">L = (R × angle in degrees) / 60. So 1° at 1 nm is 1/60 nm, about 33 yards, a mile being taken as 2000 yards and a cable as 200.</p>
+        {sol && <Result rows={sol.solved === 'angle' ? [['Angle', `${sol.angle.toFixed(2)}° (${dmText(sol.angle)})`]]
+          : sol.solved === 'length' ? [['Length across (L)', nav.formatLength(cv(sol.length, 'metres', ud), ud)],
+            ...(['yards', 'metres', 'cables'] as nav.LengthUnit[]).filter(u => u !== ud).slice(0, 2).map(u => ['  or', nav.formatLength(cv(sol.length, 'metres', u), u)] as [string, string])]
+            : [['Range (R)', nav.formatLength(cv(sol.range, 'metres', ur), ur)],
+              ...(['nm', 'cables'] as nav.LengthUnit[]).filter(u => u !== ur).map(u => ['  or', nav.formatLength(cv(sol.range, 'metres', u), u)] as [string, string])]} />}
+        {filled === 3 && <Warn>All three are filled in: clear one to solve for it.</Warn>}
+        {ang !== null && ang <= 0 && filled >= 2 && <Warn>The angle must be more than zero to give a range.</Warn>}
       </Panel>
       <Panel closed title="Interpolate between two readings" note="Enter two known pairs of range and angle (from a table or from two sights) and the value in between. Straight line is how a table is read; Inverse follows the radian rule, where the angle falls as the range grows, and is the better choice over a wide span.">
         <UnitPick label="Ranges in" unit={uri} onChange={setUri} />
@@ -143,27 +157,30 @@ const RadianTool: React.FC = () => {
         {found && outside && <Warn>That is outside the two readings, so the answer is carried beyond them and is less reliable.</Warn>}
         {r1 !== null && r2 !== null && r1 === r2 && <Warn>The two ranges must be different.</Warn>}
       </Panel>
-    <OwnFormula id="radian" unitHint="°" vars={[{ name: 'D', label: 'distance off (m)', value: dm }, { name: 'R', label: 'range (m)', value: rm }, { name: 'angle', label: 'angle (°)', value: dm !== null && rm !== null && rm > 0 ? nav.radianAngle(dm, rm) : null }]} />
+    <OwnFormula id="radian" unitHint="°" vars={[{ name: 'L', label: 'length across (m)', value: sol?.solved === 'length' ? sol.length : dm }, { name: 'R', label: 'range (m)', value: sol?.solved === 'range' ? sol.range : rm }, { name: 'angle', label: 'angle (°)', value: sol?.solved === 'angle' ? sol.angle : ang }]} />
     </div>
   );
 };
 
 const CpaTool: React.FC = () => {
   const f = useForm('cpa', ['oc', 'os', 'brg', 'rng', 'tc', 'ts'] as const);
-  const [unit, setUnit] = useUnit('cpa:unit');
+  const [unit, setUnit] = useUnit('cpa:range', 'nm');   // radar ranges are in miles: a range typed as "6" taken as 6 cables made the TCPA ten times too short
+  const [brgKind, setBrgKind] = useMemory<'true' | 'rel'>('cpa:brgkind', 'true');
   const v = ['oc', 'os', 'brg', 'rng', 'tc', 'ts'].map(k => f.n(k as 'oc'));
   const ready = v.every(x => x !== null);
-  const input: nav.CpaInput | null = ready ? { ownCourse: v[0]!, ownSpeed: v[1]!, bearing: v[2]!, range: nav.convertLength(v[3]!, unit, 'nm'), targetCourse: v[4]!, targetSpeed: v[5]! } : null;
+  // a head-up radar gives the bearing relative to own ship's head: the true bearing is the head plus it
+  const input: nav.CpaInput | null = ready ? { ownCourse: v[0]!, ownSpeed: v[1]!, bearing: brgKind === 'rel' ? nav.norm360(v[0]! + v[2]!) : v[2]!, range: nav.convertLength(v[3]!, unit, 'nm'), targetCourse: v[4]!, targetSpeed: v[5]! } : null;
   const r = input ? nav.cpa(input) : null;
   const geo = input ? nav.cpaGeometry(input) : null;
   const [headUp, setHeadUp] = useMemory('cpa:headup', true);
   return (
     <div className="space-y-2">
-    <Panel title="CPA / TCPA" note="True bearing, true courses, speeds through the ground. Assumes both vessels hold course and speed.">
+    <Panel title="CPA / TCPA" note="True courses, and speeds of the same kind for both ships (both over the ground, as a ground-stabilised radar, or both through the water, as sea-stabilised). Check the range unit. Assumes both vessels hold course and speed.">
+      <Seg value={brgKind} options={[['true', 'True bearing'], ['rel', 'Relative (head-up)']] as const} onChange={k => setBrgKind(k as 'true' | 'rel')} />
       <Grid>
         <Field label="Own course" unit="°T" sensor="course" {...f.bind('oc')} />
         <Field label="Own speed" unit="kn" sensor="speed" {...f.bind('os')} />
-        <Field label="Target bearing" unit="°T" {...f.bind('brg')} />
+        <Field label="Target bearing" unit={brgKind === 'rel' ? '° relative' : '°T'} {...f.bind('brg')} />
         <LengthField label="Range" unit={unit} onUnit={setUnit} {...f.bind('rng')} />
         <Field label="Target course" unit="°T" {...f.bind('tc')} />
         <Field label="Target speed" unit="kn" units {...f.bind('ts')} />
@@ -171,7 +188,8 @@ const CpaTool: React.FC = () => {
       {r && (
         <Result tone={r.status === 'closing' && r.cpa < 1 ? 'warn' : 'ok'} rows={[
           ['CPA', fromNm(r.cpa, unit)],
-          ['TCPA', r.tcpaMinutes === null ? (r.status === 'steady' ? 'no relative motion' : 'past, opening') : `${r.tcpaMinutes.toFixed(1)} min`],
+          ['TCPA', r.tcpaMinutes === null ? (r.status === 'steady' ? 'no relative motion' : 'past, opening') : `${r.tcpaMinutes.toFixed(1)} min (${hhmm(r.tcpaMinutes)})`],
+          ['Worked from', `${bearing(input!.bearing)}T at ${input!.range.toFixed(2)} nm`],
           ...(r.status === 'closing' && r.cpa >= 0.01 ? [['Bearing at CPA', bearing(r.bearingAtCpa)] as [string, string]] : []),
           ...(r.relativeCourse !== null ? [['Relative track', `${bearing(r.relativeCourse)} at ${r.relativeSpeed.toFixed(1)} kn`] as [string, string]] : []),
           ...(geo?.side ? [['Passes on your', `${geo.side} side`] as [string, string]] : []),
@@ -180,7 +198,7 @@ const CpaTool: React.FC = () => {
       )}
       {input && r && (
         <>
-          <Seg value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'Head-up'], ['north', 'North-up']]} />
+          <Seg value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H UP'], ['north', 'N UP']]} />
           <CpaPpi input={input} headUp={headUp} />
         </>
       )}
@@ -639,34 +657,150 @@ const HsaLengthPanel: React.FC = () => {
   );
 };
 
+// ---- Bearings & Positions: the bearing, compass and unit tools with latitude and longitude, as tabs ------------------------------
+const BPU_TABS = ['bearings', 'compass', 'units', 'latlong', 'dist'] as const;
+const BPU_LABELS: Record<(typeof BPU_TABS)[number], string> = { bearings: 'Bearings', compass: 'Compass & Gyro', units: 'Units', latlong: 'Lat / Long', dist: 'Distance & Bearing' };
+
+const BearingsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const [tabRaw, setTab] = useMemory<string>('bpu:tab', 'bearings');
+  const tab = (BPU_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof BPU_TABS)[number] : 'bearings';
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Bearings and positions">
+        {BPU_TABS.map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{BPU_LABELS[k]}</button>
+        ))}
+      </div>
+      {tab === 'bearings' && <BearingTool />}
+      {tab === 'compass' && <CompassTool ship={ship} />}
+      {tab === 'units' && <UnitTool />}
+      {tab === 'latlong' && <LatLongTool />}
+      {tab === 'dist' && <PositionCalcTool />}
+    </div>
+  );
+};
+
+// ---- Battenberg & Stationing: taking and changing station, joining from ahead, and station changes, as tabs -----------------------------
+const STN_TABS = ['batt', 'bows', 'changes'] as const;
+const STN_LABELS: Record<(typeof STN_TABS)[number], string> = { batt: 'Battenberg', bows: 'From the bows', changes: 'Station changes' };
+
+const StationingTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const [tabRaw, setTab] = useMemory<string>('stn:tab', 'batt');
+  const tab = (STN_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof STN_TABS)[number] : 'batt';
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Battenberg and stationing">
+        {STN_TABS.map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{STN_LABELS[k]}</button>
+        ))}
+      </div>
+      {tab === 'batt' && <BattenbergTool ship={ship} />}
+      {tab === 'bows' && <StationFromBowsTool ship={ship} />}
+      {tab === 'changes' && <StationChangesTool />}
+    </div>
+  );
+};
+
+// ---- Wheel-over Point: the wheel-over and the Bearing Calculator, as tabs ---------------------------------------------------------
+const WO_TABS = ['wheel', 'brg'] as const;
+const WO_LABELS: Record<(typeof WO_TABS)[number], string> = { wheel: 'Wheel-over', brg: 'Bearing Calculator' };
+
+const WheelOverTabs: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const [tabRaw, setTab] = useMemory<string>('wo:tab', 'wheel');
+  const tab = (WO_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof WO_TABS)[number] : 'wheel';
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Wheel-over and bearing calculator">
+        {WO_TABS.map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{WO_LABELS[k]}</button>
+        ))}
+      </div>
+      {tab === 'wheel' && <WheelOverTool ship={ship} />}
+      {tab === 'brg' && <BearingCalcTool />}
+    </div>
+  );
+};
+
+// ---- Radian Rule: the radian rule and time, speed and distance, as tabs -------------------------------------------------------------
+const RR_TABS = ['radian', 'tsd'] as const;
+const RR_LABELS: Record<(typeof RR_TABS)[number], string> = { radian: 'Radian rule', tsd: 'Time-Speed-Distance' };
+
+const RadianTabs: React.FC = () => {
+  const [tabRaw, setTab] = useMemory<string>('rr:tab', 'radian');
+  const tab = (RR_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof RR_TABS)[number] : 'radian';
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Radian rule and time, speed, distance">
+        {RR_TABS.map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{RR_LABELS[k]}</button>
+        ))}
+      </div>
+      {tab === 'radian' && <RadianTool />}
+      {tab === 'tsd' && <TsdTool />}
+    </div>
+  );
+};
+
+// ---- Course to Steer: the course to steer and regaining track, as tabs --------------------------------------------------------------
+const CTS_TABS = ['cts', 'regain'] as const;
+const CTS_LABELS: Record<(typeof CTS_TABS)[number], string> = { cts: 'Course to steer', regain: 'Regain track' };
+
+const CtsTabs: React.FC = () => {
+  const [tabRaw, setTab] = useMemory<string>('cts:tab', 'cts');
+  const tab = (CTS_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof CTS_TABS)[number] : 'cts';
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Course to steer and regain track">
+        {CTS_TABS.map(k => (
+          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{CTS_LABELS[k]}</button>
+        ))}
+      </div>
+      {tab === 'cts' && <CtsTool />}
+      {tab === 'regain' && <RegainTrackTool />}
+    </div>
+  );
+};
+
+/** Tools that are now a tab of another, as NavYeo's commands still name them: [the tool, its tab memory key, the tab]. */
+export const TOOL_TABS: Record<string, [string, string, string]> = {
+  'Wheel-over Point': ['Wheel-over Point', 'wo:tab', 'wheel'], 'Bearing Calculator': ['Wheel-over Point', 'wo:tab', 'brg'],
+  'Radian Rule': ['Radian Rule', 'rr:tab', 'radian'], 'Time / Speed / Distance': ['Radian Rule', 'rr:tab', 'tsd'],
+  'Course to Steer': ['Course to Steer', 'cts:tab', 'cts'], 'Regain Track': ['Course to Steer', 'cts:tab', 'regain'],
+};
+
+/** Tools that were merged into another: a name saved by an earlier version (on the home bar) is opened as the tool it became. */
+export const RENAMED_TOOLS: Record<string, string> = {
+  'Bearing Calculator': 'Wheel-over Point', 'Time / Speed / Distance': 'Radian Rule', 'Regain Track': 'Course to Steer', 'Compass Conversion': 'Bearings & Positions', 'Unit Converter': 'Bearings & Positions',
+  'Battenberg': 'Battenberg & Stationing', 'Station from Bows': 'Battenberg & Stationing', 'Station Changes': 'Battenberg & Stationing',
+};
+
 // ---- registry ----------------------------------------------------------------------------------
 
 export interface NavTool { name: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship; fleet?: Ship[] }> }
 
 export const NAV_TOOLS: NavTool[] = [
-  { name: 'Bearing Calculator', short: 'Bearings', desc: 'Reciprocal and relative to true bearings', icon: <Navigation size={18} className="text-blue-500" />, Component: BearingTool },
-  { name: 'Time / Speed / Distance', short: 'Time-Speed-Dist', desc: 'Solve any one from the other two', icon: <Clock size={18} className="text-orange-500" />, Component: TsdTool },
+  { name: 'Bearings & Positions', short: 'Bearings', desc: 'Bearings, compass and gyro, units, latitude and longitude, and distance and bearing between positions', icon: <Navigation size={18} className="text-blue-500" />, Component: BearingsTool },
   { name: 'CPA / TCPA', short: 'CPA', desc: 'Closest approach to a contact', icon: <Radar size={18} className="text-red-500" />, Component: CpaTool },
   { name: 'Angle on the Bow (ATB)', short: 'ATB', desc: 'Target course from bearing and angle on the bow, or the reverse', icon: <ShipIcon size={18} className="text-sky-500" />, Component: AtbTool },
-  { name: 'Course to Steer', short: 'Course to steer', desc: 'Allow for set and drift', icon: <Waves size={18} className="text-cyan-500" />, Component: CtsTool },
+  { name: 'Course to Steer', short: 'Course to steer', desc: 'Allow for set and drift, and regaining track (time or throw-off by the radian rule)', icon: <Waves size={18} className="text-cyan-500" />, Component: CtsTabs },
   { name: 'Distance Off & Horizon', short: 'Dist off', desc: 'Vertical sextant angle, visibility, radar range', icon: <Eye size={18} className="text-emerald-500" />, Component: DistanceOffTool },
   { name: 'Horizontal Sextant Angle (HSA)', short: 'HSA', desc: 'Position fix from two horizontal angles, and distance off', icon: <MapPin size={18} className="text-rose-500" />, Component: HsaTool },
-  { name: 'Wheel-over Point', short: 'Wheel-over', desc: 'Where to put the wheel over for a turn', icon: <RotateCw size={18} className="text-indigo-500" />, Component: WheelOverTool },
+  { name: 'Wheel-over Point', short: 'Wheel-over', desc: 'Where to put the wheel over for a turn, and the Bearing Calculator: bearing and range of an object along its track every 5 cables or 1 nm', icon: <RotateCw size={18} className="text-indigo-500" />, Component: WheelOverTabs },
   { name: 'Man Overboard Turn', short: 'MOB', desc: 'Williamson and Scharnow turns worked from the ship\'s turning data', icon: <LifeBuoy size={18} className="text-red-500" />, Component: MobTool },
   { name: 'ASTRO', short: 'ASTRO', desc: 'Sun Run Sun, Sun Run Merpass, four star fix, Polaris, rise, set and twilight', icon: <Sun size={18} className="text-amber-500" />, Component: AstroTool },
   { name: 'Tides', short: 'Tides', desc: 'Height of tide at a time, flood or ebb, springs or neaps', icon: <ArrowUpDown size={18} className="text-teal-500" />, Component: TidesTool },
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
-  { name: 'Battenberg', short: 'Battenberg', desc: 'Course to steer to take or change station on a Guide, with the stations on a Battenberg diagram', icon: <Target size={18} className="text-rose-600" />, Component: BattenbergTool },
-  { name: 'Station from Bows', short: 'Station from bows', desc: 'Joining from ahead (BR 45(6) 0425): the wheel-over bearing and range of the Guide, worked back from the station with advance, transfer, speed loss and turn time', icon: <RotateCw size={18} className="text-emerald-500" />, Component: StationFromBowsTool },
+  { name: 'Battenberg & Stationing', short: 'Battenberg', desc: 'Taking and changing station on a Guide: the course to steer (Battenberg), joining from ahead (station from bows) and station changes (BR 45(6))', icon: <Target size={18} className="text-rose-600" />, Component: StationingTool },
   { name: 'Corpen', short: 'Corpen', desc: 'When to alter course by Corpen: stopwatch and radian rule, in column or abreast (Corpen ’S’)', icon: <Shuffle size={18} className="text-violet-500" />, Component: CorpenTool },
-  { name: 'Regain Track', short: 'Regain track', desc: 'Time or throw-off to regain track by the radian rule, and the allowance for a stream', icon: <Spline size={18} className="text-cyan-600" />, Component: RegainTrackTool },
   { name: 'RAS Approach', short: 'RAS approach', desc: 'Course to steer for the working distance and when to come down in speed when coming alongside', icon: <Ship2 size={18} className="text-sky-600" />, Component: RasApproachTool },
   { name: 'Relative Motion', short: 'Rel-vel', desc: 'Contact course from a plot, time at a range, pass at a distance, close a faster ship (REL-VEL docket)', icon: <Crosshair size={18} className="text-orange-600" />, Component: RelMotionTool },
-  { name: 'Station Changes', short: 'Station changes', desc: 'Round-the-clock station changes, reversing the order in column, losing distance (BR 45(6) 0427 to 0429)', icon: <Repeat size={18} className="text-indigo-600" />, Component: StationChangesTool },
   { name: 'Fuel Planning', short: 'Fuel', desc: 'Endurance from the fuel left, or the fuel for a passage, from the ship’s own fuel data', icon: <Fuel size={18} className="text-orange-600" />, Component: FuelTool },
   { name: 'Flying Corpen', short: 'Flying Corpen', desc: 'True wind, wind on deck, and the course and speed for helicopter flying', icon: <WindIcon size={18} className="text-sky-500" />, Component: FlyingCorpenTool },
   { name: 'Rules & Buoyage', short: 'Rules & buoyage', desc: 'IALA buoyage, lights and shapes, sound signals and the steering rules', icon: <BookOpen size={18} className="text-emerald-600" />, Component: ReferenceTool },
-  { name: 'Compass Conversion', short: 'Compass', desc: 'True, magnetic, compass and gyro', icon: <Compass size={18} className="text-amber-500" />, Component: CompassTool },
-  { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTool },
-  { name: 'Unit Converter', short: 'Units', desc: 'Distance and speed units, cables, fathoms', icon: <ArrowLeftRight size={18} className="text-slate-500" />, Component: UnitTool },
+  { name: 'Radian Rule', short: 'Radian rule', desc: 'Distance off and range from angle, and time, speed and distance', icon: <Calculator size={18} className="text-purple-500" />, Component: RadianTabs },
 ];

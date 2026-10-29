@@ -43,7 +43,7 @@ const ask = (text: string, c: Context = ctx()): Extract<Reply, { kind: 'open' }>
 // Battenberg: the BR 45(6) Example 4-1 triangle, 077 degrees
 {
   const r = ask('battenberg guide course 030 speed 10 own speed 20 from red 90 4 nm to ahead 1 nm');
-  assert.equal(r.tool, 'Battenberg'); assert.match(r.say, /Steer 077° at 20 kn/); assert.match(r.say, /on station in 16m 25s/); assert.match(r.say, /does not allow for the turn/);
+  assert.equal(r.tool, 'Battenberg & Stationing'); assert.equal(r.memory?.['stn:tab'], 'batt'); assert.match(r.say, /Steer 077° at 20 kn/); assert.match(r.say, /on station in 16m 25s/); assert.match(r.say, /does not allow for the turn/);
   assert.deepEqual(r.form?.values, { gc: '30', gs: '10', ss: '20', a1: '90', d1: '4', a2: '0', d2: '1' }); assert.equal(r.memory?.['batt:side1'], 'Port');
   // with the ship's deceleration figure it says where to slow down
   const s = ask('taking station guide course 030 speed 10 own speed 20 from red 90 4 nm to ahead 1 nm', ctx({ ship: { decelMetresPerKnot: 30 } }));

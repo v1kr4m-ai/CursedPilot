@@ -46,6 +46,8 @@ export interface ClassSpec {
   janes?: Partial<Record<'displacement' | 'length' | 'beam' | 'draught' | 'speed' | 'propulsion' | 'complement' | 'armament' | 'sensors', string>>;
   /** Wikipedia article used for the picture and short description when online */
   wiki: string;
+  /** a tanker's replenishment rigs as Wikipedia describes them (their positions are not published: the user enters them) */
+  rigs?: { name: string; side?: 'Port' | 'Starboard' | 'Astern' }[];
 }
 
 /** [name, pennant, commissioned (YYYY-MM), optional overrides] */
@@ -282,6 +284,8 @@ export const CLASSES: Record<string, ClassSpec> = {
     propulsion: '1 × Bryansk-B&W 6DKRN60/195 diesel (10,948 bhp)', complement: '~208 (23 officers)',
     armament: 'Close-in weapon systems', sensors: '', aircraft: '1 × light helicopter',
     loa: 178, breadth: 25.3, tons: 35900, wiki: 'INS_Jyoti_(A58)',
+    // Wikipedia: two replenishment positions on each side, and refuelling from the stern
+    rigs: [{ name: 'Port Fwd', side: 'Port' }, { name: 'Port Aft', side: 'Port' }, { name: 'Stbd Fwd', side: 'Starboard' }, { name: 'Stbd Aft', side: 'Starboard' }, { name: 'Stern', side: 'Astern' }],
   },
   aditya: {
     name: 'Aditya class (fleet tanker)', category: 'Fleet Tankers', builder: GRSE,
@@ -289,6 +293,8 @@ export const CLASSES: Record<string, ClassSpec> = {
     propulsion: '2 × MAN B&W diesels (23,972 hp), single shaft', complement: '~197 (incl. 6 aircrew)',
     armament: '1 × SA-N-10 SAM launcher; 3 × 30 mm Medak guns', sensors: '', aircraft: '1 × HAL Chetak',
     loa: 172, breadth: 23, tons: 24612, wiki: 'INS_Aditya_(A59)',
+    // Wikipedia: four RAS stations (taken as two a side)
+    rigs: [{ name: 'Port Fwd', side: 'Port' }, { name: 'Port Aft', side: 'Port' }, { name: 'Stbd Fwd', side: 'Starboard' }, { name: 'Stbd Aft', side: 'Starboard' }],
   },
   sandhayakNew: {
     name: 'Sandhayak class (2023, survey vessel large)', category: 'Survey & Research Vessels', builder: GRSE,

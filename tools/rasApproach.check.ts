@@ -1,36 +1,52 @@
-// Run: node tools/rasApproach.check.ts   (BR 45(6) RAS example: 18 kn down to the Guide's 12 kn in a minute: surge 100 yd)
+// Run: node tools/rasApproach.check.ts   (worked against the bridge's own surge sheets: SKBDL and light jackstay, SDA as Guide, SNY approaching)
 import assert from 'node:assert/strict';
 import * as r from './rasApproach.ts';
-import type { Ship } from '../types.ts';
 
 const near = (a: number, b: number, tol: number, m = '') => assert.ok(Math.abs(a - b) <= tol, `${m} ${a} vs ${b}`);
-// ships with the points at the same place and no breadth: pure surge geometry
-const same: r.Dims = { bridge: 50, ras: 50, fuel: 50 };
-const p = r.plan({ evolution: 'RASAP', guide: same, approach: same, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 })!;
-near(p.advantage, 6, 1e-9); near(p.slowMinutes, 1, 1e-9); near(p.surgeYd, 100, 1e-6);              // the book's 100 yd surge
-near(p.lateralYd, 40, 1e-9); near(p.slowBearing, Math.atan2(40, 100) * 180 / Math.PI, 1e-9);       // 120 ft abeam seen from 100 yd short: 21.8 degrees on the bow
-near(p.runYd, 400, 1e-6); near(p.runMinutes, 400 / 200, 1e-6); near(p.totalMinutes, 3, 1e-6); assert.equal(p.atOnce, false);   // 6 kn advantage is 200 yd a minute
-// a stand-by station inside the surge: slow at once
-assert.equal(r.plan({ evolution: 'RASAP', guide: same, approach: same, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 60 })!.atOnce, true);
-// a slower deceleration gives a longer surge: 3 kn a minute doubles the time and the surge (the surge is (advantage^2 / 2 / rate) in knot-minutes)
-near(r.plan({ evolution: 'RASAP', guide: same, approach: same, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 3, separationFt: 120, standbyYd: 500 })!.surgeYd, 200, 1e-6);
-// different points: the Guide's RAS point is further aft than the approach ship's, so her stem ends ahead of the Guide's; the bridge offset changes the bearing
-const g: r.Dims = { bridge: 40, ras: 70, fuel: 90, breadth: 16 }, a: r.Dims = { bridge: 45, ras: 60, fuel: 80, breadth: 14 };
-const ras = r.plan({ evolution: 'RASAP', guide: g, approach: a, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 })!;
-near(ras.stemOffsetM, 10, 1e-9);
-near(ras.lateralYd, 40 + (16 + 14) / 2 * (1 / 0.9144), 1e-6);
-const bridge = r.plan({ evolution: 'SKBDL', guide: g, approach: a, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 })!;
-near(bridge.stemOffsetM, -5, 1e-9); const fuel = r.plan({ evolution: 'UNREP', guide: g, approach: a, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 })!;
-near(fuel.stemOffsetM, 10, 1e-9);
-// missing figures are named; no speed advantage gives no plan
-const m = r.plan({ evolution: 'UNREP', guide: { bridge: 40 }, approach: { bridge: 45, fuel: 80 }, guideSpeed: 12, approachSpeed: 18, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 })!;
-assert.deepEqual(m.missing, ["the Guide's fuelling point"]);
-assert.equal(r.plan({ evolution: 'RASAP', guide: same, approach: same, guideSpeed: 18, approachSpeed: 12, decelKnPerMin: 6, separationFt: 120, standbyYd: 500 }), null);
-// the ship's own deceleration rate from her latest run: 20 to 10 kn in 120 s is 5 kn a minute
-const ship = { accelDecelData: [
-  { id: '1', date: '2026-01-01', description: '', fields: { type: 'Deceleration', from: '20', to: '12', time: '60' } },
-  { id: '2', date: '2026-03-01', description: '', fields: { type: 'Deceleration', from: '20', to: '10', time: '120' } },
-  { id: '3', date: '2026-04-01', description: '', fields: { type: 'Acceleration', from: '10', to: '20', time: '30' } },
-] } as Pick<Ship, 'accelDecelData'>;
-near(r.decelRate(ship)!, 5, 1e-9); assert.equal(r.decelRate({ accelDecelData: [] }), undefined); assert.equal(r.decelRate(undefined), undefined);
+
+// SKBDL with SDA: SDA's bridge 32.8 m from her stem and 69 m from her stern (101.8 m); SNY's bridge 32.4 m from her stem; 42 m apart; surge 25 yd a knot
+const sda: r.Dims = { bridge: 32.8, length: 101.8 }, sny: r.Dims = { bridge: 32.4, ras: 24.6 };
+const skbdl = (approachSpeed: number) => r.plan({ evolution: 'SKBDL', guide: sda, approach: sny, guideSpeed: 12, approachSpeed, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 })!;
+const at18 = skbdl(18);
+near(at18.advantage, 6, 1e-9); near(at18.surgeYd, 150, 1e-9); near(at18.surgeM, 137.16, 1e-9);              // 25 x 6 = 150 yd = 137.16 m
+near(at18.pointToStern, 69, 1e-9);
+near(at18.xM, 35.76, 1e-9, 'x = surge - 69 - 32.4');                                                          // the sheet: x = 137.16 - 101.4 = 35.76 m
+near(at18.thetaDeg, 58.34, 0.03, 'theta = atan((32.4 + 35.76) / 42)');                                       // the sheet: 58.34 deg at 18 kn
+const at16 = skbdl(16);                                                                                        // 4 kn: 100 yd = 91.44 m, so x is negative: overlapping
+near(at16.xM, 91.44 - 101.4, 1e-9); assert.ok(at16.xM < 0);
+near(at16.thetaDeg, Math.atan((32.4 + 91.44 - 101.4) / 42) * 180 / Math.PI, 1e-9);
+
+// light jackstay with SDA (RAS points): SDA's RAS point 73.95 m from her stern, SNY's 24.6 m from her stem; at 4 kn advantage
+const sdaRas: r.Dims = { bridge: 32.8, ras: 101.8 - 73.95, length: 101.8 };
+const jack = r.plan({ evolution: 'RASAP', guide: sdaRas, approach: sny, guideSpeed: 12, approachSpeed: 16, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 })!;
+near(jack.pointToStern, 73.95, 1e-9);
+near(jack.xM, 91.44 - 73.95 - 24.6, 1e-9);                                                                    // the sheet: x = 91 - 98.55 = -7.55 m (overlap)
+near(jack.thetaDeg, Math.atan((jack.xM + 32.4) / 42) * 180 / Math.PI, 1e-9);                                  // the sheet: atan(25 / 42) = 30.5 deg
+near(jack.thetaDeg, 31.06, 0.05);
+
+// several speed advantages at once, as on the sheet
+const table = r.sweep({ evolution: 'RASAP', guide: sdaRas, approach: sny, guideSpeed: 12, approachSpeed: 16, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 }, [4, 5, 6]);
+assert.deepEqual(table.map(t => Math.round(t.plan!.surgeYd)), [100, 125, 150]);
+assert.ok(table[0].plan!.thetaDeg < table[1].plan!.thetaDeg && table[1].plan!.thetaDeg < table[2].plan!.thetaDeg);   // a bigger surge: start slowing further back, her stern further forward
+
+// from own radar, 20 m from her stem: her stern at x + 20 along and 42 m across
+assert.equal(at18.radar, undefined);
+const withRadar = r.plan({ evolution: 'SKBDL', guide: sda, approach: { ...sny, radar: 20 }, guideSpeed: 12, approachSpeed: 18, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 })!;
+near(withRadar.radar!.rangeM, Math.hypot(35.76 + 20, 42), 1e-9); near(withRadar.radar!.thetaDeg, Math.atan2(55.76, 42) * 180 / Math.PI, 1e-9);
+
+// the final station and the run in
+near(at18.stemOffsetM, 32.4 - 32.8, 1e-9);                                                                     // bridges abreast: SNY's stem 0.4 m astern of SDA's
+near(at18.runYd, 350, 1e-9); near(at18.runMinutes, 350 / 200, 1e-9); assert.equal(at18.atOnce, false);       // from 500 yd: 6 kn is 200 yd a minute
+assert.equal(r.plan({ evolution: 'SKBDL', guide: sda, approach: sny, guideSpeed: 12, approachSpeed: 18, surgeYdPerKnot: 25, separationM: 42, standbyYd: 100 })!.atOnce, true);
+
+// different points: with the points abreast the approach ship's stem is (her point - the Guide's point) ahead
+const g: r.Dims = { bridge: 40, ras: 70, fuel: 90, breadth: 16, length: 150 }, a: r.Dims = { bridge: 45, ras: 60, fuel: 80, breadth: 14 };
+const base = { guide: g, approach: a, guideSpeed: 12, approachSpeed: 18, surgeYdPerKnot: 33, separationM: 42, standbyYd: 500 };
+near(r.plan({ ...base, evolution: 'RASAP' })!.stemOffsetM, -10, 1e-9);
+near(r.plan({ ...base, evolution: 'SKBDL' })!.stemOffsetM, 5, 1e-9);
+near(r.plan({ ...base, evolution: 'UNREP' })!.pointToStern, 60, 1e-9);
+
+// missing figures are named (the Guide's length is needed for her point to her stern); no speed advantage gives no plan
+assert.deepEqual(r.plan({ ...base, evolution: 'UNREP', guide: { bridge: 40 } })!.missing, ["the Guide's fuelling point", "the Guide's length"]);
+assert.equal(r.plan({ ...base, evolution: 'RASAP', approachSpeed: 10 }), null);
 console.log('rasApproach: all checks passed');

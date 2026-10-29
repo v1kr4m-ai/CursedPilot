@@ -6,18 +6,28 @@ import type { LengthUnit } from '../tools/navMath.ts';
 import type { ShipParams } from '../tools/shipParams.ts';
 import { NUM, lengthAfter, num } from './parse.ts';
 import { anchorCommand, battCommand, flyingCommand, referenceCommand, tideCommand, vsaCommand } from './shipCommands.ts';
+import { calcCommand } from './calcCommands.ts';
+import type { Ship } from '../types.ts';
 
 export interface TurnRow { turn: number; advance: number; transfer: number; time: number }   // yards, yards, seconds
 export interface TurnTable { speed: number; wheel: number; side: 'Port' | 'Starboard'; rows: TurnRow[] }
-export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit; /** the selected ship's figures, for the commands that use them */ ship?: ShipParams }
+export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit; /** the selected ship's figures, for the commands that use them */ ship?: ShipParams; /** her recorded turning data and fuel data, for Corpen and Fuel Planning */ turning?: Pick<Ship, 'turningDataSets'>; fuel?: Ship['fuelData'] }
 
 export type Reply =
-  | { kind: 'say'; say: string }
+  /** `wait`: the answer asks for something missing, so the next short reply is joined to this request; `unknown`: nothing was understood;
+   *  `next`: the item asked for first, so a bare answer ("270") is read as it ("target course 270") */
+  | { kind: 'say'; say: string; wait?: boolean; unknown?: boolean; next?: string }
   /** open `tool`; `form` values are put in that tool's number fields, `memory` entries are stored as they are */
-  | { kind: 'open'; tool: string; say: string; form?: { id: string; values: Record<string, string> }; memory?: Record<string, unknown> };
+  | { kind: 'open'; tool: string; say: string; form?: { id: string; values: Record<string, string> }; memory?: Record<string, unknown>; wait?: boolean; next?: string };
 
 export const EXAMPLES = [
   'cpa own course 090 own speed 12 bearing 045 range 6 nm target course 270 speed 8',
+  'course to steer track 090 speed 12 set 045 drift 2',
+  'compass 045 dev 2 W var 3 E',
+  'corpen astern 5 cables speed 12 turn 60 to starboard',
+  'off track 2 cables throw-off 10',
+  'fuel for 300 nm at 14 knots',
+  'convert 5 nm to metres',
   'atb bearing 045 green 30',
   'distance 12 nm speed 15',
   'reciprocal of 075',
@@ -106,7 +116,7 @@ function cpaCommand(t: string): Reply | null {
   if (range) { values.rng = String(range.value); rest = rest.replace(/(?:range|rng)\s*(?:of|is|=|:)?\s*-?\d+(?:\.\d+)?\s*[a-z]*/, ' '); }
   take('brg', `(?:bearing|brg)\\s*${NUM}`);
   take('tc', `(?:target\\s+|contact\\s+)?course\\s*${NUM}`); take('ts', `(?:target\\s+|contact\\s+)?speed\\s*${NUM}`);
-  const memory = range?.unit ? { 'pref:cpa:unit': range.unit } : undefined;
+  const memory = range?.unit ? { 'pref:cpa:range': range.unit } : undefined;
   const n = Object.keys(values).length;
   const miss = ['oc', 'os', 'brg', 'rng', 'tc', 'ts'].filter(k => !(k in values));
   return { kind: 'open', tool: 'CPA / TCPA', form: n ? { id: 'cpa', values } : undefined, memory, say: n ? (miss.length ? `Opened CPA with ${n} value${n > 1 ? 's' : ''} filled in. Check them and add the rest.` : 'Opened CPA with all values filled in. Check the units.') : 'Opened CPA.' };
@@ -140,16 +150,16 @@ function tsdCommand(t: string): Reply | null {
   return { kind: 'open', tool: 'Time / Speed / Distance', form: n ? { id: 'tsd', values } : undefined, memory: d?.unit ? { 'pref:tsd:unit': d.unit } : undefined, say: n === 3 ? 'All three are filled in; clear one to solve for it.' : n ? 'Opened Time / Speed / Distance. Fill in the third value to solve.' : 'Opened Time / Speed / Distance.' };
 }
 
-const OPEN_ONLY: [RegExp, string][] = [
+const OPEN_ONLY: [RegExp, string, Record<string, unknown>?][] = [
   [/\b(?:flying corpen|flying course|wind over (?:the )?deck|wod|helicopter|flying stations?)\b/, 'Flying Corpen'],
   [/\b(?:corpen|alter course by corpen)\b/, 'Corpen'],
   [/\b(?:regain(?:ing)? (?:the )?track|throw[- ]?off)\b/, 'Regain Track'],
   [/\b(?:ras approach|coming alongside|come alongside|ras point)\b/, 'RAS Approach'],
   [/\b(?:rel[- ]?vel|relative (?:velocity|motion)|closing a faster|close a faster|pass(?:ing)? (?:ahead|astern) at|speed triangle)\b/, 'Relative Motion'],
   [/\b(?:fuel|endurance|fuel planning|how far on)\b/, 'Fuel Planning'],
-  [/\b(?:round the clock|reverse (?:the )?order|reversing the order|losing distance|lose distance|station change)\b/, 'Station Changes'],
-  [/\b(?:station (?:from|on) (?:the )?bows?|joining from ahead|join(?:ing)? from ahead|station turn|turn onto station|wheel[- ]?over for (?:the )?station)\b/, 'Station from Bows'],
-  [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg'],
+  [/\b(?:round the clock|reverse (?:the )?order|reversing the order|losing distance|lose distance|station change)\b/, 'Battenberg & Stationing', { 'stn:tab': 'changes' }],
+  [/\b(?:station (?:from|on) (?:the )?bows?|joining from ahead|join(?:ing)? from ahead|station turn|turn onto station|wheel[- ]?over for (?:the )?station)\b/, 'Battenberg & Stationing', { 'stn:tab': 'bows' }],
+  [/\b(?:batten(?:berg|burg)|(?:take|taking|change|changing|keeping) station|stationing|station[- ]?keeping|course to station)\b/, 'Battenberg & Stationing', { 'stn:tab': 'batt' }],
   [/\b(?:anchor(?:ing|age)?|swinging (?:circle|radius)|shackles?|msr|cable required)\b/, 'Anchor'],
   [/\b(?:tides?|tidal height|high water|low water|rule of twelfths|springs?|neaps?)\b/, 'Tides'],
   [/\bpolaris|pole star\b/, 'Polaris Latitude'],
@@ -162,10 +172,12 @@ const OPEN_ONLY: [RegExp, string][] = [
   [/\b(?:wheel[- ]?over)\b/, 'Wheel-over Point'],
   [/\b(?:course to steer|set and drift|cts)\b/, 'Course to Steer'],
   [/\b(?:horizon|distance off|vertical sextant|vsa)\b/, 'Distance Off & Horizon'],
-  [/\b(?:compass|gyro|deviation|variation)\b/, 'Compass Conversion'],
+  [/\b(?:bearing calc(?:ulator)?|track bearings?|bearings? (?:and|&) ranges? (?:along|on)|bearing table)\b/, 'Bearing Calculator'],
+  [/\b(?:compass|gyro|deviation|variation)\b/, 'Bearings & Positions', { 'bpu:tab': 'compass' }],
   [/\b(?:radian)\b/, 'Radian Rule'],
-  [/\b(?:convert|units?)\b/, 'Unit Converter'],
-  [/\b(?:bearings?|relative)\b/, 'Bearing Calculator'],
+  [/\b(?:lat(?:itude)?s?\s*(?:and|\/|&)?\s*long(?:itude)?s?|lat[- ]?long|position from|great circle|rhumb|mercator|distance between (?:two )?positions|waypoint)\b/, 'Bearings & Positions', { 'bpu:tab': 'dist' }],
+  [/\b(?:convert|units?)\b/, 'Bearings & Positions', { 'bpu:tab': 'units' }],
+  [/\b(?:bearings?|relative)\b/, 'Bearings & Positions', { 'bpu:tab': 'bearings' }],
   [/\b(?:cpa|tcpa)\b/, 'CPA / TCPA'],
   [/\b(?:atb|angle on the bow)\b/, 'Angle on the Bow (ATB)'],
   [/\b(?:tsd|time speed distance)\b/, 'Time / Speed / Distance'],
@@ -173,9 +185,41 @@ const OPEN_ONLY: [RegExp, string][] = [
 
 const DIGIT_WORDS: Record<string, string> = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', niner: '9' };
 
+const SMALL: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 };
+const TEENS: Record<string, number> = { ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 };
+const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+
+/**
+ * Number words that are said as numbers ("twelve", "fifty five", "one hundred and twenty", "three thousand") become digits. Digits said one at a time
+ * ("zero four five") are left to the pass below. A phrase starts only at a teen, a ten, or a digit followed by hundred or thousand.
+ */
+function numberWords(words: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < words.length;) {
+    const w = words[i];
+    const starts = w in TEENS || w in TENS || (w in SMALL && /^(?:hundred|thousand)$/.test(words[i + 1] ?? ''));
+    if (!starts) { out.push(w); i++; continue; }
+    let total = 0, cur = 0, j = i, last = -1;
+    for (; j < words.length; j++) {
+      const t = words[j];
+      if (t in TEENS) { if (cur % 100 !== 0 || last === j - 1 && last >= 0 && words[last] in SMALL) break; cur += TEENS[t]; }
+      else if (t in TENS) { if (cur % 100 !== 0) break; cur += TENS[t]; }
+      else if (t in SMALL) { if (cur % 10 !== 0 || (cur % 100 >= 10 && cur % 100 < 20)) break; if (j === i && !/^(?:hundred|thousand)$/.test(words[j + 1] ?? '')) break; cur += SMALL[t]; }
+      else if (t === 'hundred') { cur = (cur || 1) * 100; }
+      else if (t === 'thousand') { total += (cur || 1) * 1000; cur = 0; }
+      else if (t === 'and' && j > i && (words[j + 1] in TEENS || words[j + 1] in TENS || words[j + 1] in SMALL)) continue;
+      else break;
+      last = j;
+    }
+    out.push(String(total + cur));
+    i = Math.max(j, i + 1);
+  }
+  return out;
+}
+
 /** What a speech recogniser may hand back: "zero four five" becomes "045" and "12 point 5" "12.5". Typed text passes through. */
 export function normaliseSpoken(text: string): string {
-  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = numberWords(text.toLowerCase().split(/\s+/).filter(Boolean));
   const out: string[] = [];
   let joining = false;   // the last token is a number still being spelt out
   for (let i = 0; i < words.length; i++) {
@@ -199,12 +243,28 @@ export function interpret(text: string, ctx: Context): Reply {
   const rec = /reciprocal(?: of)?\s*(?:course |bearing )?(\d+(?:\.\d+)?)/.exec(t);
   if (rec) return { kind: 'say', say: `Reciprocal of ${bearing3(parseFloat(rec[1]))} is ${bearing3(parseFloat(rec[1]) + 180)}.` };
 
-  const reply = turningAnswer(t, ctx) ?? cpaCommand(t) ?? atbCommand(t) ?? battCommand(t, ctx) ?? flyingCommand(t, ctx) ?? anchorCommand(t, ctx) ?? tideCommand(t) ?? vsaCommand(t, ctx) ?? referenceCommand(t) ?? tsdCommand(t);
+  const reply = (/\bcorpen\b/.test(t) && !/flying/.test(t) ? calcCommand(t, ctx) : null) ?? turningAnswer(t, ctx) ?? battCommand(t, ctx) ?? flyingCommand(t, ctx) ?? anchorCommand(t, ctx) ?? tideCommand(t) ?? vsaCommand(t, ctx) ?? calcCommand(t, ctx) ?? cpaCommand(t) ?? atbCommand(t) ?? referenceCommand(t) ?? tsdCommand(t);
   if (reply) return reply;
 
   const hit = OPEN_ONLY.find(([re]) => re.test(t));
-  if (hit) return { kind: 'open', tool: hit[1], say: `Opened ${hit[1]}.` };
+  if (hit) return { kind: 'open', tool: hit[1], say: `Opened ${hit[1]}.`, ...(hit[2] ? { memory: hit[2] } : {}) };
 
-  return { kind: 'say', say: `I did not understand that. I match keywords, I am not an AI. Try: ${EXAMPLES.slice(0, 5).map(e => `"${e}"`).join('; ')}; or name a tool.` };
+  return { kind: 'say', unknown: true, say: `I did not understand that. I match keywords, I am not an AI. Try: ${EXAMPLES.slice(0, 5).map(e => `"${e}"`).join('; ')}; or name a tool.` };
 }
 
+
+/**
+ * `interpret`, remembering an unfinished request: when the last answer asked for something (`wait`) and this reply means nothing on its own
+ * ("12 knots"), it is joined to that request, the new words first so they win over older ones. Returns the reply and the text to remember next.
+ */
+const BARE = /^-?\d+(?:\.\d+)?\s*(?:°|degrees?|knots?|kn|kts|nm|nautical miles?|miles?|cables?|east(?:erly)?|west(?:erly)?|e|w)?$/i;
+export function interpretWithPending(text: string, pending: string | null, ctx: Context): { reply: Reply; pending: string | null } {
+  // a bare answer to the one thing asked for ("270", "8 knots", "2 west") is labelled with it
+  if (pending && BARE.test(normaliseSpoken(text).trim())) { const asked = interpret(pending, ctx).next; if (asked) text = `${asked} ${normaliseSpoken(text).trim()}`; }
+  let query = text, reply = interpret(text, ctx);
+  if (pending && (reply.wait || (reply.kind === 'say' && reply.unknown))) {   // nothing understood, or only part of a new request: try it with the old one
+    const joined = interpret(`${text} ${pending}`, ctx);
+    if (!(joined.kind === 'say' && joined.unknown)) { reply = joined; query = `${text} ${pending}`; }
+  }
+  return { reply, pending: reply.wait ? query : null };
+}

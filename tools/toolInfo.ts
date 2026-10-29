@@ -37,9 +37,9 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
   },
   'Station from Bows': {
     concept: 'Joining from ahead (BR 45(6) paras 0425 to 0427): taking station on a Guide by approaching from ahead on her bow and turning into station. The wheel-over position is worked backwards from the ordered station: safety margin, transfer, advance, a correction for the speed variant and the Guide’s run during the turn.',
-    steps: ['Enter the Guide’s true course and speed, and your own approach course and speed. A reciprocal approach is much less prone to error than an oblique one.', 'Give the station as a true bearing from the Guide and a distance in yards (the preset buttons give ahead, bow, beam, quarter and astern from the Guide’s course), and the lateral safety margin (normally 100 yards) and the side it is on.', 'The ship’s own turning data is used when it is recorded: for the approach speed (interpolated between two recorded speeds), the wheel you pick and the amount of turn, the tool fills in the advance, transfer, turn time and loss of speed (the speed at the end of the turn, when recorded) and the deceleration distance per knot from her deceleration runs. Type over any figure to use another, and enter them by hand when the ship has no data.', 'The answer is the relative bearing and distance of the Guide at which to wheel over (and the true bearing), the lateral separation then, and whether the approach is near stationing speed, very high speed (turn later) or equal speed (turn earlier). The working lists points B to G. If the lateral separation is inadequate at the wheel-over, delay or abort.'],
-    formulas: ['B station; C = B + safety margin; D = C + transfer; E = D laid back by the advance along the approach course', 'F = E laid back along the Guide’s course by (approach speed - loss in turn - Guide’s speed) x deceleration distance per knot (forward if negative)', 'G = F + the Guide’s run in the turn (speed x time); wheel over when the Guide bears the bearing of A from G; 2000 yards to the n mile'],
-    limits: ['A plane plot for the short distances of manoeuvring, taking advance and transfer as constants for the turn; it ignores wind and stream.', 'The turn is onto the Guide’s course; the shorter way is chosen unless you pick port or starboard. For a reciprocal approach (a 180 degree turn) choose the side of the Guide you are turning toward.', 'The book’s own examples give the same bearings and distances within plotting accuracy (about 50 yards).', 'The book’s Table 4-1 and templates use example turning data and must not be used for any ship; use the ship’s own turning data.'],
+    steps: ['Enter the Guide’s true course and speed, and your own approach course and speed. A reciprocal approach is much less prone to error than an oblique one.', 'Give the station as a true bearing from the Guide and a distance in yards (the preset buttons give ahead, bow, beam, quarter and astern from the Guide’s course), and the lateral safety margin (normally 100 yards) and the side it is on.', 'The ship’s own turning data is used when it is recorded: for the approach speed (interpolated between two recorded speeds), the wheel you pick and the amount of turn, the tool fills in the advance, transfer, turn time and loss of speed (the speed at the end of the turn, when recorded) and the deceleration distance per knot from her deceleration runs. Type over any figure to use another, and enter them by hand when the ship has no data.', 'The answer is the relative bearing and distance of the Guide at which to wheel over (and the true bearing), the lateral separation then, and whether the approach is near stationing speed, very high speed (turn later) or equal speed (turn earlier). The working lists points B to G. If the lateral separation is inadequate at the wheel-over, delay or abort.', 'Two pictures: the working, with the Guide at the centre as the sum is done; and your radar, with your ship at the centre, showing the EBL and VRM to set (the Guide’s bearing and range at the wheel-over), her blips coming in minute by minute along her relative track, and a table of her bearing and range each minute before the wheel-over.'],
+    formulas: ['B station; C = B + safety margin; D = C laid back by the transfer (the turn carries the ship toward the side she turns to); E = D laid back by the advance along the approach course', 'F = E laid back along the Guide’s course by (approach speed - loss in turn - Guide’s speed) x deceleration distance per knot (forward if negative)', 'G = F + the Guide’s run in the turn (speed x time); wheel over when the Guide bears the bearing of A from G; 2000 yards to the n mile'],
+    limits: ['A plane plot for the short distances of manoeuvring, taking advance and transfer as constants for the turn; it ignores wind and stream.', 'The turn is onto the Guide’s course; the shorter way is chosen unless you pick port or starboard. For a reciprocal approach (a 180 degree turn) it turns toward the Guide; pick a side to change it.', 'On the radar the Guide’s blips assume both ships hold course and speed until the wheel-over; her path during your turn is not drawn.', 'The book’s own examples give the same bearings and distances within plotting accuracy (about 50 yards).', 'The book’s Table 4-1 and templates use example turning data and must not be used for any ship; use the ship’s own turning data.'],
   },
   'Corpen': {
     concept: 'When to alter course by Corpen, from the Mathematics of Manoeuvres notes. In column, the ship stationed astern alters after distance / speed (stopwatch) or turns early so that, after her 90 degree turn, she ends the stationed distance astern (radian rule). Abreast (Corpen S), the Guide turns at once and the other ship turns early by the distance the Guide draws ahead.',
@@ -54,10 +54,10 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     limits: ['The radian rule holds well up to about 20 degrees.', 'A stream equal to or faster than the ship cannot be held against.'],
   },
   'RAS Approach': {
-    concept: 'Coming alongside for replenishment at sea between a Guide and an approach ship, for SKBDL (bridge to bridge), RASAP (RAS point to RAS point) or UNREP (fuelling point to fuelling point): the surge from the speed advantage and deceleration rate, where to start slowing from the positions of the matching points on the two ships, and the course to steer.',
-    steps: ['Choose the evolution: SKBDL matches the two bridges at the final station, RASAP the two RAS points, UNREP the two fuelling points.', 'Pick the Guide ship (the supplier) and the approach ship (the receiver) from the fleet. Their bridge, RAS point and fuelling point positions (metres from the stem) and their breadths come from the ships’ own data; type a figure in a box to use a different one.', 'Enter the Guide’s speed, the approach speed and the working separation between the ships’ sides (120 ft if blank). The deceleration rate (knots a minute) comes from the approach ship’s latest deceleration run; type one to override it. Give the stand-by station: yards astern of the final station.', 'The tool gives the speed advantage, the surge while slowing, the bearing and range of the Guide’s matching point from your bridge at which to start slowing, the lateral distance and stem offset at the final station, and the time from the stand-by station.', 'The last card gives the course to steer on the approach from the bearing and range of the Guide’s point, leaving the final lateral distance.'],
-    formulas: ['Time to slow = speed advantage / deceleration rate; surge = (advantage / 2) x time to slow, in yards at 2000 yards to the n mile', 'At the final station the stems are offset by the difference of the two ships’ point distances from the stem; lateral distance = separation + half each breadth', 'Slowing point: the Guide’s point is the surge ahead of yours, less the distance your bridge is ahead of your own point; its bearing off your bow = atan (lateral / ahead)', 'Lateral separation (ft) = range (cables) x angle x 10'],
-    limits: ['A plane-geometry guide: wind, sea and the ships’ movements change the figures, so keep checking the separation and the bearing.', 'The deceleration is taken as even, from the approach speed down to the Guide’s. A real deceleration curve is not even, so check the surge against the ship’s own deceleration runs.', 'A figure the ships do not have (a RAS point or fuelling point position, say) is named and must be entered.', 'The ideal separation is about 120 to 140 ft in calm weather.'],
+    concept: 'Coming alongside for replenishment at sea, for SKBDL (bridge to bridge), RASAP (RAS point to RAS point) or UNREP (fuelling point to fuelling point). The surge is marked from the two marks that come abreast at the final station. Coming up from astern you see the Guide’s stern, so the cue to come down in speed is the bearing of her stern from your bridge (θ, forward of the beam), and its range on your radar.',
+    steps: ['Choose the evolution, then the Guide (the supplier) and the approach ship from the fleet. For a tanker with several rigs, pick the rig beside the Guide. Positions are metres from the stem and come from the ships’ particulars; type in a box to use another figure. The Guide’s length gives her mark’s distance from her stern.', 'Enter the Guide’s speed, the approach speed, the surge rate in yards per knot of speed advantage, the distance between the ships (42 m if blank) and the stand-by station (500 yd if blank).', 'Surge = speed advantage x surge rate, in yards, then in metres.', 'x = surge - the Guide’s mark to her stern - your stem to your mark: the gap from her stern to your stem when you start slowing. Negative means your bow overlaps her quarter.', 'θ = tan⁻¹((x + your stem to bridge) / distance between ships): start slowing when her stern bears θ forward of your beam from the bridge. With the radar’s distance from the stem, the radar range of her stern is also given, for the VRM.', 'At other speeds lists the surge, x and θ for several speed advantages. The Diagram button draws it from above, figures given in blue and worked out in amber, and saves it as a picture.'],
+    formulas: ['Surge (yd) = speed advantage (kn) x surge rate (yd/kn); 1 yd = 0.9144 m', 'x = surge - (Guide’s mark to her stern) - (own stem to own mark)', 'θ = tan⁻¹((x + own stem to bridge) / distance between ships)', 'Radar range = √((x + own stem to radar)² + distance²)', 'At the final station own stem is (own mark - Guide’s mark) ahead of hers'],
+    limits: ['A plane-geometry guide: wind, sea and the ships’ movements change the figures, so keep checking the distance and the bearing.', 'The surge rate is the ship’s own figure; check it against her deceleration runs.', 'A figure the ships do not have (a rig position, the radar position, say) is named and must be entered.'],
   },
   'Relative Motion': {
     concept: 'The relative velocity problems of the REL-VEL docket, worked by calculation instead of a plot: her course and speed from her plotted positions, when she is a given range off, how to pass her at a distance, and the course to get as close as possible to a faster ship.',
@@ -113,7 +113,7 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     formulas: ['Rule of twelfths: cumulative share 0, 1/12, 3/12, 6/12, 9/12, 11/12, 1 at each sixth of the duration', 'Half-cosine: h = h1 + (h2 − h1) (1 − cos(π t / T)) / 2', 'Elongation = λMoon − λSun; spring near 0° or 180°, neap near 90° or 270°'],
     limits: ['Both methods are approximations. They suit a normal semi-diurnal tide and are less exact in ports with a distorted tide curve, double high waters or river effects. Check the tide tables for the port.', 'Springs and neaps are taken from the Moon\'s phase: the highest springs come a day or two after new or full Moon, and weather and air pressure can change the height.', 'Heights are in the same unit and datum as the tide table (metres above chart datum).'],
   },
-  'Bearing Calculator': {
+  'Bearings': {
     concept: 'A reciprocal is the same line of sight seen from the other end. A relative bearing is measured clockwise from your own ship\'s head; adding your head turns it into a true bearing.',
     steps: [
       'Reciprocal: add 180° to the bearing and bring the answer back into 0–360°.',
@@ -121,6 +121,17 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     ],
     formulas: ['Reciprocal = (B + 180) mod 360', 'True bearing = (Head + Relative) mod 360'],
     limits: ['Use true values throughout. Convert compass or gyro readings first with the Compass tool.'],
+  },
+  'Bearing Calculator': {
+    concept: 'An object on a steady course moves along a straight track. Given its bearing and range at one point of that track (the start, or the end), and its course, the tool gives its bearing and range at every 5 cables or 1 nautical mile further along it (or back along it, for a final range), and the closest approach to the observer.',
+    steps: [
+      'Choose whether the range you know is the initial range (the run goes on from that point) or the final range (the run comes up to that point).',
+      'Enter the true bearing of the object, its true course and the range, and choose the interval: 5 cables or 1 nm.',
+      'The object\'s position is the observer\'s east and north offsets: range × sin and cos of the bearing, plus the distance run × sin and cos of the course. The bearing is the angle of that offset from north and the range its length.',
+      'The closest approach is where the track is square to the line of sight, the range at the given point × the sine of the angle between the track and the line of sight.',
+    ],
+    formulas: ['E = R sin B + d sin C;  N = R cos B + d cos C', 'Range = √(E² + N²);  Bearing = atan2(E, N)', 'Run to closest approach = −R cos(C − B);  CPA = R |sin(C − B)|'],
+    limits: ['The observer is taken as fixed. For two ships under way, use the other ship\'s relative course (see Relative Motion) as the course.', 'A cable is a tenth of a nautical mile, so 5 cables is half a mile.', 'Bearings are true. The table runs for the number of intervals you choose, up to 200.'],
   },
   'Time / Speed / Distance': {
     concept: 'Speed in knots is nautical miles per hour, so any one of distance, speed and time follows from the other two.',
@@ -141,7 +152,7 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
       'If that time is zero or negative the contact is already opening and the CPA is the present range.',
     ],
     formulas: ['p = range × (sin B, cos B)', 'v = v_target − v_own', 't = −(p · v) / |v|²   (hours)', 'CPA = |p + v × t|', 'TCPA = t × 60 (minutes)'],
-    limits: ['Assumes both vessels keep course and speed, and that bearing and courses are true.', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.', 'Needs accurate inputs: a few degrees of bearing error at long range changes the CPA a lot.', 'A CPA of 0 means a collision course.'],
+    limits: ['Assumes both vessels keep course and speed, and that the courses are true. A relative bearing (from a head-up radar) is made true by adding your course.', 'The range is in nautical miles unless you choose another unit (cables, metres, yards, kilometres, feet or fathoms): check it, since a range in miles read as cables makes the TCPA ten times too short. The answer shows the true bearing and range in miles it was worked from.', 'A radar\'s CPA and TCPA use the speeds it has: own speed from the log (through the water) or the GPS (over the ground), and the target\'s from its track. Use the same kind for both ships, or the answers differ from the radar\'s.', 'Needs accurate inputs: a few degrees of bearing error at long range changes the CPA a lot.', 'A CPA of 0 means a collision course.'],
   },
   'Angle on the Bow (ATB)': {
     concept: 'The angle on the bow is where you are, as seen from the target, measured from the target\'s head: 0° means the target is heading straight at you, 180° means it is steaming directly away. It is given to port or starboard (red or green).',
@@ -285,10 +296,11 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
   'Radian Rule': {
     concept: 'An angle in radians is the length of an arc divided by its radius. For small angles the arc is almost the same as the distance across, which gives a quick angle from a distance off and a range.',
     steps: [
-      'Divide the distance by the range (both in the same unit) to get the angle in radians.',
-      'Multiply by about 57.3 to get degrees.',
+      'There are three variables: the length across the line of sight (L), the range (R) and the angle in degrees. Fill in any two, leave the third empty, and it is worked out.',
+      'L = (R × angle) / 60, with a mile taken as 2000 yards and a cable as 200 (as in the school\'s notes), so 1° at 1 nm is about 33 yards.',
+      'In the same way R = (L × 60) / angle, and angle = (L × 60) / R. Ask NavYeo, for example "1 degree at 1 nm is?".',
     ],
-    formulas: ['θ (rad) = distance / range', 'θ (deg) = distance / range × 57.3', '1° ≈ 1 in 60'],
+    formulas: ['L = (R × angle) / 60', 'R = (L × 60) / angle', 'angle (°) = (L × 60) / R', '1° ≈ 1 in 60'],
     limits: ['Accurate only for small angles (a few degrees). Distance is measured across the line of sight.', 'Lengths can be typed and shown in cables (the default), nautical miles, metres, yards, kilometres, feet or fathoms; each tool remembers the unit you used last.'],
   },
   'Unit Converter': {
@@ -300,6 +312,55 @@ export const TOOL_INFO: Record<string, ToolInfo> = {
     limits: ['The cable is taken as one tenth of a nautical mile (185.2 m), the usual navigational definition. Older texts and some navies use 100 fathoms (182.9 m) or, in the US, 120 fathoms (219.5 m).'],
   },
 };
+
+TOOL_INFO['Lat/Long Conversion'] = {
+  concept: 'A position is written as degrees of latitude (up to 90, north or south) and of longitude (up to 180, east or west). It can be written as decimal degrees, as degrees and decimal minutes (as on most charts) or as degrees, minutes and seconds; they are the same position.',
+  steps: [
+    'Type the latitude and the longitude any way you like, with N, S, E or W or a minus sign.',
+    'The position is shown in all three forms. Minutes are divided by 60 and seconds by 3600 to make decimal degrees.',
+  ],
+  formulas: ['Decimal degrees = D + M / 60 + S / 3600', '1° = 60′ = 3600″', 'South and west are negative'],
+  limits: ['Latitude must be within 90° and longitude within 180°; minutes and seconds must be under 60.', 'Check the datum of the chart: positions on different datums can differ by many metres.'],
+};
+TOOL_INFO['Position Calculator'] = {
+  concept: 'The shortest way between two positions is the great circle, whose course changes along the way. The rhumb line (Mercator sailing) is the path that keeps one course throughout: a little longer, but it needs no alteration. The same tab also gives the position reached from a start by a course and distance.',
+  steps: [
+    'Enter the two positions (or a start, course and distance).',
+    'Great circle: the haversine distance and the course at each end. Rhumb line: difference of latitude and of longitude (the short way round the world), the difference of isometric latitude, then course and distance.',
+    'A speed gives the time. Distances are in nautical miles, a minute of arc being a mile.',
+  ],
+  formulas: ['hav d = hav Δφ + cos φ1 cos φ2 hav Δλ', 'Rhumb: Δψ = ln(tan(45° + φ2/2) / tan(45° + φ1/2)); course = atan2(Δλ, Δψ)', 'q = Δφ / Δψ (cos φ on a parallel); distance = √(Δφ² + q² Δλ²) × 3437.75 nm', 'Departure = Δλ × cos(mean latitude) × 60 (parallel sailing)'],
+  limits: ['The Earth is taken as a sphere with 1 nm to a minute of arc, so the answers differ from the spheroid by a few tenths of a percent at most. Use the tables for a fix that matters.', 'A rhumb line cannot reach a pole, and a track that would run over one is refused.'],
+};
+const BPU_PARTS: [string, string][] = [['Bearings', 'Bearings'], ['Compass Conversion', 'Compass'], ['Unit Converter', 'Units'], ['Lat/Long Conversion', 'Lat / Long'], ['Position Calculator', 'Distance & Bearing']];
+TOOL_INFO['Bearings & Positions'] = {
+  concept: 'Bearings, compass, units and positions in one place, as tabs: ' + BPU_PARTS.map(([, t]) => t).join(', ') + '. ' + BPU_PARTS.map(([n, t]) => `${t}: ${TOOL_INFO[n].concept}`).join(' '),
+  steps: BPU_PARTS.flatMap(([n, t]) => TOOL_INFO[n].steps.map(x => `${t}: ${x}`)),
+  formulas: BPU_PARTS.flatMap(([n]) => TOOL_INFO[n].formulas),
+  limits: BPU_PARTS.flatMap(([n, t]) => TOOL_INFO[n].limits.map(x => `${t}: ${x}`)),
+};
+BPU_PARTS.forEach(([n]) => { delete TOOL_INFO[n]; });
+
+// Wheel-over Point, Radian Rule and Course to Steer each have a second tool as a tab: their explanations are joined, each part headed by its tab
+for (const [tool, parts] of [['Wheel-over Point', [['Wheel-over Point', 'Wheel-over'], ['Bearing Calculator', 'Bearing Calculator']]], ['Radian Rule', [['Radian Rule', 'Radian rule'], ['Time / Speed / Distance', 'Time-Speed-Distance']]], ['Course to Steer', [['Course to Steer', 'Course to steer'], ['Regain Track', 'Regain track']]]] as [string, [string, string][]][]) {
+  const merged = {
+    concept: `${parts.map(([, t]) => t).join(' and ')}, as tabs. ` + parts.map(([n, t]) => `${t}: ${TOOL_INFO[n].concept}`).join(' '),
+    steps: parts.flatMap(([n, t]) => TOOL_INFO[n].steps.map(x => `${t}: ${x}`)),
+    formulas: parts.flatMap(([n]) => TOOL_INFO[n].formulas),
+    limits: parts.flatMap(([n, t]) => TOOL_INFO[n].limits.map(x => `${t}: ${x}`)),
+  };
+  parts.forEach(([n]) => { delete TOOL_INFO[n]; });
+  TOOL_INFO[tool] = merged;
+}
+
+const STN_PARTS: [string, string][] = [['Battenberg', 'Battenberg'], ['Station from Bows', 'From the bows'], ['Station Changes', 'Station changes']];
+TOOL_INFO['Battenberg & Stationing'] = {
+  concept: 'Taking up and changing station on a Guide, in one place, as tabs: ' + STN_PARTS.map(([, t]) => t).join(', ') + '. ' + STN_PARTS.map(([n, t]) => `${t}: ${TOOL_INFO[n].concept}`).join(' '),
+  steps: STN_PARTS.flatMap(([n, t]) => TOOL_INFO[n].steps.map(x => `${t}: ${x}`)),
+  formulas: STN_PARTS.flatMap(([n]) => TOOL_INFO[n].formulas),
+  limits: STN_PARTS.flatMap(([n, t]) => TOOL_INFO[n].limits.map(x => `${t}: ${x}`)),
+};
+STN_PARTS.forEach(([n]) => { delete TOOL_INFO[n]; });
 
 // ASTRO is one tool with five tabs: its explanation is the five joined, each part headed by the tab's name.
 const ASTRO_PARTS: [string, string][] = [['Sun Run Sun (SRS)', 'Sun Run Sun'], ['Sun Run Merpass (SRM)', 'Sun Run Merpass'], ['Four Star Fix', '4 Star Fix'], ['Polaris Latitude', 'Polaris'], ['Rise, Set and Twilight', 'Rise & Set']];

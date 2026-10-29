@@ -11,6 +11,8 @@ import { FRANCE } from './navies/france.ts';
 import { CHINA } from './navies/china.ts';
 import { USA } from './navies/usa.ts';
 import { SOUTH_KOREA } from './navies/southKorea.ts';
+import { SPECS } from './navies/specs/index.ts';
+import { withSpec } from './navies/_util.ts';
 
 export interface NavyInfo { id: string; label: string; /** how a ship's name is written: PNS Tughril */ prefix: string; /** words a search may use for the country */ words: string }
 export interface NavyData { navy: NavyInfo; classes: Record<string, ClassSpec>; ships: Record<string, ShipRow[]> }
@@ -18,9 +20,11 @@ export interface NavyData { navy: NavyInfo; classes: Record<string, ClassSpec>; 
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 export function buildCatalog(n: NavyData): CatalogShip[] {
-  return Object.entries(n.ships).flatMap(([key, rows]) => rows.map(([name, pennant, commissioned, extra = {}]): CatalogShip => {
-    const cls = n.classes[key];
-    if (!cls) throw new Error(`${n.navy.label}: no class ${key}`);
+  return Object.entries(n.ships).flatMap(([key, rows]) => {
+    const base = n.classes[key];
+    if (!base) throw new Error(`${n.navy.label}: no class ${key}`);
+    const cls = withSpec(base, SPECS[`${n.navy.id}:${key}`]);      // once for the class: its ships share it
+    return rows.map(([name, pennant, commissioned, extra = {}]): CatalogShip => {
     const under = name.replace(/ /g, '_');
     const prefix = extra.prefix ?? n.navy.prefix;
     return {
@@ -34,7 +38,8 @@ export function buildCatalog(n: NavyData): CatalogShip[] {
         cls.wiki,
       ],
     };
-  }));
+    });
+  });
 }
 
 export const NAVY_DATA: NavyData[] = [PAKISTAN, FRANCE, CHINA, USA, BANGLADESH, SRI_LANKA, TURKEY, SOUTH_KOREA];

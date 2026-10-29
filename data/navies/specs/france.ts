@@ -1,0 +1,14 @@
+// Class specifications for the French Navy classes (Wikipedia class articles and the commonly published figures).
+import type { Spec } from '../_util.ts';
+
+export const FRANCE_SPECS: Record<string, Spec> = {
+  cdg: { armament: 'Aster 15 SAM (4 × 8-cell SYLVER A43 VLS); 2 × 6-cell Sadral Mistral launchers; 8 × 20 mm F2 guns', sensors: 'DRBJ 11B 3D air search; DRBV 26D air search; 3 × DRBN 34A navigation radars; Arabel fire control; Syracuse SATCOM' },
+  mistral: { propulsion: 'Diesel-electric: 3 × Wärtsilä 16V32 and 1 × 12V32 generators, 2 × Mermaid azimuth pods', complement: '160 crew, 450 troops (900 maximum)', armament: '2 × Simbad (Mistral) SAM launchers; 2 × 30 mm Breda-Mauser guns; 4 × 12.7 mm machine guns', sensors: 'Thales MRR-3D-NG air/surface radar; DRBN 38A navigation radar', aircraft: '16 NH90 / Tiger helicopters (up to 35); 4 landing craft' },
+  horizon: { propulsion: 'CODOG: 2 × GE LM2500 gas turbines, 2 × SEMT Pielstick 12 PA6 STC diesels', complement: '195', armament: '48-cell Sylver A50 VLS (Aster 15 / 30); 2 × 4 Exocet MM40 Block 3; 2 × 76 mm Super Rapid; 2 × 20 mm; 2 × 324 mm torpedo tubes (MU90)', sensors: 'Sampson multi-function radar; S1850M long-range radar; Thales UMS 4110 hull sonar', aircraft: '1 × NH90 or Lynx helicopter' },
+  fremm: { propulsion: 'CODLAG: 1 × GE LM2500+G4 gas turbine, 4 × diesel generators, 2 electric motors', complement: '145', armament: '16-cell Sylver A43 (Aster 15) and 16-cell A70 (SCALP naval / MdCN) VLS; 8 × Exocet MM40 Block 3; 1 × 76 mm Super Rapid; 2 × 20 mm; 2 × 324 mm torpedo tubes (MU90)', sensors: 'Herakles multi-function radar; UMS 4110 hull sonar; CAPTAS-4 towed sonar', aircraft: '1 × NH90 helicopter' },
+  lafayette: { propulsion: 'CODAD: 4 × SEMT Pielstick 12 PA6 STC diesels, 2 shafts', complement: '139', armament: '8 × Exocet MM40; Crotale Naval 8-cell SAM; 1 × 100 mm gun; 2 × 20 mm guns', sensors: 'DRBV 15C air/surface search; Crotale TRS-3220 fire control; navigation radars', aircraft: '1 × Panther / Dauphin helicopter' },
+  floreal: { propulsion: 'CODAD: 4 × SEMT Pielstick 6 PA6 L 280 BTC diesels, 2 shafts', complement: '90', armament: '2 × Exocet MM38; 1 × 100 mm gun; 2 × 20 mm guns; 12.7 mm machine guns', sensors: 'Surveillance radar; Decca 1229 navigation radars', aircraft: '1 × AS 565 Panther helicopter' },
+  triomphant: { complement: '111', armament: '16 × M45 / M51 SLBMs; 4 × 533 mm tubes (F17 Mod 2 torpedoes, SM39 Exocet)', sensors: 'DMUX 80 passive sonar; DSUV 61B towed array; DUUV 23 sonar; Calypso III radar' },
+  suffren: { complement: '63', armament: '4 × 533 mm tubes: F21 torpedoes, SM39 Exocet, MdCN (naval SCALP) cruise missiles', sensors: 'Sonar suite with flank and towed arrays; periscopes' },
+  chevallier: { beam: '27 m', draught: '8.2 m', speed: '19 kn', propulsion: 'Diesel-electric', complement: '~130', armament: 'Defensive guns (20 mm and 12.7 mm)', aircraft: 'Hangar and deck for 2 helicopters' },
+};

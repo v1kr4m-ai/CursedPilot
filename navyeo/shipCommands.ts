@@ -142,7 +142,7 @@ export function battCommand(t: string, ctx: ShipCtx): OpenReply | null {
       say += ' It does not allow for the turn. Opened Battenberg.';
     }
   } else if (Object.keys(values).length) say = `Opened Battenberg with ${Object.keys(values).length} value${Object.keys(values).length > 1 ? 's' : ''}. ${split ? 'Check the stations.' : 'Add the stations: "from red 90 4 nm to ahead 1 nm".'}`;
-  return { kind: 'open', tool: 'Battenberg', form: Object.keys(values).length ? { id: 'batt', values } : undefined, memory, say };
+  return { kind: 'open', tool: 'Battenberg & Stationing', form: Object.keys(values).length ? { id: 'batt', values } : undefined, memory: { ...memory, 'stn:tab': 'batt' }, say };
 }
 
 // ---- Tides: the height at a time between a high and a low water -------------------------------------------------------------

@@ -24,6 +24,11 @@ function differing(cls: CatalogShip['cls']): { janes?: Record<string, string> } 
   return Object.keys(j).length ? { janes: j } : {};
 }
 
+/** A fleet tanker whose rigs are not published: two stations a side, to be named and placed by the user. */
+const TANKER_RIGS: { name: string; side: 'Port' | 'Starboard' }[] = [{ name: 'Port Fwd', side: 'Port' }, { name: 'Port Aft', side: 'Port' }, { name: 'Stbd Fwd', side: 'Starboard' }, { name: 'Stbd Aft', side: 'Starboard' }];
+/** Rig names given by earlier versions: a list of only these, with no positions entered, is renamed. */
+const OLD_RIG_NAMES = new Set(['RAS station 1', 'RAS station 2', 'RAS station 3', 'RAS station 4', 'Port 1', 'Port 2', 'Starboard 1', 'Starboard 2', 'Stern']);
+
 export function catalogToShip(c: CatalogShip): Ship {
   const info: ShipInfo = {
     shipClass: c.cls.name, pennant: c.pennant, builder: c.builder, commissioned: c.commissioned, status: c.status,
@@ -34,7 +39,8 @@ export function catalogToShip(c: CatalogShip): Ship {
   };
   return {
     id: c.id, name: displayName(c), type: c.cls.category,
-    particulars: { lengthOverall: c.cls.loa, breadthOverall: c.cls.breadth, displacement: c.cls.tons, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0 },
+    particulars: { lengthOverall: c.cls.loa, breadthOverall: c.cls.breadth, displacement: c.cls.tons, stemToStandard: 0, stemToBridge: 0, stemToRas: 0, stemToFueling: 0,
+      ...(c.cls.rigs ?? (c.cls.category === 'Fleet Tankers' ? TANKER_RIGS : undefined) ? { rigs: (c.cls.rigs ?? TANKER_RIGS).map(r => ({ ...r, stemDistance: 0 })) } : {}) },
     turningDataSets: [], accelDecelData: [], fishtails: [], emLogCalibration: [], compassSwing: [],
     info, catalog: true, ...(c.navy ? { navy: c.navy } : {}),
   };
@@ -46,8 +52,35 @@ export function catalogToShip(c: CatalogShip): Ship {
  */
 export function mergeCatalog(stored: Ship[]): Ship[] {
   const have = new Set(stored.map(s => s.id));
-  const fixed = stored.map(s => (CATEGORIES.includes(s.type) ? s : { ...s, type: normalizeCategory(s.type) }));
-  return [...fixed, ...[...CATALOG, ...FOREIGN_CATALOG].filter(c => !have.has(c.id)).map(catalogToShip)];
+  const all = [...CATALOG, ...FOREIGN_CATALOG];
+  const fresh = new Map(all.filter(c => have.has(c.id)).map(c => [c.id, c]));
+  const fixed = stored.map(s => {
+    const typeFixed = CATEGORIES.includes(s.type) ? s : { ...s, type: normalizeCategory(s.type) };
+    const c = s.catalog ? fresh.get(s.id) : undefined;
+    return c ? fillBlanks(typeFixed, catalogToShip(c)) : typeFixed;
+  });
+  return [...fixed, ...all.filter(c => !have.has(c.id)).map(catalogToShip)];
+}
+
+/**
+ * A ship saved by an earlier version may lack details the catalogue has since gained (armament, sensors, dimensions...). Empty fields are
+ * filled from the catalogue; anything already there, typed or not, is kept. The same ship object is returned when nothing was missing.
+ */
+function fillBlanks(saved: Ship, fresh: Ship): Ship {
+  const info: Record<string, unknown> = { ...(saved.info ?? {}) };
+  let changed = false;
+  for (const [k, v] of Object.entries(fresh.info ?? {})) {
+    const have = info[k];
+    const empty = have === undefined || have === null || (typeof have === 'string' && have.trim() === '');
+    if (empty && v !== undefined && v !== '' ) { info[k] = v; changed = true; }
+  }
+  const particulars = { ...saved.particulars };
+  for (const k of ['lengthOverall', 'breadthOverall', 'displacement'] as const) {
+    if (!particulars[k] && fresh.particulars[k]) { particulars[k] = fresh.particulars[k]; changed = true; }
+  }
+  const oldNames = particulars.rigs?.length && particulars.rigs.every(r => OLD_RIG_NAMES.has(r.name) && !r.stemDistance);
+  if ((!particulars.rigs?.length || oldNames) && fresh.particulars.rigs?.length) { particulars.rigs = fresh.particulars.rigs; changed = true; }
+  return changed ? { ...saved, info: info as unknown as Ship['info'], particulars } : saved;
 }
 
 // ---- commissioning date --------------------------------------------------------------------------
@@ -86,13 +119,22 @@ export interface FleetMeta {
   myShipId: string | null;
   sort: SortKey;
   category: string | null;
-  /** foreign navies whose ships are listed in the Fleet (ids from NAVY_LIST) */
-  navies: string[];
+  /** the countries whose ships are listed in the Fleet: 'in' (India) and the ids of NAVY_LIST. One or more; the user's own ships are always listed */
+  countries: string[];
 }
 
-export const defaultMeta = (): FleetMeta => ({ pinned: [], usage: {}, lastUsed: {}, myShipId: null, sort: 'category', category: null, navies: [] });
+export const defaultMeta = (): FleetMeta => ({ pinned: [], usage: {}, lastUsed: {}, myShipId: null, sort: 'category', category: null, countries: ['in'] });
 
 const META_KEY = 'cursedpilot.fleet.v1';
+
+export const COUNTRY_IDS: readonly string[] = ['in', ...NAVY_LIST.map(n => n.id)];
+
+/** The chosen countries (at least one, India by default). Settings saved before India was a choice listed only the foreign navies shown beside the Indian ones. */
+function sanitizeCountries(p: any): string[] {
+  const clean = (a: unknown[]) => [...new Set(a.filter((x): x is string => typeof x === 'string' && COUNTRY_IDS.includes(x)))];
+  const list = Array.isArray(p.countries) ? clean(p.countries) : Array.isArray(p.navies) ? clean(['in', ...p.navies]) : ['in'];
+  return list.length ? list : ['in'];
+}
 
 /** Validates untrusted data (storage, backup files) into a usable FleetMeta. */
 export function sanitizeMeta(p: any): FleetMeta {
@@ -107,7 +149,7 @@ export function sanitizeMeta(p: any): FleetMeta {
     myShipId: typeof p.myShipId === 'string' ? p.myShipId : null,
     sort: p.sort in SORT_LABELS ? p.sort : d.sort,
     category: typeof p.category === 'string' ? p.category : null,
-    navies: Array.isArray(p.navies) ? p.navies.filter((x: unknown) => NAVY_LIST.some(n => n.id === x)) : d.navies,
+    countries: sanitizeCountries(p),
   };
 }
 
@@ -149,12 +191,13 @@ export interface ShipGroup { title: string; ships: Ship[] }
  */
 export function orderShips(ships: Ship[], meta: FleetMeta, query: string): { pinned: Ship[]; groups: ShipGroup[] } {
   const q = query.trim().toLowerCase();
-  // ships of another navy are listed only while its country is switched on, or when the search finds them
-  const words = (id: string) => NAVY_LIST.find(n => n.id === id)?.words ?? '';
+  // the catalogue's ships are listed for the countries chosen (one or more) and, when something is typed in the search, from every country;
+  // ships the user added are always listed
+  const words = (id: string) => (id === 'in' ? 'india indian in' : NAVY_LIST.find(n => n.id === id)?.words ?? '');
   const matches = (s: Ship) =>
     (!meta.category || s.type === meta.category) &&
-    (!s.navy || meta.navies.includes(s.navy) || (!!q && s.catalog === true)) &&
-    (!q || [s.name, s.info?.pennant ?? '', s.info?.shipClass ?? '', s.info?.builder ?? '', s.navy ? words(s.navy) : ''].some(t => t.toLowerCase().includes(q)));
+    (s.catalog !== true || meta.countries.includes(s.navy ?? 'in') || !!q) &&
+    (!q || [s.name, s.info?.pennant ?? '', s.info?.shipClass ?? '', s.info?.builder ?? '', words(s.navy ?? 'in')].some(t => t.toLowerCase().includes(q)));
   const visible = ships.filter(matches);
 
   const pinned = meta.pinned.map(id => visible.find(s => s.id === id)).filter((s): s is Ship => !!s);

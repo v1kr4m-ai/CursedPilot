@@ -37,16 +37,21 @@ import {
   Pin,
   ClipboardCheck,
 } from 'lucide-react';
-import { Ship, AppView, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
+import { Ship, AppView, RasRig, ShipParticulars, TurningDataRow, TurningDataSet, SimpleRecord } from './types';
 import { generateSmartParticulars } from './services/geminiService';
 import { exportBackup, parseBackup } from './services/backup';
 import { exportVessel, ExportFormat } from './services/vesselExport';
 import FishtailScreen from './fishtail/FishtailScreen';
 import { mergeTurningSets } from './fishtail/tableConvert';
 import NavYeo from './navyeo/NavYeo';
+import SelectSearch from './components/SelectSearch';
+import { App as CapApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { goBack, useBackLayer } from './services/backButton';
 import FleetRegistry from './components/FleetRegistry';
 import BottomBar from './components/BottomBar';
 import ToolPage from './components/ToolPage';
+import { RENAMED_TOOLS } from './tools/NavTools';
 import MyShipHero from './components/MyShipHero';
 import ShipInfoPanel from './components/ShipInfoPanel';
 import FishtailTable from './components/FishtailTable';
@@ -258,7 +263,7 @@ const App: React.FC = () => {
   const [ships, setShips] = useState<Ship[]>(loadShips);
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [meta, setMeta] = useState<FleetMeta>(loadMeta);
-  const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); return !Array.isArray(a) ? [null, null, null] : a.length === 2 ? [null, a[0] ?? null, a[1] ?? null] : [a[0] ?? null, a[1] ?? null, a[2] ?? null]; } catch { return [null, null, null]; } });   // slots: left of My Ship, then the two on the right (older saves had only the two on the right)
+  const [homeTools, setHomeTools] = useState<(string | null)[]>(() => { try { const a = JSON.parse(localStorage.getItem('cursedpilot.homeTools') ?? 'null'); const six = (x: unknown) => (typeof x === 'string' ? RENAMED_TOOLS[x] ?? x : null); return !Array.isArray(a) ? [null, null, null] : a.length === 2 ? [null, six(a[0]), six(a[1])] : [six(a[0]), six(a[1]), six(a[2])]; } catch { return [null, null, null]; } });   // slots: left of My Ship, then the two on the right (older saves had only the two on the right)
   useEffect(() => { try { localStorage.setItem('cursedpilot.homeTools', JSON.stringify(homeTools)); } catch { /* storage unavailable */ } }, [homeTools]);
   const [pageTool, setPageTool] = useState<string | null>(null);   // the NavYeo tool open as a page from the home bar
   const [anchorMenu, setAnchorMenu] = useState(false);
@@ -293,6 +298,7 @@ const App: React.FC = () => {
   const [selectedShipId, setSelectedShipId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+
   // Welcome splash: logo -> typewriter tagline -> fade out
   const [showSplash, setShowSplash] = useState(true);
   const [splashStage, setSplashStage] = useState<'logo' | 'text' | 'fadeout'>('logo');
@@ -326,6 +332,33 @@ const App: React.FC = () => {
   const [exportOpen, setExportOpen] = useState(false);
   const [turningExportOpen, setTurningExportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Android back: one step at a time. Each page remembers the one it was opened from; at home, a second back within two seconds leaves the app.
+  const viewTrail = useRef<AppView[]>([]);
+  const lastView = useRef<AppView>('home');
+  const goingBack = useRef(false);
+  useEffect(() => {
+    if (goingBack.current) goingBack.current = false;
+    else if (view === 'home') viewTrail.current = [];
+    else if (lastView.current !== view) viewTrail.current.push(lastView.current);
+    lastView.current = view;
+  }, [view]);
+  useBackLayer(view !== 'home', () => { goingBack.current = true; setView(viewTrail.current.pop() ?? 'home'); }, 0);
+  useBackLayer(anchorMenu, () => setAnchorMenu(false));
+  useBackLayer(dataSheetOpen, () => setDataSheetOpen(false));
+  useBackLayer(turningExportOpen, () => setTurningExportOpen(false));
+  useBackLayer(exportOpen, () => { if (!exporting) setExportOpen(false); });
+  const exitArmed = useRef(0);
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const sub = CapApp.addListener('backButton', () => {
+      if (goBack()) return;
+      if (Date.now() - exitArmed.current < 2000) { void CapApp.exitApp(); return; }
+      exitArmed.current = Date.now();
+      setToast('Swipe back again to exit');
+    });
+    return () => { void sub.then(h => h.remove()); };
+  }, []);
 
   // Tools State
 
@@ -867,6 +900,8 @@ const App: React.FC = () => {
                 { l: 'Stem to Bridge', v: selectedShip.particulars.stemToBridge, u: 'm' },
                 { l: 'Stem to RAS Point', v: selectedShip.particulars.stemToRas, u: 'm' },
                 { l: 'Stem to Fueling Point', v: selectedShip.particulars.stemToFueling, u: 'm' },
+                ...(selectedShip.particulars.stemToRadar ? [{ l: 'Stem to Radar', v: selectedShip.particulars.stemToRadar, u: 'm' }] : []),
+                ...(selectedShip.particulars.rigs ?? []).map(r => ({ l: `RAS rig: ${r.name}${r.side ? ` (${r.side.toLowerCase()})` : ''}`, v: (r.stemDistance || 'not set') as unknown as number, u: r.stemDistance ? 'm from stem' : '' })),
                 ...(selectedShip.particulars.heightOfEye ? [{ l: 'Height of Eye', v: selectedShip.particulars.heightOfEye, u: 'm' }] : []),
                 ...(selectedShip.particulars.repeaterOffset ? [{ l: 'Wing Repeater off Centre Line', v: selectedShip.particulars.repeaterOffset, u: 'm' }] : []),
                 ...(selectedShip.particulars.repeaterToJackstaff ? [{ l: 'Wing Repeater to Jackstaff', v: selectedShip.particulars.repeaterToJackstaff, u: 'm' }] : []),
@@ -1120,6 +1155,8 @@ const App: React.FC = () => {
           <ParticularField label="Stem to Bridge" value={selectedShip.particulars.stemToBridge} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToBridge: v })} />
           <ParticularField label="Stem to RAS Point" value={selectedShip.particulars.stemToRas} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToRas: v })} />
           <ParticularField label="Stem to Fueling Point" value={selectedShip.particulars.stemToFueling} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToFueling: v })} />
+          <ParticularField label="Stem to Radar (m)" value={selectedShip.particulars.stemToRadar ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, stemToRadar: v || undefined })} />
+          <RigsEditor rigs={selectedShip.particulars.rigs ?? []} onChange={rigs => updateParticulars(selectedShip.id, { ...selectedShip.particulars, rigs: rigs.length ? rigs : undefined })} />
           <ParticularField label="Height of Eye (m)" value={selectedShip.particulars.heightOfEye ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, heightOfEye: v || undefined })} />
           <ParticularField label="Wing repeater off centre line (m)" value={selectedShip.particulars.repeaterOffset ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, repeaterOffset: v || undefined })} />
           <ParticularField label="Wing repeater to Jackstaff, fore and aft (m)" value={selectedShip.particulars.repeaterToJackstaff ?? 0} onChange={(v) => updateParticulars(selectedShip.id, { ...selectedShip.particulars, repeaterToJackstaff: v || undefined })} />
@@ -1243,6 +1280,7 @@ const App: React.FC = () => {
       )}
 
       <NavYeo ship={selectedShip} fleet={ships} />
+      <SelectSearch />
     </div>
   );
 };
@@ -1276,6 +1314,29 @@ const DetailCard: React.FC<{ title: string, icon: React.ReactNode, items: any[],
     <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
       <div className="flex items-center gap-2 mb-4">{icon}<h3 className="font-bold text-slate-800">{title}</h3>{buttons}</div>
       {list}
+    </div>
+  );
+};
+
+/** A tanker's replenishment rigs: name, side and distance from the stem; rows can be added and removed. */
+const RigsEditor: React.FC<{ rigs: RasRig[]; onChange: (rigs: RasRig[]) => void }> = ({ rigs, onChange }) => {
+  const put = (i: number, r: Partial<RasRig>) => onChange(rigs.map((x, j) => (j === i ? { ...x, ...r } : x)));
+  const box = 'p-3 rounded-xl bg-white border border-slate-200 outline-none font-bold text-slate-950 text-sm focus:border-blue-400 min-w-0';
+  return (
+    <div className="space-y-2">
+      <label className="text-xs font-bold text-slate-500 ml-1 uppercase">Replenishment rigs (tankers)</label>
+      <p className="text-[11px] text-slate-400 font-medium ml-1">For a ship with more than one RAS station: each rig's name, the side it serves and its distance from the stem. The RAS Approach tool lets you pick one.</p>
+      {rigs.map((r, i) => (
+        <div key={i} className="grid grid-cols-[1fr_6.5rem_5rem_auto] gap-2 items-center">
+          <input value={r.name} onChange={e => put(i, { name: e.target.value })} aria-label="Rig name" placeholder="Name" className={box} />
+          <select value={r.side ?? ''} onChange={e => put(i, { side: (e.target.value || undefined) as RasRig['side'] })} aria-label="Rig side" className={box}>
+            <option value="">Side?</option><option value="Port">Port</option><option value="Starboard">Starboard</option><option value="Astern">Astern</option>
+          </select>
+          <input type="number" inputMode="decimal" value={r.stemDistance || ''} onChange={e => put(i, { stemDistance: parseFloat(e.target.value) || 0 })} aria-label="Distance from the stem, metres" placeholder="m" className={box} />
+          <button type="button" onClick={() => onChange(rigs.filter((_, j) => j !== i))} aria-label={`Remove ${r.name || 'rig'}`} className="p-2 text-slate-400 hover:text-red-500"><X size={16} /></button>
+        </div>
+      ))}
+      <button type="button" onClick={() => onChange([...rigs, { name: `Rig ${rigs.length + 1}`, stemDistance: 0 }])} className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-2 rounded-xl">+ Add a rig</button>
     </div>
   );
 };

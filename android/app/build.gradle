@@ -1,8 +1,12 @@
 apply plugin: 'com.android.application'
 
+// The phone's CPU is arm64; add -PwithX86 to also build for the x86_64 emulator.
+def navyeoAbis = project.hasProperty('withX86') ? ['arm64-v8a', 'x86_64'] : ['arm64-v8a']
+
 android {
     namespace = "com.cursedpilot.app"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion "26.1.10909125"
     defaultConfig {
         applicationId "com.cursedpilot.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -10,12 +14,16 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // NavYeo's language model (llama.cpp, CPU only)
+        externalNativeBuild { cmake { cppFlags "-std=c++17 -fexceptions" } }
+        ndk { abiFilters(*navyeoAbis) }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt"; version "3.22.1" } }
     buildTypes {
         release {
             minifyEnabled false

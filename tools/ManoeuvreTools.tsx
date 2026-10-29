@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Download, Info, X } from 'lucide-react';
+import { saveSvgAsPng } from '../services/savePicture';
 import { Field, Grid, Panel, Result, Seg, SideToggle, Warn, bearing, useForm, useMemory } from './kit';
 import { abreastTurn, angleForSeparation, columnTurn, distanceToRegain, stopwatchSeconds, streamAllowance, throwOffToRegain, YD_PER_CABLE, yardsRun } from './manoeuvres';
 import { lookupTurn } from './turnLookup';
-import { EVOLUTIONS, decelRate, dimsOf, plan } from './rasApproach';
+import { EVOLUTIONS, alongsideRigs, dimsOf, plan, sweep } from './rasApproach';
+import { shipParams } from './shipParams';
 import type { Dims, Evolution } from './rasApproach';
 import type { Ship } from '../types';
+import { RasDiagram, KNOWN, CALC } from './RasDiagram';
+import { useBackLayer } from '../services/backButton';
 
 // The tools of the Mathematics of Manoeuvres notes: Corpen (alter course in station), Regain Track and RAS Approach. The sums are in
 // manoeuvres.ts. Distances are in cables or yards (200 yards a cable), speeds in knots.
@@ -116,8 +122,10 @@ export const RegainTrackTool: React.FC = () => {
 // ---- RAS approach ----------------------------------------------------------------------------------------------------------------
 // The Guide (supplier) and the approach ship (receiver) are picked from the fleet; their bridge, RAS point and fuelling point positions and their
 // breadths come from the ships' particulars (a figure typed in a box takes the place of the ship's). The sums are in rasApproach.ts.
-const AF = ['brg', 'rc', 'gs', 'as', 'dr', 'sep', 'sb', 'gb', 'gr', 'gf', 'gw', 'ab', 'ar', 'af', 'aw'] as const;
-const sideName = (d: number) => `${Math.round(Math.abs(d))}°`;
+// 'spk', the surge in yards per knot, and 'sepm', the distance between the ships in metres, are new boxes: the old 'dr' held a deceleration rate
+// in knots a minute and 'sep' a separation in feet
+const AF = ['brg', 'rc', 'gs', 'as', 'spk', 'sepm', 'sb', 'gb', 'gr', 'gf', 'gw', 'gl', 'ab', 'ar', 'af', 'aw', 'arad'] as const;
+const SWEEP = [3, 4, 5, 6, 7, 8];   // speed advantages worked out together, as on the bridge's surge sheet
 export const RasApproachTool: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const ships = fleet && fleet.length ? fleet : ship ? [ship] : [];
   const [evo, setEvo] = useMemory<Evolution>('rasapp:evo', 'RASAP');
@@ -126,19 +134,31 @@ export const RasApproachTool: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
   const [side, setSide] = useMemory<'Port' | 'Starboard'>('rasapp:side', 'Port');
   const approach = ships.find(s => s.id === apprId) ?? ship ?? ships[0];
   const guide = ships.find(s => s.id === guideId && s.id !== approach?.id) ?? ships.find(s => s.id !== approach?.id);
-  const gd = dimsOf(guide), ad = dimsOf(approach), rate = decelRate(approach);
+  const [rigRaw, setRig] = useMemory<string>('rasapp:rig', '');
+  const rigs = alongsideRigs(guide);
+  const rig = evo !== 'SKBDL' ? rigs.find(r => r.name === rigRaw) : undefined;   // the Guide's rig picked for a RAS or fuelling approach
+  const gd0 = dimsOf(guide), rigAt = rig && rig.stemDistance > 0 ? rig.stemDistance : undefined;
+  const gd = rig ? { ...gd0, [EVOLUTIONS[evo].point]: rigAt } : gd0, ad = dimsOf(approach);
+  const decelM = shipParams(approach).decelMetresPerKnot, perKnot = decelM !== undefined ? decelM / 0.9144 : undefined;   // her surge, yd per knot, from her deceleration runs
   const str = (v: number | undefined) => (v === undefined ? undefined : String(Math.round(v * 10) / 10));
-  const f = useForm('rasapp2', AF, { gb: str(gd.bridge), gr: str(gd.ras), gf: str(gd.fuel), gw: str(gd.breadth), ab: str(ad.bridge), ar: str(ad.ras), af: str(ad.fuel), aw: str(ad.breadth), dr: str(rate), sep: '120', sb: '400' });
-  const brg = f.n('brg'), rc = f.n('rc'), gs = f.n('gs'), as = f.n('as'), dr = f.n('dr'), sep = f.n('sep') ?? 120, sb = f.n('sb') ?? 400;
-  const guideDims: Dims = { bridge: f.n('gb') ?? undefined, ras: f.n('gr') ?? undefined, fuel: f.n('gf') ?? undefined, breadth: f.n('gw') ?? undefined };
-  const apprDims: Dims = { bridge: f.n('ab') ?? undefined, ras: f.n('ar') ?? undefined, fuel: f.n('af') ?? undefined, breadth: f.n('aw') ?? undefined };
-  const p = gs !== null && as !== null && dr !== null ? plan({ evolution: evo, guide: guideDims, approach: apprDims, guideSpeed: gs, approachSpeed: as, decelKnPerMin: dr, separationFt: sep, standbyYd: sb }) : null;
+  const f = useForm('rasapp2', AF, { gb: str(gd.bridge), gr: str(gd.ras), gf: str(gd.fuel), gw: str(gd.breadth), ab: str(ad.bridge), ar: str(ad.ras), af: str(ad.fuel), aw: str(ad.breadth), arad: str(ad.radar), gl: str(gd.length), spk: str(perKnot), sepm: '42', sb: '500' });
+  const brg = f.n('brg'), rc = f.n('rc'), gs = f.n('gs'), as = f.n('as'), dr = f.n('spk'), sepM = f.n('sepm') ?? 42, sb = f.n('sb') ?? 500;
+  const guideDims: Dims = { bridge: f.n('gb') ?? undefined, ras: f.n('gr') ?? undefined, fuel: f.n('gf') ?? undefined, breadth: f.n('gw') ?? undefined, length: f.n('gl') ?? undefined };
+  const apprDims: Dims = { bridge: f.n('ab') ?? undefined, ras: f.n('ar') ?? undefined, fuel: f.n('af') ?? undefined, breadth: f.n('aw') ?? undefined, radar: f.n('arad') ?? undefined };
+  const p = gs !== null && as !== null && dr !== null ? plan({ evolution: evo, guide: guideDims, approach: apprDims, guideSpeed: gs, approachSpeed: as, surgeYdPerKnot: dr, separationM: sepM, standbyYd: sb }) : null;
+  const others = p && p.missing.length === 0 ? sweep({ evolution: evo, guide: guideDims, approach: apprDims, guideSpeed: gs!, approachSpeed: as!, surgeYdPerKnot: dr!, separationM: sepM, standbyYd: sb }, SWEEP) : [];
+  // her stern from your bridge: theta forward of the beam on the side she is on; as a relative bearing, 90 - theta off the bow
+  const sternRel = (t: number) => `${side === 'Port' ? 'Red' : 'Green'} ${Math.round(90 - t)}`;
   const point = EVOLUTIONS[evo].pointName;
   // the course to steer on the approach: the Guide's point at a bearing and range from the approach ship's bridge, to pass at the final lateral distance
-  const lateralFt = p && p.lateralYd > 0 ? p.lateralYd * 3 : sep;
+  const lateralFt = sepM / 0.3048;
   const theta = rc !== null && rc > 0 ? angleForSeparation(lateralFt, rc) : null;
   const steer = theta !== null && brg !== null ? norm(brg + (side === 'Port' ? theta : -theta)) : null;
   const sel = 'w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700';
+  const [diagram, setDiagram] = useState(false);
+  const diagramBox = useRef<HTMLDivElement>(null);
+  useBackLayer(diagram, () => setDiagram(false), 2);
+  const len = (sh?: Ship) => { const l = sh?.particulars?.lengthOverall; return l !== undefined && l > 0 ? l : undefined; };
   return (
     <div className="space-y-2">
       <Panel title="Evolution" note="What is matched at the final station: the two bridges, the two RAS points or the two fuelling points.">
@@ -146,29 +166,83 @@ export const RasApproachTool: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
         <p className="text-[11px] font-semibold text-slate-500">{EVOLUTIONS[evo].label}</p>
       </Panel>
       <Panel title="The ships" note="The Guide supplies; the approach ship comes alongside. Their figures come from the ships' own data; type in a box to use another figure.">
-        <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guide ship</span>
-          <select value={guide?.id ?? ''} onChange={e => setGuideId(e.target.value)} className={sel}>{ships.filter(s => s.id !== approach?.id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+        <div className={evo !== 'SKBDL' && rigs.length > 0 ? 'grid grid-cols-[1fr_8.5rem] gap-2' : ''}>
+          <label className="block space-y-1 min-w-0"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Guide ship</span>
+            <select value={guide?.id ?? ''} onChange={e => setGuideId(e.target.value)} className={sel}>{ships.filter(s => s.id !== approach?.id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
+          {evo !== 'SKBDL' && rigs.length > 0 && (
+            <label className="block space-y-1 min-w-0"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rig</span>
+              <select value={rig?.name ?? ''} aria-label="The Guide's rig" className={sel} onChange={e => {
+                const r = rigs.find(x => x.name === e.target.value); setRig(e.target.value);
+                f.bind(EVOLUTIONS[evo].point === 'ras' ? 'gr' : 'gf').onChange('');                          // the rig's own position, not a figure typed for another
+                if (r?.side === 'Port' || r?.side === 'Starboard') setSide(r.side === 'Starboard' ? 'Port' : 'Starboard');   // her starboard rig: she is on your port side
+              }}>
+                <option value="">Ship's data</option>
+                {rigs.map(r => <option key={r.name} value={r.name}>{`${r.name}${r.stemDistance > 0 ? ` · ${r.stemDistance} m` : ' · not set'}`}</option>)}
+              </select></label>
+          )}
+        </div>
         <label className="block space-y-1"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Approach ship</span>
           <select value={approach?.id ?? ''} onChange={e => setApprId(e.target.value)} className={sel}>{ships.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
         <p className="text-[10px] font-semibold text-slate-400">Metres from the stem. Guide</p>
-        <Grid><Field label="Bridge" unit="m" {...f.bind('gb')} /><Field label="RAS point" unit="m" {...f.bind('gr')} /><Field label="Fuelling point" unit="m" {...f.bind('gf')} /><Field label="Breadth" unit="m" {...f.bind('gw')} /></Grid>
+        <Grid><Field label="Bridge" unit="m" {...f.bind('gb')} /><Field label="RAS point" unit="m" {...f.bind('gr')} /><Field label="Fuelling point" unit="m" {...f.bind('gf')} /><Field label="Breadth" unit="m" {...f.bind('gw')} /><Field label="Length overall" unit="m" {...f.bind('gl')} /></Grid>
         <p className="text-[10px] font-semibold text-slate-400">Approach ship</p>
-        <Grid><Field label="Bridge" unit="m" {...f.bind('ab')} /><Field label="RAS point" unit="m" {...f.bind('ar')} /><Field label="Fuelling point" unit="m" {...f.bind('af')} /><Field label="Breadth" unit="m" {...f.bind('aw')} /></Grid>
+        <Grid><Field label="Bridge" unit="m" {...f.bind('ab')} /><Field label="RAS point" unit="m" {...f.bind('ar')} /><Field label="Fuelling point" unit="m" {...f.bind('af')} /><Field label="Breadth" unit="m" {...f.bind('aw')} /><Field label="Radar" unit="m" {...f.bind('arad')} /></Grid>
       </Panel>
-      <Panel title="Speeds and slowing" note="The approach ship runs up at the approach speed and comes down to the Guide's. The deceleration rate comes from her latest deceleration run.">
+      <Panel title="Speeds and slowing" note="The approach ship runs up at the approach speed and comes down to the Guide's. The surge is her own figure in yards per knot of speed advantage, from her deceleration runs when they are recorded.">
         <Grid><Field label="Guide's speed" unit="kn" units {...f.bind('gs')} /><Field label="Approach speed" unit="kn" units {...f.bind('as')} /></Grid>
-        <Grid><Field label="Deceleration rate" unit="kn/min" {...f.bind('dr')} /><Field label="Working separation" unit="ft" {...f.bind('sep')} /></Grid>
+        <Grid><Field label="Surge" unit="yd per knot" {...f.bind('spk')} /><Field label="Distance between ships" unit="m" {...f.bind('sepm')} /></Grid>
         <Field label="Stand-by station astern of the final station" unit="yd" {...f.bind('sb')} />
       </Panel>
-      {p && p.missing.length > 0 && <Warn>Needs {p.missing.join(', ')}: enter it in the box above or in the ship's data.</Warn>}
+      {p && p.missing.length > 0 && <Warn>Needs {p.missing.join(', ')}{rig && !rigAt ? ` (${rig.name}'s position is not set)` : ''}: enter it in the box above or in the ship's particulars.</Warn>}
       {p && p.missing.length === 0 && (
         <Result rows={[
           ['Speed advantage', `${p.advantage.toFixed(1)} kn`],
-          ['Surge while slowing', `${Math.round(p.surgeYd)} yd (${(p.surgeYd / 200).toFixed(1)} cables) in ${(p.slowMinutes * 60).toFixed(0)} s`],
-          ['Start slowing when the Guide\'s ' + point, `bears ${sideName(p.slowBearing)} on your ${side.toLowerCase()} bow from the bridge, at ${Math.round(p.slowRangeYd)} yd`],
-          ['Then, at the final station', `${point}s abreast ${Math.round(p.lateralYd)} yd apart centre to centre; your stem ${Math.abs(p.stemOffsetM).toFixed(1)} m ${p.stemOffsetM >= 0 ? 'ahead of' : 'astern of'} hers`],
-          ['From the stand-by station', p.atOnce ? 'slow at once: it is inside the surge' : `run ${Math.round(p.runYd)} yd (${p.runMinutes.toFixed(1)} min), slow, on station after ${p.totalMinutes.toFixed(1)} min`],
+          ['Surge', `${Math.round(p.surgeYd)} yd = ${p.surgeM.toFixed(1)} m (${p.advantage.toFixed(1)} kn x ${dr} yd)`],
+          ['x, her stern to your stem', p.xM >= 0 ? `${p.xM.toFixed(1)} m clear` : `${(-p.xM).toFixed(1)} m overlap`],
+          ['Start slowing when her stern bears', `θ ${p.thetaDeg.toFixed(1)}° ${p.thetaDeg >= 0 ? 'forward of' : 'abaft'} your ${side.toLowerCase()} beam (${sternRel(p.thetaDeg)}) from the bridge`],
+          ...(p.radar ? [['On your radar, her stern', `${Math.round(p.radar.rangeM / 0.9144)} yd (${Math.round(p.radar.rangeM)} m), ${p.radar.thetaDeg.toFixed(1)}° forward of the beam (${sternRel(p.radar.thetaDeg)})`] as [string, string]] : []),
+          ['Then, at the final station', `${point}s abreast; your stem ${Math.abs(p.stemOffsetM).toFixed(1)} m ${p.stemOffsetM >= 0 ? 'ahead of' : 'astern of'} hers`],
+          ['From the stand-by station', p.atOnce ? 'slow at once: it is inside the surge' : `run ${Math.round(p.runYd)} yd (${p.runMinutes.toFixed(1)} min at the advantage), then slow`],
         ]} />
+      )}
+      {others.length > 0 && (
+        <Panel title="At other speeds" closed note={`The same worked at other speed advantages over the Guide's ${gs} kn.`}>
+          <table className="w-full text-[11px] font-bold text-slate-700 tabular-nums">
+            <thead><tr className="text-[9px] uppercase tracking-wider text-slate-400 text-right"><th className="text-left py-1">Advantage</th><th>Speed</th><th>Surge</th><th>x</th><th>θ</th></tr></thead>
+            <tbody>{others.map(({ advantage: a, plan: q }) => q && (
+              <tr key={a} className={`text-right border-t border-slate-100 ${Math.abs(a - p!.advantage) < 1e-9 ? 'bg-blue-50 text-blue-700' : ''}`}>
+                <td className="text-left py-1">{a} kn</td><td>{gs! + a} kn</td><td>{Math.round(q.surgeYd)} yd</td><td>{q.xM.toFixed(1)} m</td><td>{q.thetaDeg.toFixed(1)}°</td>
+              </tr>))}</tbody>
+          </table>
+        </Panel>
+      )}
+      {p && p.missing.length === 0 && (
+        <button type="button" onClick={() => setDiagram(true)} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold active:scale-95">
+          <Info size={16} /> Diagram: the approach seen from above
+        </button>
+      )}
+      {diagram && p && p.missing.length === 0 && createPortal(
+        <div className="fixed inset-0 z-[85] flex items-end sm:items-center justify-center p-3 bg-slate-900/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => setDiagram(false)}>
+          <div role="dialog" aria-label="RAS approach diagram" className="w-full max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-[2rem] shadow-2xl p-4 space-y-2" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2">
+              <div><h3 className="font-bold text-slate-900">{evo}: the approach from above</h3>
+                <p className="text-[11px] font-bold"><span style={{ color: KNOWN }}>● given</span> <span className="ml-2" style={{ color: CALC }}>● worked out</span></p></div>
+              <button onClick={() => setDiagram(false)} aria-label="Close" className="p-2 bg-slate-50 text-slate-400 rounded-full shrink-0"><X size={18} /></button>
+            </div>
+            <div ref={diagramBox}><RasDiagram pointName={point} side={side} guideName={guide?.name ?? 'Guide'} approachName={approach?.name ?? 'Approach ship'}
+              guide={{ ...guideDims, length: len(guide) }} approach={{ ...apprDims, length: len(approach) }} pointKey={EVOLUTIONS[evo].point}
+              separationM={sepM} standbyYd={sb} plan={p} /></div>
+            <button type="button" onClick={() => { const svg = diagramBox.current?.querySelector('svg'); if (svg) void saveSvgAsPng(svg, `RAS ${evo} ${guide?.name ?? ''} ${approach?.name ?? ''}`.trim()); }}
+              className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold active:scale-95"><Download size={16} /> Save the diagram as a picture</button>
+            <ul className="text-[11px] text-slate-600 font-medium leading-snug space-y-1">
+              <li><b style={{ color: CALC }}>Surge</b> = speed advantage x surge per knot = ({as} - {gs}) kn x {dr} yd = <b style={{ color: CALC }}>{Math.round(p.surgeYd)} yd</b>, the distance she gains on the Guide while coming down to her speed.</li>
+              <li><b style={{ color: CALC }}>x</b> = surge - her {point} to her stern - your stem to your {point} = {p.surgeM.toFixed(1)} - {p.pointToStern.toFixed(1)} - {apprDims[EVOLUTIONS[evo].point]} = <b style={{ color: CALC }}>{p.xM.toFixed(1)} m</b> ({p.xM >= 0 ? 'clear of her stern' : 'your bow overlaps her quarter'}).</li>
+              <li><b style={{ color: CALC }}>θ</b> = tan⁻¹((x + your stem to bridge) / distance between ships) = tan⁻¹(({p.xM.toFixed(1)} + {apprDims.bridge}) / {sepM}) = <b style={{ color: CALC }}>{p.thetaDeg.toFixed(1)}°</b>: start slowing when her stern bears that far forward of your beam.</li>
+{p.radar && <li><b style={{ color: CALC }}>Radar</b>: her stern is x + {apprDims.radar} m along and {sepM} m across from your radar: <b style={{ color: CALC }}>{Math.round(p.radar.rangeM / 0.9144)} yd</b> at {p.radar.thetaDeg.toFixed(1)}° forward of the beam. Set the VRM to it.</li>}
+              <li><b style={{ color: CALC }}>Stems</b>: the {point}s abreast puts your stem {Math.abs(p.stemOffsetM).toFixed(1)} m {p.stemOffsetM >= 0 ? 'ahead of' : 'astern of'} hers ({apprDims[EVOLUTIONS[evo].point]} m and {guideDims[EVOLUTIONS[evo].point]} m from the stems).</li>
+            </ul>
+          </div>
+        </div>, document.body,   // outside NavYeo's panel, which would clip it
       )}
       {p === null && gs !== null && as !== null && as <= gs && <Warn>The approach ship needs a speed above the Guide's.</Warn>}
       <Panel title="Course to steer on the approach" closed note={`The bearing and range of the Guide's ${point} from your bridge now, and the side the Guide is on. The course leaves the final lateral distance between the ships' centre lines.`}>

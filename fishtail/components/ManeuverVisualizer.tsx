@@ -36,6 +36,8 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'graph' | 'ppi'>('graph');
+  const [ppiNorthUp, setPpiNorthUp] = useState(false);   // radar picture: head-up (the Guide's head up, as the manoeuvre is worked) or north-up
+  const [guideTrue, setGuideTrue] = useState('000');      // the Guide's true course, which the north-up picture is turned by
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showCompass, setShowCompass] = useState(false);
   const [compassPos, setCompassPos] = useState({ x: 0, y: 0 });
@@ -723,6 +725,24 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
           <Compass className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} /> Radar PPI Simulator
         </button>
       </div>
+
+      {/* Radar PPI orientation: H UP (head-up) or N UP (north-up, with the Guide's true course) */}
+      {viewMode === 'ppi' && (
+        <div className="absolute top-[68px] left-1/2 -translate-x-1/2 z-35 pointer-events-auto flex items-center gap-1 p-1 bg-slate-900/95 border border-slate-800/80 rounded-2xl shadow-2xl backdrop-blur-md">
+          {([['head', 'H UP'], ['north', 'N UP']] as const).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={(k === 'north') === ppiNorthUp} onClick={() => setPpiNorthUp(k === 'north')}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all select-none ${(k === 'north') === ppiNorthUp ? 'bg-cyan-600 text-white shadow shadow-cyan-500/20' : 'text-slate-400 hover:text-slate-200'}`}>{label}</button>
+          ))}
+          {ppiNorthUp && (
+            <label className="flex items-center gap-1 pl-2 pr-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Guide
+              <input type="number" inputMode="decimal" value={guideTrue} onChange={e => setGuideTrue(e.target.value)} aria-label="Guide's true course"
+                className="w-14 px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-cyan-300 text-[11px] font-bold outline-none focus:border-cyan-500" />
+              °T
+            </label>
+          )}
+        </div>
+      )}
 
       {/* Floating Draggable Tactical Animation HUD */}
       <div 
@@ -1560,6 +1580,9 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
           
           const guideSvgX = scale.x(0);
           const guideSvgY = scale.y(0);
+          // north-up turns the whole picture by the Guide's true course (the text is turned back so it stays upright)
+          const gc = ppiNorthUp ? (parseFloat(guideTrue) || 0) : 0;
+          const trueBrg = (b: number) => Math.round((b + gc + 360) % 360).toString().padStart(3, '0');
 
           // Stationing ship relative positions
           const relOwnX = initialX + currentShip.x;
@@ -1579,7 +1602,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
           const connectionMidY = (guideSvgY + ownShipSvgY) / 2;
 
           return (
-            <g id="station-solver-animation-layer">
+            <g id="station-solver-animation-layer" transform={`rotate(${gc} ${guideSvgX} ${guideSvgY})`}>
               {/* Actual relative trajectory (fishtail trace relative to the Guide) */}
               <path 
                 d={relativeTrackPathD} 
@@ -1603,7 +1626,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
               />
 
               {/* Live connecting metric tag in the middle */}
-              <g transform={`translate(${connectionMidX}, ${connectionMidY})`}>
+              <g transform={`translate(${connectionMidX}, ${connectionMidY}) rotate(${-gc})`}>
                 <rect 
                   x="-75" 
                   y="-10" 
@@ -1621,7 +1644,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                   textAnchor="middle" 
                   y="1.5"
                 >
-                  SEP: {Math.round(liveRange)}y | BRG: {Math.round(liveBearing).toString().padStart(3, '0')}°
+                  SEP: {Math.round(liveRange)}y | BRG: {trueBrg(liveBearing)}°
                 </text>
               </g>
 
@@ -1642,7 +1665,8 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
               <circle cx={initialSvgX} cy={initialSvgY} r="3" fill="#3b82f6" />
               <text 
                 x={initialSvgX} 
-                y={initialSvgY - 18} 
+                y={initialSvgY - 18}
+                transform={`rotate(${-gc} ${initialSvgX} ${initialSvgY - 18})`} 
                 fill="#60a5fa" 
                 className="text-[8px] font-black uppercase tracking-wider"
                 textAnchor="middle"
@@ -1655,7 +1679,8 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
               <circle cx={targetSvgX} cy={targetSvgY} r="3" fill="#22c55e" />
               <text 
                 x={targetSvgX} 
-                y={targetSvgY + 22} 
+                y={targetSvgY + 22}
+                transform={`rotate(${-gc} ${targetSvgX} ${targetSvgY + 22})`} 
                 fill="#4ade80" 
                 className="text-[8px] font-black uppercase tracking-wider dialog-title text-center"
                 textAnchor="middle"
@@ -1677,10 +1702,10 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                 />
                 
                 {/* Label flag */}
-                <g transform="translate(0, -22)">
+                <g transform={`translate(0, -22) rotate(${-gc})`}>
                   <rect x="-35" y="-7" width="70" height="13" rx="3" fill="#090514" stroke="#eab308" strokeWidth="1" />
                   <text fill="#fbbf24" className="text-[7px] font-black mono text-center" textAnchor="middle" y="2">
-                    GUIDE (000°)
+                    GUIDE ({Math.round(gc % 360).toString().padStart(3, '0')}°)
                   </text>
                 </g>
               </g>
@@ -1716,10 +1741,10 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                 </g>
 
                 {/* Relative Floating Status Badge */}
-                <g transform={`translate(${ownShipSvgX}, ${ownShipSvgY - 26})`}>
+                <g transform={`translate(${ownShipSvgX}, ${ownShipSvgY - 26}) rotate(${-gc})`}>
                   <rect x="-42" y="-8" width="84" height="15" rx="4" fill="#020617" stroke="#6366f1" strokeWidth="1" />
                   <text fill="white" className="text-[7.5px] font-black mono text-center" textAnchor="middle" y="2.5">
-                    OWN T+{animationTime.toFixed(1)}s | {Math.round(currentShip.heading).toString().padStart(3, '0')}°
+                    OWN T+{animationTime.toFixed(1)}s | {trueBrg(currentShip.heading)}°
                   </text>
                 </g>
               </g>

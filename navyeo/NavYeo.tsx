@@ -1,15 +1,20 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Pin, PinOff, Send } from 'lucide-react';
 import { Ship } from '../types';
-import { NAV_TOOLS, NavTool } from '../tools/NavTools';
+import { NAV_TOOLS, NavTool, TOOL_TABS } from '../tools/NavTools';
 import { ASTRO_TABS } from '../tools/AstroTool';
 import { shipParams } from '../tools/shipParams';
 import ToolInfoCard from './ToolInfoCard';
 import { toolMemory } from '../tools/toolMemory';
 import { isLengthUnit } from '../tools/navMath';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
-import { TurnTable, interpret } from './commands';
-import { Listening, startListening, voiceMaybeSupported } from './voice';
+import { TurnTable } from './commands';
+import { smartInterpret } from './smart';
+import { brain } from './llm';
+import { meaning } from './embedder';
+import { Listening, startListening, voiceMaybeSupported, voiceUnavailableReason } from './voice';
+import { VoiceAssistant } from './VoiceAssistant';
+import { useBackLayer } from '../services/backButton';
 import { ResultSlot } from '../tools/kit';
 import { TileOrder, arrange, moveTo, parseOrder, togglePin } from './order';
 import { ICON, Pos, centredPanel, clampPos, defaultPos, growOrigin, isDrag, moved, parsePos } from './layout';
@@ -80,6 +85,7 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const hasEntries = !useSyncExternalStore(toolMemory.subscribe, () => toolMemory.isEmpty());
   const open = phase !== 'closed';
   const collapse = useCallback(() => setPhase(p => (p === 'open' ? 'closing' : p)), []);
+  useBackLayer(phase === 'open', collapse);   // Android back minimises NavYeo to its icon
 
   // keep the icon on screen when the window changes size or the phone is rotated
   useEffect(() => {
@@ -126,11 +132,16 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const save = useCallback((p: Pos) => { try { localStorage.setItem(STORE, JSON.stringify(p)); } catch { /* storage full or blocked */ } }, []);
 
   // dragging the icon; a movement under the threshold is a tap
-  const drag = useRef<{ x: number; y: number; origin: Pos; dragging: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; origin: Pos; dragging: boolean; held?: boolean } | null>(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);   // the voice assistant: opened by holding the icon
+  const iconHold = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const iconHandlers = {
     onPointerDown: (e: React.PointerEvent) => {
       try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* the drag still works without capture */ }
-      drag.current = { x: e.clientX, y: e.clientY, origin: pos, dragging: false };
+      const d = { x: e.clientX, y: e.clientY, origin: pos, dragging: false, held: false };
+      drag.current = d;
+      clearTimeout(iconHold.current);
+      iconHold.current = setTimeout(() => { if (drag.current === d && !d.dragging) { d.held = true; setVoiceOpen(true); } }, 550);   // holding the icon still starts the voice assistant
     },
     onPointerMove: (e: React.PointerEvent) => {
       const d = drag.current;
@@ -138,16 +149,18 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
       const dx = e.clientX - d.x, dy = e.clientY - d.y;
       if (!d.dragging && !isDrag(dx, dy)) return;
       d.dragging = true;
+      clearTimeout(iconHold.current);
       setPos(moved(d.origin, dx, dy, window.innerWidth, window.innerHeight));
     },
     onPointerUp: () => {
+      clearTimeout(iconHold.current);
       const d = drag.current;
       drag.current = null;
-      if (!d) return;
+      if (!d || d.held) return;   // a hold opened the voice assistant: it is not also a tap
       if (d.dragging) setPos(p => { save(p); return p; });
       else setPhase('open');
     },
-    onPointerCancel: () => { drag.current = null; },
+    onPointerCancel: () => { clearTimeout(iconHold.current); drag.current = null; },
   };
 
   const openInfoFor = (t: NavTool, info: boolean) => { setTool(t); setShowInfo(info); };
@@ -157,21 +170,23 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const [said, setSaid] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
   const mic = useRef<Listening | null>(null);
+  const pendingAsk = useRef<string | null>(null);
+  const shownTool = useRef<string | null>(null);   // the tool the last answer filled in   // an unfinished request: the next short reply completes it
 
   const toggleMic = async () => {
     if (listening) { mic.current?.stop(); return; }
     setSaid(null);
     setListening(true);
-    mic.current = await startListening(
-      t => { setText(t); askRef.current(t); },
-      problem => { setListening(false); mic.current = null; if (problem) setSaid(problem); },
-    );
+    try {
+      mic.current = await startListening(
+        t => { setText(t); askRef.current(t); },
+        problem => { setListening(false); mic.current = null; if (problem) setSaid(problem); },   // one short notice, and the mic is idle again
+      );
+    } catch { setListening(false); mic.current = null; setSaid('Voice is not working here. Type your request instead.'); }
   };
 
   /** Answers from the selected ship's own turning data, in the unit last used for distances. */
-  const ask = (spoken?: string) => {
-    const q = (spoken ?? text).trim();
-    if (!q) return;
+  const respond = async (q: string, show: boolean, onModel?: () => void) => {
     const tables = new Map<string, TurnTable>();
     (ship ? shipToFishtailRows(ship) : []).forEach(r => {
       const side = r.side === 'port' ? 'Port' : 'Starboard';
@@ -180,22 +195,44 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
       tables.get(key)!.rows.push({ turn: r.heading, advance: r.advance, transfer: r.transfer, time: r.time });
     });
     const unit = toolMemory.get<string>('pref:wheel:unit', 'cables');
-    const reply = interpret(q, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables', ship: shipParams(ship) });
+    if (brain.get().state === 'none') await brain.refresh();   // a model added since the app started (typed questions do not open the voice screen that checks)
+    const { reply, pending: next, via, understoodAs, modelNote } = await smartInterpret(q, pendingAsk.current, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables', ship: shipParams(ship), turning: ship, fuel: ship?.fuelData }, brain.usable() ? brain.complete : undefined, onModel, meaning);
+    pendingAsk.current = next;
     if (reply.kind === 'open') {
-      const astroTab = ASTRO_TABS[reply.tool];
-      const target = NAV_TOOLS.find(t => t.name === (astroTab ? 'ASTRO' : reply.tool));
+      const astroTab = ASTRO_TABS[reply.tool], tabOf = TOOL_TABS[reply.tool];
+      const target = NAV_TOOLS.find(t => t.name === (astroTab ? 'ASTRO' : tabOf ? tabOf[0] : reply.tool));
       if (target) {
         if (astroTab) toolMemory.set('astro:tab', astroTab);
+        if (tabOf) toolMemory.set(tabOf[1], tabOf[2]);
         if (reply.form) {
           const key = `${reply.form.id}:fields`;
           toolMemory.set(key, { ...toolMemory.get<Record<string, string>>(key, {}), ...reply.form.values });
         }
         Object.entries(reply.memory ?? {}).forEach(([k, v]) => toolMemory.set(k, v));
-        openInfoFor(target, false);
+        if (show) openInfoFor(target, false);
+        shownTool.current = target.name;
       }
     }
-    setSaid(reply.say);
+    return { reply, via, understoodAs, modelNote };
+  };
+  const ask = async (spoken?: string) => {
+    const q = (spoken ?? text).trim();
+    if (!q) return;
+    shownTool.current = null;
     setText('');
+    const { reply, modelNote } = await respond(q, true, () => setSaid('Working it out…'));
+    setSaid(modelNote ? `${reply.say}\n(${modelNote})` : reply.say);
+  };
+  /** The voice assistant's questions: the answer is worked out and the tool filled in, but the NavYeo window is left shut. */
+  const answerByVoice = async (q: string): Promise<{ say: string; tool?: string; understoodAs?: string; note?: string }> => {
+    shownTool.current = null;
+    const { reply, understoodAs, modelNote } = await respond(q, false);
+    return { say: reply.say, tool: shownTool.current ?? undefined, understoodAs, note: modelNote };
+  };
+  const showToolFromVoice = (name: string) => {
+    const t = NAV_TOOLS.find(x => x.name === name);
+    setVoiceOpen(false);
+    if (t) { openInfoFor(t, false); setPhase('open'); }
   };
   // the voice callback outlives the render it was made in, so it calls the latest ask
   const askRef = useRef(ask);
@@ -207,12 +244,14 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
       <button
         {...iconHandlers}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPhase('open'); } }}
-        aria-label="Open NavYeo" title="NavYeo" aria-hidden={open} tabIndex={open ? -1 : 0}
+        aria-label="Open NavYeo" title="NavYeo (hold to talk)" aria-hidden={open} tabIndex={open ? -1 : 0}
         className="fixed z-40 rounded-full bg-blue-600 text-white shadow-2xl shadow-blue-400/30 flex items-center justify-center cursor-grab active:cursor-grabbing select-none transition-opacity duration-150"
         style={{ left: pos.x, top: pos.y, width: ICON, height: ICON, touchAction: 'none', opacity: open ? 0 : 1, pointerEvents: open ? 'none' : 'auto' }}
       >
         <Bot size={26} />
       </button>
+
+      {voiceOpen && <VoiceAssistant shipName={ship?.name} answer={answerByVoice} showTool={showToolFromVoice} onClose={() => setVoiceOpen(false)} />}
 
       {open && (<>
         {/* the screen behind is blurred so the eye stays on NavYeo; taps still reach it, which collapses NavYeo as before */}
@@ -287,17 +326,17 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
             {/* Typed requests: keyword matching only (see commands.ts). Voice, and local or online AI, plug in here later. */}
             <div className="p-3 border-t border-slate-50 bg-slate-50/50 shrink-0 space-y-2">
               {said && (
-                <div role="status" className="relative p-3 pr-8 bg-blue-50 border border-blue-100 rounded-2xl text-xs font-medium text-slate-700 leading-relaxed max-h-32 overflow-y-auto">
+                <div role="status" className="relative p-3 pr-8 bg-blue-50 border border-blue-100 rounded-2xl text-xs font-medium text-slate-700 leading-relaxed max-h-32 overflow-y-auto whitespace-pre-line">
                   {said}
                   <button onClick={() => setSaid(null)} aria-label="Dismiss" className="absolute top-1.5 right-2 text-slate-400 hover:text-slate-600 text-base leading-none">&times;</button>
                 </div>
               )}
               <form onSubmit={e => { e.preventDefault(); ask(); }} className="flex items-center gap-2 p-1.5 px-4 bg-white rounded-full border border-slate-200">
                 <input type="text" value={text} onChange={e => setText(e.target.value)} aria-label="Ask NavYeo" placeholder="Type or tap the mic: tactical diameter at 15 kn" className="flex-1 min-w-0 bg-transparent border-none text-xs font-medium text-slate-900 outline-none" />
-                {voiceMaybeSupported() && (
-                  <button type="button" onClick={toggleMic} aria-pressed={listening} aria-label={listening ? 'Stop listening' : 'Speak to NavYeo'} title={listening ? 'Listening... tap to stop' : 'Speak'}
-                    className={`p-2 rounded-full transition-colors ${listening ? 'bg-red-500 text-white animate-pulse' : 'text-blue-600 hover:bg-blue-50'}`}>{listening ? <MicOff size={16} /> : <Mic size={16} />}</button>
-                )}
+                {/* always shown: where speech recognition is missing the button is dimmed and says why when tapped */}
+                <button type="button" onClick={() => (voiceMaybeSupported() ? toggleMic() : setSaid(voiceUnavailableReason()))} aria-pressed={listening} aria-disabled={!voiceMaybeSupported()}
+                  aria-label={listening ? 'Stop listening' : 'Speak to NavYeo'} title={!voiceMaybeSupported() ? 'Voice is not available here' : listening ? 'Listening... tap to stop' : 'Speak'}
+                  className={`p-2 rounded-full transition-colors ${!voiceMaybeSupported() ? 'text-slate-300' : listening ? 'bg-red-500 text-white animate-pulse' : 'text-blue-600 hover:bg-blue-50'}`}>{listening ? <MicOff size={16} /> : <Mic size={16} />}</button>
                 <button type="submit" disabled={!text.trim()} aria-label="Send" className="p-2 text-blue-600 disabled:text-blue-600/30"><Send size={16} /></button>
               </form>
             </div>

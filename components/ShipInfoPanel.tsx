@@ -29,12 +29,14 @@ const MORE_FACTS: [string, keyof ShipInfo][] = [
 const Flag: React.FC<{ t: 'Wiki' | 'Janes' }> = ({ t }) => <span className={`ml-1.5 align-middle px-1.5 py-px rounded text-[9px] font-bold uppercase tracking-wider ${t === 'Wiki' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'}`}>{t}</span>;
 
 const ShipInfoPanel: React.FC<Props> = ({ ship, wiki, lookup, isMine, isPinned, onToggleMine, onTogglePin, onEdit, onPhoto }) => {
-  const [more, setMore] = useState(false);
+  const [more, setMore] = useState(true);   // the full details (armament, sensors...) are shown at once: they are stored in the app and need no connection
   const [photoError, setPhotoError] = useState<string | null>(null);
   const info = ship.info;
   const value = (k: keyof ShipInfo) => (k === 'commissioned' ? formatCommissioned(info?.[k]) : (info?.[k] ?? '').toString().trim());
   const key = KEY_FACTS.filter(([, k]) => value(k));
   const extra = MORE_FACTS.filter(([, k]) => value(k));
+  // a short summary from the ship's own stored details, so there is always something to read offline
+  const about = [info?.shipClass, info?.builder && `built by ${info.builder}`, info?.displacement && `displacement ${info.displacement}`, info?.length && `length ${info.length}`, info?.speed && `speed ${info.speed}`].filter(Boolean).join(' · ');
   const mine = shownFields(ship, 'details').filter(f => f.value.trim());
 
   const pickPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,7 +80,8 @@ const ShipInfoPanel: React.FC<Props> = ({ ship, wiki, lookup, isMine, isPinned, 
           </div>
         ) : (
           <p className="text-xs text-slate-400 font-medium">
-            {lookup === 'loading' ? 'Looking up a description and picture…' : 'No description saved yet. A short description and picture are fetched from Wikipedia when you are online, then kept for offline use.'}
+            {about && <span className="block text-sm text-slate-600 font-medium leading-relaxed mb-1">{about}</span>}
+            {lookup === 'loading' ? 'Looking up a longer description and picture…' : 'A longer description and a picture are fetched from Wikipedia when you are online, then kept for offline use. The details below are stored in the app.'}
           </p>
         )}
 

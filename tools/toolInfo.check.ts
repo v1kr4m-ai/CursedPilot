@@ -26,7 +26,8 @@ assert.ok(TOOL_INFO['Wheel-over Point'].formulas[0].includes('Advance − Transf
 assert.ok(/baseline \/ 2 \/ Math\.tan\(rad\(angle \/ 2\)\)/.test(math) && TOOL_INFO['Horizontal Sextant Angle (HSA)'].formulas.join(' ').includes('tan(α / 2)'));
 
 // the unit dropdowns and the object-length mode are explained
-const lengthTools = ['Time / Speed / Distance', 'CPA / TCPA', 'Course to Steer', 'Distance Off & Horizon', 'Horizontal Sextant Angle (HSA)', 'Wheel-over Point', 'Radian Rule'];
+assert.ok(TOOL_INFO['CPA / TCPA'].limits.join(' ').includes('nautical miles unless you choose'), 'CPA / TCPA: no note on its range unit');   // a radar range is in miles
+const lengthTools = ['Course to Steer', 'Distance Off & Horizon', 'Horizontal Sextant Angle (HSA)', 'Wheel-over Point', 'Radian Rule'];
 for (const n of lengthTools) assert.ok(TOOL_INFO[n].limits.join(' ').includes('cables (the default)'), `${n}: no note on length units`);
 assert.ok(TOOL_INFO['Horizontal Sextant Angle (HSA)'].steps.join(' ').includes('Object length mode') && TOOL_INFO['Horizontal Sextant Angle (HSA)'].formulas.join(' ').includes('Object length ='));
 assert.ok(/objectLengthFromBearings[\s\S]*2 \* distance \* Math\.tan\(rad\(angle \/ 2\)\)/.test(math), 'object length formula changed');

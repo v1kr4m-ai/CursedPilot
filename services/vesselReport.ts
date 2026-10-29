@@ -6,7 +6,7 @@ import { compassHtml, emLogHtml, fishtailsHtml, turningPlotSvg } from './reportE
 
 export type Cell = string | number;
 
-const PARTICULARS: [string, keyof Ship['particulars'], string][] = [
+const PARTICULARS: [string, Exclude<keyof Ship['particulars'], 'rigs' | 'anchorCableType'>, string][] = [
   ['Length overall', 'lengthOverall', 'm'],
   ['Breadth overall', 'breadthOverall', 'm'],
   ['Displacement', 'displacement', 'tons'],
@@ -49,6 +49,8 @@ export const rowHasData = (r: TurningDataRow) =>
 
 export const particularRows = (ship: Ship): Cell[][] => [
   ...PARTICULARS.map(([label, key, unit]): Cell[] => [label, ship.particulars[key] ?? 0, unit]),
+  ...(ship.particulars.stemToRadar ? [['Stem to radar', ship.particulars.stemToRadar, 'm'] as Cell[]] : []),
+  ...(ship.particulars.rigs ?? []).map((r): Cell[] => [`RAS rig: ${r.name}${r.side ? ` (${r.side.toLowerCase()})` : ''}`, r.stemDistance, 'm from stem']),
   ...(ship.particulars.heightOfEye ? [['Height of eye', ship.particulars.heightOfEye, 'm'] as Cell[]] : []),
   ...(ship.particulars.repeaterOffset ? [['Wing repeater off centre line', ship.particulars.repeaterOffset, 'm'] as Cell[]] : []),
   ...(ship.particulars.repeaterToJackstaff ? [['Wing repeater to Jackstaff', ship.particulars.repeaterToJackstaff, 'm'] as Cell[]] : []),

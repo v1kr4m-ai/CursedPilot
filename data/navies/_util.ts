@@ -2,6 +2,20 @@
 import type { ClassSpec, NavyCategory } from '../indianNavy.ts';
 
 type Text = Partial<Omit<ClassSpec, 'name' | 'category' | 'loa' | 'breadth' | 'tons'>>;
+/** The figures written down for a class in data/navies/specs/: they fill the fields a class does not already have. */
+export type Spec = Partial<Pick<ClassSpec, 'displacement' | 'length' | 'beam' | 'draught' | 'speed' | 'propulsion' | 'complement' | 'armament' | 'sensors' | 'aircraft' | 'builder'>>;
+const numOf = (s: string | undefined) => { const m = /(\d[\d,]*(?:\.\d+)?)/.exec(s ?? ''); return m ? parseFloat(m[1].replace(/,/g, '')) : 0; };
+
+/** A class with its written-down specification filled in where a field is empty (never overwriting), and the particulars numbers worked out from the text. */
+export function withSpec(c: ClassSpec, spec?: Spec): ClassSpec {
+  if (!spec) return c;
+  const out: ClassSpec = { ...c };
+  for (const [k, v] of Object.entries(spec) as [keyof Spec, string | undefined][]) if (v && !String(out[k] ?? '').trim()) (out as unknown as Record<string, string>)[k] = v;
+  if (!out.loa) out.loa = numOf(out.length);
+  if (!out.breadth) out.breadth = numOf(out.beam);
+  if (!out.tons) out.tons = numOf(out.displacement);
+  return out;
+}
 const num = (s: string | undefined) => { const m = /(\d[\d,]*(?:\.\d+)?)/.exec(s ?? ''); return m ? parseFloat(m[1].replace(/,/g, '')) : 0; };
 
 /** One class. `wiki` is the Wikipedia article for the picture and description; `displacement` etc. follow Wikipedia (flagged "Wiki" where `janes` differs). */

@@ -1,0 +1,31 @@
+// Class specifications for the Republic of Korea Navy classes (Wikipedia class articles and the commonly published figures; the smaller classes give only what is published).
+import type { Spec } from '../_util.ts';
+
+export const SOUTH_KOREA_SPECS: Record<string, Spec> = {
+  kss3: { length: '83.5 m', beam: '9.6 m', speed: '20 kn (submerged)', propulsion: 'Diesel-electric with air-independent propulsion (fuel cells in Batch I)', complement: '~50', armament: '6 × 533 mm torpedo tubes (torpedoes, Harpoon); 6 vertical cells for Hyunmoo 4-4 ballistic missiles', sensors: 'Sonar suite with flank and towed arrays' },
+  t214: { length: '65 m', beam: '6.3 m', draught: '6 m', speed: '20 kn (submerged)', propulsion: 'Diesel-electric with fuel-cell AIP: 2 × MTU 16V396 diesels, 2 × 120 kW fuel cells, 1 shaft', complement: '~40', armament: '8 × 533 mm torpedo tubes: White Shark torpedoes, Harpoon missiles', sensors: 'Atlas Elektronik ISUS 90 sonar suite' },
+  jangbogo: { length: '56 m', beam: '6.2 m', draught: '5.5 m', speed: '11 kn surfaced, 22 kn submerged', propulsion: 'Diesel-electric: 4 × MTU 12V493 diesels, 1 shaft', complement: '~33', armament: '8 × 533 mm torpedo tubes; SUT torpedoes; Harpoon missiles', sensors: 'Atlas Elektronik ISUS 90 sonar suite' },
+  sejong: { length: '165.9 m', beam: '21.4 m', draught: '6.25 m', speed: '30 kn', propulsion: 'COGAG: 4 × GE LM2500 gas turbines, 2 shafts', complement: '~300', armament: '128-cell Mk 41 VLS (SM-2, ASROC, Hyunmoo-3 land attack, Hong Sang Eo); 8 × SSM-700K Hae Sung anti-ship missiles; 1 × 5-inch/62 Mk 45 gun; Goalkeeper CIWS; 21-cell RAM; 2 × triple torpedo tubes', sensors: 'AN/SPY-1D(V) radar; MW-08 / SPS-95K surface search; hull sonar and towed array', aircraft: '2 × Lynx / Seahawk helicopters' },
+  yisunsin: { length: '150 m', beam: '17.4 m', draught: '4.3 m', speed: '29 kn', propulsion: 'CODOG: 2 × GE LM2500 gas turbines and 2 diesels', complement: '~200', armament: '32-cell Mk 41 VLS (SM-2); 8 × Harpoon / Hae Sung anti-ship missiles; 1 × 127 mm gun; Goalkeeper CIWS; 21-cell RAM; 2 × triple torpedo tubes', sensors: 'SPS-49(V)5 air search; MW-08 surface search; STIR fire control; hull sonar and towed array', aircraft: '1 × Super Lynx helicopter' },
+  gwanggaeto: { length: '135.4 m', beam: '14.2 m', draught: '4.2 m', speed: '30 kn', propulsion: 'CODOG: 2 × GE LM2500 gas turbines and 2 diesels', complement: '~170', armament: '2 × 4 Harpoon; 16-cell Sea Sparrow; 1 × 127 mm gun; Goalkeeper CIWS; 2 × triple torpedo tubes', sensors: 'SPS-49 air search; STIR fire control; hull sonar', aircraft: '1 × Lynx helicopter' },
+  chungnam: { length: '~129 m', beam: '~15 m', speed: '~30 kn', propulsion: 'CODOG: gas turbine and diesels', armament: 'K-VLS (K-SAAM, Haeseong anti-ship and Hyunmoo cruise missiles); 5-inch gun; CIWS; torpedoes', aircraft: '1 helicopter' },
+  daegu: { length: '~122 m', beam: '~14.5 m', speed: '~30 kn', propulsion: 'CODOG: gas turbine and diesels', armament: 'K-VLS (K-SAAM, Hae Sung / Chung Ryong); SSM-700K Haeseong anti-ship missiles; 127 mm gun; Goalkeeper / RAM; torpedo tubes', aircraft: '1 helicopter' },
+  incheon: { length: '114 m', beam: '14 m', draught: '4 m', speed: '30 kn', propulsion: 'CODOG: 1 × GE LM2500 gas turbine and 2 diesels', complement: '~140', armament: '8 × SSM-700K Hae Sung anti-ship missiles; 1 × 127 mm Mk 45 gun; 1 × 30 mm Goalkeeper CIWS; 21-cell RAM; 2 × triple 324 mm torpedo tubes (Blue Shark)', sensors: 'MW-08 3D radar; hull sonar', aircraft: '1 × Lynx helicopter' },
+  ulsan: { length: '102 m', beam: '11.5 m', draught: '3.5 m', speed: '34 kn', propulsion: 'CODOG: 2 × GE LM2500 gas turbines and 2 diesels', complement: '~150', armament: '76 mm gun; 8 × Harpoon; 2 × 40 mm Bofors guns; 2 × triple 324 mm torpedo tubes', sensors: 'Air/surface search and fire control radars; hull sonar' },
+  pohang: { length: '88 m', beam: '10 m', speed: '32 kn', propulsion: 'CODOG: gas turbine and diesels', armament: '1 × 76 mm gun; 2 × 40 mm guns; 2 × triple 324 mm torpedo tubes' },
+  yoon: { length: '63 m', speed: '40 kn', complement: '~40', armament: '1 × 76 mm gun; 1 × 40 mm gun; 4 × SSM-700K Hae Sung anti-ship missiles; machine guns' },
+  dokdo: { length: '199 m', beam: '31 m', draught: '6.6 m', speed: '23 kn', propulsion: 'CODAD: 4 × diesels, 2 shafts', complement: '~330, plus 700 marines', armament: '1 × Goalkeeper CIWS; 2 × 21-cell RAM', sensors: 'MW-08 3D radar; surface search radar', aircraft: 'Up to ~15 helicopters; 2 LCAC; 7 tanks' },
+  cheonwangbong: { length: '~127 m', beam: '~19 m', speed: '~23 kn', armament: 'CIWS and 12.7 mm machine guns', aircraft: 'Helicopter deck' },
+  gojunbong: { length: '~112 m', armament: 'Light guns and machine guns', aircraft: 'Helicopter deck' },
+  nampo: { armament: 'Guns and mine-laying gear' },
+  wonsan: { armament: 'Guns and mine-laying gear' },
+  yangyang: { armament: '1 × 30 mm gun; machine guns; mine disposal vehicles', sensors: 'Minehunting sonar' },
+  ganggyeong: { armament: '1 × 20 mm gun; machine guns; mine disposal gear', sensors: 'Minehunting sonar' },
+  hansando: { armament: 'Unarmed training ship' },
+  soyang: { armament: 'Defensive guns and CIWS', aircraft: 'Helicopter deck' },
+  cheonji: { armament: 'Defensive guns', aircraft: 'Helicopter deck' },
+  tongyeong: { armament: 'Defensive guns; towing and salvage gear' },
+  ganghwado: { armament: 'Unarmed (submarine rescue vessel)' },
+  cheonghaejin: { armament: 'Unarmed (submarine rescue vessel)' },
+  survey: { armament: 'Unarmed (survey equipment)' },
+};
