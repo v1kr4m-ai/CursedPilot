@@ -11,6 +11,7 @@
 #include <sys/time.h>
 
 #include "llama.h"
+#include "ggml-backend.h"
 
 #define TAG "NavLlm"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
@@ -27,7 +28,8 @@ struct Inst {
 };
 
 static std::once_flag g_init;
-static void ensure_backend() { std::call_once(g_init, []() { llama_backend_init(); }); }
+// the CPU code is a set of libraries, one per processor family, in the app's library folder: the best one for this phone is loaded
+static void ensure_backend(const std::string& lib_dir) { std::call_once(g_init, [&]() { ggml_backend_load_all_from_path(lib_dir.c_str()); llama_backend_init(); }); }
 static long now_ms() { struct timeval tv; gettimeofday(&tv, nullptr); return tv.tv_sec * 1000L + tv.tv_usec / 1000L; }
 
 static std::string to_std(JNIEnv* env, jstring s) {
@@ -60,8 +62,8 @@ static std::string format_chat(const Inst* inst, const std::string& system, cons
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_cursedpilot_app_NavLlmNative_load(JNIEnv* env, jclass, jstring path, jint threads) {
-    ensure_backend();
+Java_com_cursedpilot_app_NavLlmNative_load(JNIEnv* env, jclass, jstring path, jint threads, jstring lib_dir) {
+    ensure_backend(to_std(env, lib_dir));
     const std::string p = to_std(env, path);
     auto* inst = new Inst();
     std::string error;

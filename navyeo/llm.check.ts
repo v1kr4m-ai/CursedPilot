@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { GRAMMAR, SAY_GRAMMAR, SYSTEM_PROMPT, isQuestion, parseModelReply, reference, userPrompt } from './llmPrompt.ts';
 import { madeUpNumbers, smartInterpret } from './smart.ts';
 import type { Complete } from './smart.ts';
-import { EXAMPLES } from './commands.ts';
 import type { Context } from './commands.ts';
 
 const ctx = (extra: Partial<Context> = {}): Context => ({ tables: [], unit: 'nm', ...extra });
@@ -15,9 +14,9 @@ assert.deepEqual(parseModelReply('  SAY: Hello there.\nignored'), { kind: 'say',
 assert.equal(parseModelReply('whatever'), null); assert.equal(parseModelReply('CMD:   '), null); assert.equal(parseModelReply(''), null);
 
 // the instructions carry the app's own request styles, and are the same every time (so the phone can keep them in memory)
-assert.ok(EXAMPLES.every(e => SYSTEM_PROMPT.includes(e)));
+assert.ok(SYSTEM_PROMPT.includes('CMD: cpa own course 040') && SYSTEM_PROMPT.includes('CMD: course to steer track 090'));   // the formats are in the examples
 assert.ok(SYSTEM_PROMPT.includes('CMD:') && SYSTEM_PROMPT.includes('SAY:'));
-assert.ok(SYSTEM_PROMPT.length < 6000, `the instructions are ${SYSTEM_PROMPT.length} characters: too long for a small model's context`);
+assert.ok(SYSTEM_PROMPT.length < 2200, `the instructions are ${SYSTEM_PROMPT.length} characters: the phone reads them before its first answer, so keep them short`);
 assert.match(GRAMMAR, /root ::= "CMD: " req \| "SAY: " ans/);
 
 // a question gets the app's own explanation to answer from; a calculation does not

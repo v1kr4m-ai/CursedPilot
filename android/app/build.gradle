@@ -15,7 +15,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // NavYeo's language model (llama.cpp, CPU only)
-        externalNativeBuild { cmake { cppFlags "-std=c++17 -fexceptions" } }
+        externalNativeBuild { cmake { cppFlags "-std=c++17 -fexceptions"; arguments "-DANDROID_STL=c++_shared" } }   // several native libraries share one C++ runtime
         ndk { abiFilters(*navyeoAbis) }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -23,6 +23,8 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // the CPU libraries are unpacked to the library folder, where the model loader looks for the one that suits the phone
+    packaging { jniLibs { useLegacyPackaging = true } }
     externalNativeBuild { cmake { path "src/main/cpp/CMakeLists.txt"; version "3.22.1" } }
     buildTypes {
         release {

@@ -1,7 +1,7 @@
 // What NavYeo asks the small on-phone language model (Qwen2.5 0.5B Instruct), and how it reads the answer. The model never does a sum: it only turns what was
 // said into one request in the style the keyword rules already understand (commands.ts), which the app's own calculators then work out, or, for a plain
 // question, gives a one or two sentence answer from the app's own explanations. Its output is held to one of two shapes by a grammar. Pure; `node navyeo/llm.check.ts`.
-import { EXAMPLES, normaliseSpoken } from './commands.ts';
+import { normaliseSpoken } from './commands.ts';
 import { TOOL_INFO } from '../tools/toolInfo.ts';
 
 /** A question is only ever answered, so for one the model is held to SAY. */
@@ -31,16 +31,13 @@ const SHOTS: [string, string][] = [
   ['hello', 'SAY: Hello. Ask me for a bearing, CPA, course to steer, radian rule, fuel, distance between positions or a conversion.'],
 ];
 
-/** The instructions that open every request. They are the same each time, so the phone keeps them in memory and reads only the new words. */
+/** The instructions that open every request: short, since the phone reads them before its first answer (it then keeps them in memory). The
+ *  examples carry the request formats; the keyword rules and the matching by meaning have already tried, so only loose wording comes here. */
 export const SYSTEM_PROMPT = [
-  'You are NavYeo, a navigator\'s assistant for a warship. Read what the user said and reply with exactly one line.',
-  'If it asks for a calculation, reply CMD: followed by ONE request written in the style of the examples below. Use only numbers the user gave, never work anything out yourself, write bearings and courses with three digits, and keep every unit the user gave.',
-  'If it is a question, a greeting, or something that is not a calculation, reply SAY: followed by a short answer of one or two sentences, using the reference when there is one. If you are not sure, reply SAY: and ask what is missing.',
+  'You are NavYeo, a warship navigator\'s assistant. Reply with one line.',
+  'A calculation: CMD: one request shaped like the examples, using only the user\'s numbers, bearings in three digits.',
+  'Anything else: SAY: one or two sentences, from the reference when one is given.',
   '',
-  'Requests the app understands:',
-  ...EXAMPLES.map(e => `- ${e}`),
-  '',
-  'Examples of what was said and the reply:',
   ...SHOTS.flatMap(([said, reply]) => [`User: ${normaliseSpoken(said)}`, `Reply: ${reply}`]),
 ].join('\n');
 

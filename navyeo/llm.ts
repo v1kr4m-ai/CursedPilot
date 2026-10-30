@@ -20,12 +20,14 @@ const Native = registerPlugin<NavLlmPlugin>('NavLlm');
 
 /** browser: no model here; none: none installed; installed: on the phone, not in memory; loading; ready; error */
 export type BrainState = 'browser' | 'none' | 'installed' | 'loading' | 'ready' | 'error';
-export interface BrainSnapshot { state: BrainState; sizeMb: number; error: string; /** percent while a model file is being copied in, else -1 */ progress: number }
+export interface BrainSnapshot { state: BrainState; sizeMb: number; error: string; /** percent while a model file is being copied in, else -1 */ progress: number; /** the user lets NavYeo use the model */ on: boolean }
 
 const IDLE_MS = 10 * 60_000;   // the model stays in memory (about 600 MB) for ten idle minutes: reading its fixed instructions again takes a while
-const ANSWER_MS = 45_000;      // an answer once the fixed instructions are in memory
-const FIRST_MS = 180_000;      // the first request reads the instructions (about 1100 words of the model's) as well: on a phone that can take a minute or more
-let snap: BrainSnapshot = { state: Capacitor.isNativePlatform() ? 'none' : 'browser', sizeMb: 0, error: '', progress: -1 };
+const ANSWER_MS = 15_000;      // an answer once the fixed instructions are in memory: past this the keyword answer is better than waiting
+const FIRST_MS = 60_000;       // the first request reads the instructions (about 500 words of the model's) as well
+const ON_KEY = 'navyeo:llm';
+const savedOn = () => { try { return localStorage.getItem(ON_KEY) !== 'off'; } catch { return true; } };
+let snap: BrainSnapshot = { state: Capacitor.isNativePlatform() ? 'none' : 'browser', sizeMb: 0, error: '', progress: -1, on: savedOn() };
 const subs = new Set<() => void>();
 const set = (p: Partial<BrainSnapshot>) => { snap = { ...snap, ...p }; subs.forEach(f => f()); };
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
@@ -41,8 +43,15 @@ const message = (e: unknown) => String((e as { message?: string })?.message ?? e
 export const brain = {
   subscribe: (f: () => void) => { subs.add(f); return () => { subs.delete(f); }; },
   get: (): BrainSnapshot => snap,
-  /** is there a model on this phone that can be used */
-  usable: () => snap.state === 'installed' || snap.state === 'ready' || snap.state === 'loading',
+  /** is there a model on this phone that can be used, and switched on */
+  usable: () => snap.on && (snap.state === 'installed' || snap.state === 'ready' || snap.state === 'loading'),
+
+  /** Switches the model on or off (remembered). Off: NavYeo answers by its rules alone and the model's memory is given back. */
+  setOn(on: boolean): void {
+    try { localStorage.setItem(ON_KEY, on ? 'on' : 'off'); } catch { /* kept for this session only */ }
+    set({ on });
+    if (on) void brain.warm(); else void brain.unload();
+  },
 
   async refresh(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return;
@@ -70,7 +79,7 @@ export const brain = {
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
         const r = await Promise.race([
-          Native.complete({ system, user, grammar, maxTokens: 110, temperature: 0 }),
+          Native.complete({ system, user, grammar, maxTokens: 80, temperature: 0 }),
           new Promise<never>((_, rej) => { timer = setTimeout(() => { void Native.stop(); rej(new Error('The NavYeo model took too long.')); }, primed ? ANSWER_MS : FIRST_MS); }),
         ]);
         primed = true;

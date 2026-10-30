@@ -11,7 +11,7 @@ import { isLengthUnit } from '../tools/navMath';
 import { shipToFishtailRows } from '../fishtail/shipBridge';
 import { TurnTable } from './commands';
 import { smartInterpret } from './smart';
-import { brain } from './llm';
+import { brain, useBrain } from './llm';
 import { meaning } from './embedder';
 import { Listening, startListening, voiceMaybeSupported, voiceUnavailableReason } from './voice';
 import { VoiceAssistant } from './VoiceAssistant';
@@ -34,6 +34,8 @@ const HOLD_MS = 450;
  */
 const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
+  const llm = useBrain();
+  useEffect(() => { if (phase === 'open') void brain.refresh().then(() => brain.warm()); }, [phase]);   // the model, when on, is made ready while the question is typed
   const [tool, setTool] = useState<NavTool | null>(null);
   const names = useToolNames();
   const [showInfo, setShowInfo] = useState(false);
@@ -273,6 +275,10 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> <span className="truncate">{ship ? ship.name : "Navigator's assistant"}</span></div>
                 </div>
               </div>
+              {llm.state !== 'browser' && llm.state !== 'none' && (
+                <button onClick={() => brain.setOn(!llm.on)} role="switch" aria-checked={llm.on} title={llm.on ? 'LLM on: loose wording goes to the model' : 'LLM off: keyword rules only'}
+                  className={`my-2 mr-1 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors ${llm.on ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>LLM {llm.on ? 'on' : 'off'}</button>
+              )}
               <button onClick={() => toolMemory.clear()} disabled={!hasEntries} aria-label="Clear all entries" title="Clear all entries"
                 className="my-2 p-2.5 bg-slate-50 text-slate-500 rounded-full hover:bg-red-50 hover:text-red-500 disabled:opacity-30 disabled:hover:bg-slate-50 disabled:hover:text-slate-500 transition-colors"><Eraser size={18} /></button>
               <button onClick={collapse} aria-label="Collapse NavYeo" title="Collapse to icon" className="m-2 p-2.5 bg-slate-50 text-slate-500 rounded-full hover:bg-slate-100 transition-colors"><Minimize2 size={18} /></button>

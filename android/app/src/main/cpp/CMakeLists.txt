@@ -13,14 +13,13 @@ set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_SERVER OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_APP OFF CACHE BOOL "" FORCE)
 
-# the x86_64 build is only for the emulator, whose CPU has AVX2; the phone's arm64 build keeps the safe baseline
-if (ANDROID_ABI STREQUAL "x86_64")
-  set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
-  set(GGML_AVX2 ON CACHE BOOL "" FORCE)
-  set(GGML_FMA ON CACHE BOOL "" FORCE)
-  set(GGML_F16C ON CACHE BOOL "" FORCE)
-  set(GGML_BMI2 ON CACHE BOOL "" FORCE)
-endif()
+# The CPU code is built several times, once for each family of processor (on a phone: plain ARMv8, then with dot-product, half-precision and int8
+# matrix instructions), and the fastest one the phone's own processor supports is picked when the model is loaded. A baseline-only build leaves the
+# newer instructions unused and reads the instructions several times slower.
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(GGML_NATIVE OFF CACHE BOOL "" FORCE)
+set(GGML_BACKEND_DL ON CACHE BOOL "" FORCE)
+set(GGML_CPU_ALL_VARIANTS ON CACHE BOOL "" FORCE)
 
 add_subdirectory(llama.cpp)
 

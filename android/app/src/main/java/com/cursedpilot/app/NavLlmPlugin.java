@@ -119,7 +119,7 @@ public class NavLlmPlugin extends Plugin {
                     File f = modelFile();
                     if (!f.exists()) throw new RuntimeException("No model is installed yet.");
                     int threads = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
-                    handle = NavLlmNative.load(f.getPath(), threads);
+                    handle = NavLlmNative.load(f.getPath(), threads, getContext().getApplicationInfo().nativeLibraryDir);
                 }
                 JSObject r = new JSObject();
                 r.put("loaded", true);

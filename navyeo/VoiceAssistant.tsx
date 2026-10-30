@@ -122,7 +122,7 @@ export const VoiceAssistant: React.FC<Props> = ({ shipName, answer, showTool, on
             <button onClick={() => setSheet(true)} aria-label="The NavYeo model"
               className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider active:scale-95 ${b.state === 'ready' ? 'bg-sky-500/20 text-sky-200' : b.state === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-white/10 text-slate-300'}`}>
               {b.state === 'loading' ? <Loader2 size={11} className="animate-spin" /> : <Cpu size={11} />}
-              {b.state === 'ready' ? 'NavYeo ready' : b.state === 'loading' ? 'Loading NavYeo' : b.state === 'installed' ? 'NavYeo idle' : b.state === 'error' ? 'NavYeo problem' : b.state === 'none' ? 'Add NavYeo model' : 'Basic'}
+              {!b.on && b.state !== 'browser' && b.state !== 'none' ? 'LLM off' : b.state === 'ready' ? 'NavYeo ready' : b.state === 'loading' ? 'Loading NavYeo' : b.state === 'installed' ? 'NavYeo idle' : b.state === 'error' ? 'NavYeo problem' : b.state === 'none' ? 'Add NavYeo model' : 'Basic'}
             </button>
           </div>
         </div>
@@ -191,6 +191,12 @@ export const VoiceAssistant: React.FC<Props> = ({ shipName, answer, showTool, on
                   : b.state === 'error' ? `Problem: ${b.error}`
                     : `Installed (${b.sizeMb} MB), ${b.state === 'ready' ? 'in memory and ready' : b.state === 'loading' ? 'loading…' : 'it loads when it is needed and is let go after a few idle minutes'}.`}
             </p>
+            {b.state !== 'browser' && b.state !== 'none' && (
+              <button role="switch" aria-checked={b.on} onClick={() => brain.setOn(!b.on)} className="w-full flex items-center justify-between py-2.5 px-4 rounded-2xl bg-white/5 active:scale-[0.99]">
+                <span className="text-sm font-bold">LLM {b.on ? 'on' : 'off'}<span className="block text-[10px] font-semibold text-slate-400">{b.on ? 'Loose wording goes to the model (slower)' : 'Keyword rules only: instant answers'}</span></span>
+                <span className={`relative h-6 w-11 rounded-full transition-colors ${b.on ? 'bg-sky-500' : 'bg-white/20'}`}><span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${b.on ? 'left-[22px]' : 'left-0.5'}`} /></span>
+              </button>
+            )}
             {b.progress >= 0 && <div className="h-2 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-sky-400 transition-all" style={{ width: `${Math.max(3, b.progress)}%` }} /></div>}
             {importError && <p role="alert" className="text-xs text-amber-200">{importError}</p>}
             {b.state !== 'browser' && (
