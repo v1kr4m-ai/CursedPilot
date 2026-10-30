@@ -16,6 +16,9 @@ import type { CalculationResult } from '../fishtail/types.ts';
 export const YD_PER_NM = 2025.37;
 const yd = (nm: number) => Math.round(nm * YD_PER_NM);
 const b3 = (d: number) => `${String(Math.round(((d % 360) + 360) % 360) % 360).padStart(3, '0')}°`;
+/** A length (n miles) written in the unit chosen for the answers. */
+const L = (c: Common, nm: number) => (c.fmt ? c.fmt(nm) : `${yd(nm)} yd`);
+const Ly = (c: Common, yards: number) => L(c, yards / YD_PER_NM);
 const mmss = (h: number) => { const s = Math.round(h * 3600); return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
 
 /** The figures every problem shares. Bearings true; stations as own ship's true bearing from the Guide and distance in yards. */
@@ -25,6 +28,8 @@ export interface Common {
   stationingSpeed: number | null;
   nowBearing: number | null; nowYards: number | null;
   nextBearing: number | null; nextYards: number | null;
+  /** how a length (given in n miles) is written in the answers; yards when not given */
+  fmt?: (nm: number) => string;
 }
 
 export type MarkKind = 'own' | 'station' | 'slow' | 'wheel' | 'point';
@@ -60,9 +65,9 @@ export function stationScene(c: Common, lossYdPerKnot: number | null): Scene {
     play: { totalHours: pr.totalHours, at: h => pr.at(h).pos },
     rows: [
       ['Course to steer', `${b3(best.course)} at ${c.stationingSpeed} kn`],
-      ['Relative track', `${b3(best.relativeCourse)} at ${best.relativeSpeed.toFixed(1)} kn, ${yd(dist)} yd`],
+      ['Relative track', `${b3(best.relativeCourse)} at ${best.relativeSpeed.toFixed(1)} kn, ${L(c, dist)}`],
       ['On station in', mmss(pr.totalHours)],
-      ...(slow ? [[slow.immediately ? 'Reduce speed' : 'Reduce when the Guide bears', slow.immediately ? 'at once' : `${b3(slow.guideBearsTrue)} at ${yd(slow.distance)} yd`] as [string, string]] : []),
+      ...(slow ? [[slow.immediately ? 'Reduce speed' : 'Reduce when the Guide bears', slow.immediately ? 'at once' : `${b3(slow.guideBearsTrue)} at ${L(c, slow.distance)}`] as [string, string]] : []),
       ...(other ? [['The other course', `${b3(other.course)} (slower: ${mmss(other.hours)})`] as [string, string]] : []),
     ],
   };
@@ -98,7 +103,7 @@ export function cpaScene(c: Common): Scene {
     play: { totalHours: span, at: t => ({ x: from.x + rel.x * t, y: from.y + rel.y * t }) },
     rows: [
       ['Relative track', `${b3(courseOf(rel))} at ${Math.hypot(rel.x, rel.y).toFixed(1)} kn`],
-      ap.cpaMinutes > 0 ? ['Closest to the Guide', `${yd(ap.cpa)} yd in ${ap.cpaMinutes.toFixed(1)} min, the Guide bearing ${b3(ap.cpaBearing + 180)}`] : ['Range', 'opening: you are past the closest point'],
+      ap.cpaMinutes > 0 ? ['Closest to the Guide', `${L(c, ap.cpa)} in ${ap.cpaMinutes.toFixed(1)} min, the Guide bearing ${b3(ap.cpaBearing + 180)}`] : ['Range', 'opening: you are past the closest point'],
     ],
   };
 }
@@ -120,9 +125,9 @@ export function bowsScene(c: Common, b: BowsSettings): Scene {
     tracks: [{ pts: [start, G], kind: 'rel' }, { pts: (['G', 'F', 'E', 'D', 'C', 'B'] as const).map(k => nm(s.points[k])), kind: 'construction' }],
     play: { totalHours: lead, at: t => ({ x: start.x + rel.x * t, y: start.y + rel.y * t }) },
     rows: [
-      ['Wheel over when the Guide bears', `${s.relativeBearing >= 0 ? 'Green' : 'Red'} ${Math.round(Math.abs(s.relativeBearing))} (${b3(s.guideBearing)}T) at ${Math.round(s.guideDistance)} yd`],
+      ['Wheel over when the Guide bears', `${s.relativeBearing >= 0 ? 'Green' : 'Red'} ${Math.round(Math.abs(s.relativeBearing))} (${b3(s.guideBearing)}T) at ${Ly(c, s.guideDistance)}`],
       ['Turn', `${Math.abs(Math.round(s.turnAngle))}° to ${s.turnAngle < 0 ? 'port' : 'starboard'}`],
-      ['Lateral separation then', `${Math.round(s.lateralSeparation)} yd`],
+      ['Lateral separation then', `${Ly(c, s.lateralSeparation)}`],
     ],
   };
 }
@@ -154,7 +159,7 @@ export function fishtailScene(c: Common, f: CalculationResult | null, label: str
     marks: [{ pos: from, kind: 'own', label: 'Start' }, { pos: end, kind: 'station', label: 'End' }],
     tracks: [{ pts: nodes.map(n => n.p), kind: 'rel' }],
     play: { totalHours: t / 3600, at },
-    rows: [[label, `${Math.round(f!.lateral_separation)} yd across, ${Math.round(f!.drop_distance)} yd dropped`], ['Takes', mmss(t / 3600)], ['Ends', `${b3(Math.atan2(end.x, end.y) * 180 / Math.PI)} from the Guide at ${yd(Math.hypot(end.x, end.y))} yd`]],
+    rows: [[label, `${Ly(c, f!.lateral_separation)} across, ${Ly(c, f!.drop_distance)} dropped`], ['Takes', mmss(t / 3600)], ['Ends', `${b3(Math.atan2(end.x, end.y) * 180 / Math.PI)} from the Guide at ${L(c, Math.hypot(end.x, end.y))}`]],
   };
 }
 
@@ -178,7 +183,7 @@ export function plotScene(c: Common, plots: { minutes: number; bearing: number; 
     rows: [
       ["The Guide's course and speed", `${b3(k.course)} at ${k.speed.toFixed(1)} kn`],
       ['Her relative track', `${b3(k.relCourse)} at ${k.relSpeed.toFixed(1)} kn`],
-      ap && ap.cpaMinutes > 0 ? ['Closest', `${yd(ap.cpa)} yd in ${ap.cpaMinutes.toFixed(1)} min after the last plot, bearing ${b3(ap.cpaBearing)}`] : ['Range', 'opening'],
+      ap && ap.cpaMinutes > 0 ? ['Closest', `${L(c, ap.cpa)} in ${ap.cpaMinutes.toFixed(1)} min after the last plot, bearing ${b3(ap.cpaBearing)}`] : ['Range', 'opening'],
     ],
   };
 }
@@ -189,7 +194,7 @@ export function passScene(c: Common, yards: number | null): Scene {
   if (need.length) return { marks: [], tracks: [], rows: [], need };
   const now = nowOf(c), opts = passAt(neg(now), c.guideCourse!, c.guideSpeed!, c.stationingSpeed!, yards! / YD_PER_NM);
   const marks: Scene['marks'] = [{ pos: now, kind: 'own', label: 'Now' }];
-  if (!opts.length) return { marks, tracks: [], rows: [], warn: `She is already within ${yards} yd, or that distance cannot be kept at ${c.stationingSpeed} kn.` };
+  if (!opts.length) return { marks, tracks: [], rows: [], warn: `She is already within ${Ly(c, yards!)}, or that distance cannot be kept at ${c.stationingSpeed} kn.` };
   const first = opts[0], relOwn = neg(first.rel), span = first.minutes / 60;
   return {
     marks: [...marks, { pos: { x: now.x + relOwn.x * span, y: now.y + relOwn.y * span }, kind: 'point', label: `Pass ${first.side}` }],
@@ -210,7 +215,7 @@ export function fasterScene(c: Common): Scene {
   return {
     marks: [...marks, { pos: end, kind: 'point', label: 'Nearest' }], tracks: [{ pts: [now, end], kind: 'rel' }],
     play: { totalHours: span, at: t => ({ x: now.x + relOwn.x * t, y: now.y + relOwn.y * t }) },
-    rows: [['Steer', `${b3(r.course)} at ${c.stationingSpeed} kn`], ['Nearest', `${yd(r.cpa)} yd in ${r.minutes.toFixed(1)} min, the Guide bearing ${b3(r.bearing)}`]],
+    rows: [['Steer', `${b3(r.course)} at ${c.stationingSpeed} kn`], ['Nearest', `${L(c, r.cpa)} in ${r.minutes.toFixed(1)} min, the Guide bearing ${b3(r.bearing)}`]],
   };
 }
 
@@ -260,11 +265,11 @@ export function rasScene(c: Common, p: Plan | null, g: RasGeometry): Scene {
       return at(start + s);
     } },
     rows: [
-      ['Surge', `${Math.round(P.surgeYd)} yd (${P.advantage.toFixed(1)} kn advantage)`],
+      ['Surge', `${Ly(c, P.surgeYd)} (${P.advantage.toFixed(1)} kn advantage)`],
       ['x, her stern to your stem', P.xM >= 0 ? `${P.xM.toFixed(1)} m clear` : `${(-P.xM).toFixed(1)} m overlap`],
       ['Slow when her stern bears', `θ ${P.thetaDeg.toFixed(1)}° forward of your ${g.guideTo.toLowerCase()} beam`],
-      ...(P.radar ? [['From your radar, her stern', `${Math.round(Math.abs(P.radar.rangeM) / 0.9144)} yd ${P.radar.rangeM >= 0 ? 'ahead' : 'abaft'}`] as [string, string]] : []),
-      ['From the stand-by station', P.atOnce ? 'slow at once' : `run ${Math.round(P.runYd)} yd, then slow`],
+      ...(P.radar ? [['From your radar, her stern', `${Ly(c, Math.abs(P.radar.rangeM) / 0.9144)} ${P.radar.rangeM >= 0 ? 'ahead' : 'abaft'}`] as [string, string]] : []),
+      ['From the stand-by station', P.atOnce ? 'slow at once' : `run ${Ly(c, P.runYd)}, then slow`],
     ],
   };
 }

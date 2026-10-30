@@ -106,11 +106,11 @@ export const RasDiagram: React.FC<Props> = ({ pointName, side, guideName, approa
 
       {/* the radar range to her stern, from the radar's place on own ship */}
       {p.radar && approach.radar !== undefined && (() => {
-        const yr = y(aSlow + approach.radar), xr = ax + (ax > gx ? hw / 2 + 30 : -hw / 2 - 30);
+        const yr = y(aSlow + approach.radar), xr = ax + (ax > gx ? -hw / 2 - 24 : hw / 2 + 24);   // on the inner side, clear of the given figures
         return <g>
           <circle cx={ax} cy={yr} r={3} fill="none" stroke={CALC} strokeWidth={1.4} />
           <line x1={ax} y1={yr} x2={xr} y2={yr} stroke={CALC} strokeWidth={0.6} strokeDasharray="1 2" />
-          {vdim(xr, y(Lg), yr, `${Math.round(p.radar.rangeM / 0.9144)} yd`, CALC, ax > gx ? 'start' : 'end')}
+          {vdim(xr, y(Lg), yr, `${Math.round(p.radar.rangeM / 0.9144)} yd`, CALC, ax > gx ? 'end' : 'start')}
         </g>;
       })()}
 

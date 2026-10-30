@@ -2,7 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Clock, Crosshair, Fuel, Maximize2, Radar, RefreshCw, Settings2, Ship as ShipIcon, Shuffle, Target, X, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Ship } from '../types';
-import { Field, Grid, Mini, Result, Seg, Warn, useForm, useMemory } from './kit';
+import { Field, Grid, LengthField, Mini, Result, Seg, UnitPick, Warn, useForm, useMemory, useUnit } from './kit';
+import * as nav from './navMath';
 import { PlayBar, usePlayer } from './PlayBar';
 import { useBackLayer } from '../services/backButton';
 import { YD_PER_NM, bowsScene, cpaScene, fasterScene, fishtailScene, inTimeScene, passScene, plotScene, rasScene, rtcScene, stationScene, stationTrue } from './board';
@@ -19,6 +20,8 @@ import { STATIONS, roundTheClock } from './stationChanges';
 import type { Station } from './stationChanges';
 import { EVOLUTIONS, alongsideRigs, dimsOf, plan as rasPlan } from './rasApproach';
 import type { Evolution } from './rasApproach';
+import { RasDiagram } from './RasDiagram';
+import { saveSvgAsPng } from '../services/savePicture';
 
 // BATTENBERG (v1): one radar picture, fixed at the top, for every station-keeping problem. The figures the problems share are entered once
 // (Ships & stations); each problem has a button, and its own few figures in a sheet. The answer is given as text and drawn on the picture,
@@ -37,6 +40,12 @@ const PROBLEMS: { key: Problem; label: string; icon: React.ReactNode }[] = [
 ];
 const COMMON = ['gc', 'gs', 'oc', 'os', 'ss', 'nb', 'nd', 'xb', 'xd'] as const;
 const EXTRA = ['loss', 'tmin', 'mg', 'adv', 'tr', 'tsec', 'sl', 'dec', 'fa', 'fa2', 'fgs', 'pass', 'p1t', 'p1b', 'p1r', 'p2t', 'p2b', 'p2r', 'p3t', 'p3b', 'p3r', 'rtcd', 'spk', 'sepm', 'sb'] as const;
+const NEEDS: Record<Problem, readonly (typeof COMMON[number])[]> = {
+  station: ['gc', 'gs', 'ss', 'nb', 'nd', 'xb', 'xd'], intime: ['gc', 'gs', 'nb', 'nd', 'xb', 'xd'], cpa: ['gc', 'gs', 'oc', 'os', 'nb', 'nd'], relvel: ['gc', 'gs', 'ss', 'nb', 'nd'],
+  bows: ['gc', 'gs', 'oc', 'ss', 'xb', 'xd'], fishtail: ['gc', 'gs', 'nb', 'nd'], rtc: ['gc', 'gs', 'ss'], ras: ['gc', 'gs', 'ss'],
+};
+/** A figure the chosen problem needs: ringed in green. */
+const Need: React.FC<{ on: boolean; children: React.ReactNode }> = ({ on, children }) => <div className={on ? 'rounded-2xl ring-2 ring-emerald-400 bg-emerald-50/40' : ''}>{children}</div>;
 const PRESETS: [string, number][] = [['Ahead', 0], ['Bow', 45], ['Beam', 90], ['Qtr', 135], ['Astern', 180]];
 const SIZE = 340, C = SIZE / 2, R = 150;
 const b3 = (d: number) => `${String(Math.round(((d % 360) + 360) % 360) % 360).padStart(3, '0')}`;
@@ -55,7 +64,7 @@ const Sheet: React.FC<{ title: string; onClose: () => void; children: React.Reac
 };
 
 /** The radar picture: the scene about the Guide, drawn with the Guide or own ship at the centre, head up or north up. */
-const BoardPpi: React.FC<{ scene: Scene; guideCourse: number; up: number; headUp: boolean; ownCentre: boolean; zoom: number; own: Vec | null }> = ({ scene, guideCourse, up, headUp, ownCentre, zoom, own }) => {
+const BoardPpi: React.FC<{ scene: Scene; guideCourse: number; up: number; headUp: boolean; ownCentre: boolean; zoom: number; own: Vec | null; unit: nav.LengthUnit }> = ({ scene, guideCourse, up, headUp, ownCentre, zoom, own, unit }) => {
   const cur = own ?? { x: 0, y: 0 };
   const shift = (p: Vec) => (ownCentre ? { x: p.x - cur.x, y: p.y - cur.y } : p);                 // own centre: everything rides with the Guide about own ship
   const pts = [{ x: 0, y: 0 }, ...scene.marks.map(m => m.pos), ...scene.tracks.flatMap(t => t.pts), ...(own ? [own] : [])].map(shift);
@@ -64,14 +73,14 @@ const BoardPpi: React.FC<{ scene: Scene; guideCourse: number; up: number; headUp
   const xy = (p: Vec) => { const x = p.x * Math.cos(a) + p.y * Math.sin(a), y = -p.x * Math.sin(a) + p.y * Math.cos(a); return { x: C + x * k, y: C - y * k }; };
   const at = (p: Vec) => xy(shift(p));
   const poly = (ps: Vec[]) => ps.map(p => { const q = xy(p); return `${q.x.toFixed(1)},${q.y.toFixed(1)}`; }).join(' ');
-  const ringYd = (() => { const raw = (reach * YD_PER_NM) / 4, step = [100, 200, 250, 500, 1000, 2000, 2500, 5000].find(s => s >= raw) ?? 10000; return step; })();
-  const rings = [1, 2, 3, 4].map(i => (i * ringYd) / YD_PER_NM).filter(r => r * k <= R + 2);
+  const raw = nav.convertLength(reach / 4, 'nm', unit), mag = 10 ** Math.floor(Math.log10(raw)), ringU = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) ?? 10 * mag;
+  const rings = [1, 2, 3, 4].map(i => nav.convertLength(i * ringU, unit, 'nm')).filter(r => r * k <= R + 2);
   const guide = at({ x: 0, y: 0 });
   const MARK: Record<string, string> = { own: '#ef4444', station: '#22c55e', slow: '#fb923c', wheel: '#22c55e', point: '#38bdf8' };
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={`Radar picture, ${ownCentre ? 'own ship' : 'the Guide'} at the centre, ${headUp ? 'head up' : 'north up'}`} className="w-full max-w-md mx-auto bg-slate-950 rounded-2xl">
       {rings.map(r => <circle key={r} cx={C} cy={C} r={r * k} fill="none" stroke="#155e75" strokeOpacity={0.6} />)}
-      {rings.map(r => <text key={`t${r}`} x={C + 3} y={C - r * k + 9} fontSize={7.5} fill="#22d3ee" fillOpacity={0.7}>{Math.round(r * YD_PER_NM)} yd</text>)}
+      {rings.map(r => <text key={`t${r}`} x={C + 3} y={C - r * k + 9} fontSize={7.5} fill="#22d3ee" fillOpacity={0.7}>{nav.formatLength(nav.convertLength(r, 'nm', unit), unit)}</text>)}
       {Array.from({ length: 36 }, (_, i) => i * 10).map(t => {
         const s = ((t - rot) * Math.PI) / 180, big = t % 30 === 0, r1 = big ? R - 8 : R - 4;
         return <g key={t}><line x1={C + Math.sin(s) * r1} y1={C - Math.cos(s) * r1} x2={C + Math.sin(s) * R} y2={C - Math.cos(s) * R} stroke="#22d3ee" strokeOpacity={0.5} />
@@ -100,6 +109,10 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
   const [headUp, setHeadUp] = useMemory('board:headup', true);
   const [nowFrom, setNowFrom] = useMemory<'own' | 'guide'>('board:nowfrom', 'own');
   const [zoom, setZoom] = useState(1);
+  const [uNow, setUNow] = useUnit('board:now', 'yards'), [uNext, setUNext] = useUnit('board:next', 'yards'), [uPass, setUPass] = useUnit('board:pass', 'yards');
+  const [uPlot, setUPlot] = useUnit('board:plot', 'yards'), [uRtc, setURtc] = useUnit('board:rtc', 'yards'), [uSb, setUSb] = useUnit('board:sb', 'yards');
+  const [uOut, setUOut] = useUnit('board:out', 'yards');   // the answers and the range rings
+  const toYd = (v: number | null, u: nav.LengthUnit) => (v === null ? null : nav.convertLength(v, u, 'yards'));
   // bows: the margin side and the turn; fishtail: its kind, side and table
   const [mside, setMside] = useMemory<'Port' | 'Starboard'>('board:mside', 'Starboard');
   const [turn, setTurn] = useMemory<'Auto' | 'Port' | 'Starboard'>('board:turn', 'Auto');
@@ -117,12 +130,15 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
   const [rasSide, setRasSide] = useMemory<'Port' | 'Starboard'>('board:rasside', 'Port');
   const [bigPlot, setBigPlot] = useState(false);
   const [fishScale, setFishScale] = useState(1000);
+  const [rasDiagram, setRasDiagram] = useState(false);
+  const rasBox = React.useRef<HTMLDivElement>(null);
 
   const n = (k: typeof COMMON[number]) => c.n(k);
   const nb = n('nb');
   const common: Common = {
     guideCourse: n('gc'), guideSpeed: n('gs'), ownCourse: n('oc'), ownSpeed: n('os'), stationingSpeed: n('ss') ?? n('os'),
-    nowBearing: nb === null ? null : nowFrom === 'guide' ? (nb + 180) % 360 : nb, nowYards: n('nd'), nextBearing: n('xb'), nextYards: n('xd'),
+    nowBearing: nb === null ? null : nowFrom === 'guide' ? (nb + 180) % 360 : nb, nowYards: toYd(n('nd'), uNow), nextBearing: n('xb'), nextYards: toYd(n('xd'), uNext),
+    fmt: nm => nav.formatLength(nav.convertLength(nm, 'nm', uOut), uOut),
   };
   // the turn for joining from ahead, from the ship's turning data when she has it
   const turnAngle = common.guideCourse !== null && common.ownCourse !== null ? ((common.guideCourse - common.ownCourse + 540) % 360) - 180 : null;
@@ -140,7 +156,7 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
   const gDims = { ...dimsOf(rasGuide), ...(rig ? { [EVOLUTIONS[evo].point]: rig.stemDistance > 0 ? rig.stemDistance : undefined } : {}) }, aDims = dimsOf(ship);
   const decelYd = sp.decelMetresPerKnot === undefined ? null : sp.decelMetresPerKnot / 0.9144;
   const rasP = common.guideSpeed !== null && common.stationingSpeed !== null && (e.n('spk') ?? decelYd) !== null
-    ? rasPlan({ evolution: evo, guide: gDims, approach: aDims, guideSpeed: common.guideSpeed, approachSpeed: common.stationingSpeed, surgeYdPerKnot: (e.n('spk') ?? decelYd)!, separationM: e.n('sepm') ?? 42, standbyYd: e.n('sb') ?? 500 }) : null;
+    ? rasPlan({ evolution: evo, guide: gDims, approach: aDims, guideSpeed: common.guideSpeed, approachSpeed: common.stationingSpeed, surgeYdPerKnot: (e.n('spk') ?? decelYd)!, separationM: e.n('sepm') ?? 42, standbyYd: toYd(e.n('sb'), uSb) ?? 500 }) : null;
   const pa = aDims[EVOLUTIONS[evo].point], rasGeom = { bridgeAhead: pa !== undefined && aDims.bridge !== undefined ? pa - aDims.bridge : 0, lateral: (e.n('sepm') ?? 42) + ((gDims.breadth ?? 0) + (aDims.breadth ?? 0)) / 2 };
 
   const scene: Scene = (() => {
@@ -148,9 +164,9 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
     if (problem === 'intime') return inTimeScene(common, e.n('tmin'));
     if (problem === 'cpa') return cpaScene(common);
     if (problem === 'relvel') {
-      if (rvMode === 'pass') return passScene(common, e.n('pass'));
+      if (rvMode === 'pass') return passScene(common, toYd(e.n('pass'), uPass));
       if (rvMode === 'faster') return fasterScene(common);
-      const plots = ([['p1t', 'p1b', 'p1r'], ['p2t', 'p2b', 'p2r'], ['p3t', 'p3b', 'p3r']] as const).map(([t, b, r]) => ({ minutes: e.n(t), bearing: e.n(b), yards: e.n(r) }))
+      const plots = ([['p1t', 'p1b', 'p1r'], ['p2t', 'p2b', 'p2r'], ['p3t', 'p3b', 'p3r']] as const).map(([t, b, r]) => ({ minutes: e.n(t), bearing: e.n(b), yards: toYd(e.n(r), uPlot) }))
         .filter((q): q is { minutes: number; bearing: number; yards: number } => q.minutes !== null && q.bearing !== null && q.yards !== null);
       return plotScene(common, plots);
     }
@@ -158,9 +174,9 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
       const ft = roundTheClock(rtcFrom, rtcTo, rtcSides)?.fishtail;
       const type = ft ? (ft.kind === 'half' ? ManeuverType.HALF : ft.kind === 'full' ? ManeuverType.FULL : ManeuverType.DISTORTED) : null;
       const res = ft && type && tkey && common.guideSpeed !== null ? computeFishtail(tableRows(rows, tkey), type, fishtailAngles(type, rtcSide === 'Starboard' ? SideOfTurn.STARBOARD : SideOfTurn.PORT, ft.angle, ft.a2 ?? 0), common.guideSpeed) : null;
-      return rtcScene(common, rtcFrom, rtcTo, rtcSide, rtcSides, e.n('rtcd') ?? 1000, res);
+      return rtcScene(common, rtcFrom, rtcTo, rtcSide, rtcSides, toYd(e.n('rtcd'), uRtc) ?? 1000, res);
     }
-    if (problem === 'ras') return rasScene(common, rasP, { bridgeAheadOfMarkM: rasGeom.bridgeAhead, lateralM: rasGeom.lateral, guideTo: rasSide, standbyYd: e.n('sb') ?? 500 });
+    if (problem === 'ras') return rasScene(common, rasP, { bridgeAheadOfMarkM: rasGeom.bridgeAhead, lateralM: rasGeom.lateral, guideTo: rasSide, standbyYd: toYd(e.n('sb'), uSb) ?? 500 });
     if (problem === 'bows') return bowsScene(common, { margin: e.n('mg') ?? 100, marginSide: mside, advance: e.n('adv'), transfer: e.n('tr'), speedLoss: e.n('sl') ?? 0, decelPerKnot: e.n('dec') ?? 0, turnSeconds: e.n('tsec'), turn });
     const type = fkind === 'half' ? ManeuverType.HALF : fkind === 'full' ? ManeuverType.FULL : ManeuverType.DISTORTED;
     const a1 = e.n('fa') ?? (fkind === 'distorted' ? 50 : 90), a2 = e.n('fa2') ?? 40;
@@ -173,6 +189,8 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
   const own = scene.play ? scene.play.at(player.t / 60) : scene.marks.find(m => m.kind === 'own')?.pos ?? null;
   const gc = common.guideCourse ?? 0;
   const hasExtra = problem !== 'cpa';
+  const needs = problem === 'relvel' && rvMode === 'plots' ? ['oc', 'os'] : NEEDS[problem];
+  const nd = (k: typeof COMMON[number]) => needs.includes(k);
   const fishRes = (() => {   // the fishtail itself, for the full plot
     if (problem !== 'fishtail' || !tkey || common.guideSpeed === null) return null;
     const type = fkind === 'half' ? ManeuverType.HALF : fkind === 'full' ? ManeuverType.FULL : ManeuverType.DISTORTED;
@@ -190,7 +208,7 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
           <button type="button" onClick={() => setZoom(z => Math.max(0.5, z / 1.4))} aria-label="Zoom out" className="p-1 rounded-lg bg-white text-slate-600"><ZoomOut size={14} /></button>
           <button type="button" onClick={() => setZoom(z => Math.min(6, z * 1.4))} aria-label="Zoom in" className="p-1 rounded-lg bg-white text-slate-600"><ZoomIn size={14} /></button>
         </div>
-        <BoardPpi scene={scene} guideCourse={gc} up={ownCentre ? common.ownCourse ?? gc : gc} headUp={headUp} ownCentre={ownCentre} zoom={zoom} own={own} />
+        <BoardPpi scene={scene} guideCourse={gc} up={ownCentre ? common.ownCourse ?? gc : gc} headUp={headUp} ownCentre={ownCentre} zoom={zoom} own={own} unit={uOut} />
         {scene.play && <PlayBar player={player} totalMinutes={total} />}
       </div>
 
@@ -210,6 +228,15 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
       {scene.warn && <Warn>{scene.warn}</Warn>}
       {scene.rows.length > 0 && <Result rows={scene.rows} />}
       {fishRes && <button type="button" onClick={() => setBigPlot(true)} className="w-full flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold"><Maximize2 size={14} /> Full fishtail plot</button>}
+      {problem === 'ras' && rasP && !rasP.missing.length && <button type="button" onClick={() => setRasDiagram(true)} className="w-full flex items-center justify-center gap-1.5 p-2 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold"><Maximize2 size={14} /> RAS diagram</button>}
+      {rasDiagram && rasP && !rasP.missing.length && (
+        <Sheet title={`${evo}: the approach from above`} onClose={() => setRasDiagram(false)}>
+          <div ref={rasBox}><RasDiagram pointName={EVOLUTIONS[evo].pointName} side={rasSide} guideName={rasGuide?.name ?? 'Guide'} approachName={ship?.name ?? 'Own ship'}
+            guide={gDims} approach={aDims} pointKey={EVOLUTIONS[evo].point} separationM={e.n('sepm') ?? 42} standbyYd={toYd(e.n('sb'), uSb) ?? 500} plan={rasP} /></div>
+          <button type="button" onClick={() => { const svg = rasBox.current?.querySelector('svg'); if (svg) void saveSvgAsPng(svg, `RAS ${evo} ${rasGuide?.name ?? ''} ${ship?.name ?? ''}`.trim()); }}
+            className="w-full p-2.5 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold">Save the diagram as a picture</button>
+        </Sheet>
+      )}
       {bigPlot && fishRes && (
         <Sheet title="Fishtail plot" onClose={() => setBigPlot(false)}>
           <div className="original-palette rounded-2xl bg-slate-950 text-slate-50 p-1"><ManeuverVisualizer result={fishRes} yardScale={fishScale} onSetScale={setFishScale} /></div>
@@ -219,16 +246,18 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
 
       {sheet === 'common' && (
         <Sheet title="Ships & stations" onClose={() => setSheet(null)}>
-          <Grid><Field label="Guide's course" unit="°T" {...c.bind('gc')} /><Field label="Guide's speed" unit="kn" units {...c.bind('gs')} /></Grid>
-          <Grid><Field label="Own course" unit="°T" sensor="course" {...c.bind('oc')} /><Field label="Own speed" unit="kn" sensor="speed" {...c.bind('os')} /></Grid>
-          <Field label="Stationing / approach speed (own speed if blank)" unit="kn" units {...c.bind('ss')} />
+          <p className="text-[11px] font-semibold text-emerald-700"><span className="inline-block w-3 h-3 rounded ring-2 ring-emerald-400 align-middle mr-1" />Needed for {PROBLEMS.find(p => p.key === problem)!.label}</p>
+          <Grid><Need on={nd('gc')}><Field label="Guide's course" unit="°T" {...c.bind('gc')} /></Need><Need on={nd('gs')}><Field label="Guide's speed" unit="kn" units {...c.bind('gs')} /></Need></Grid>
+          <Grid><Need on={nd('oc')}><Field label="Own course" unit="°T" sensor="course" {...c.bind('oc')} /></Need><Need on={nd('os')}><Field label="Own speed" unit="kn" sensor="speed" {...c.bind('os')} /></Need></Grid>
+          <Need on={nd('ss')}><Field label="Stationing / approach speed (own speed if blank)" unit="kn" units {...c.bind('ss')} /></Need>
           <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Own station</span>
             <Mini label="Own station given as" value={nowFrom} onChange={v => setNowFrom(v as 'own' | 'guide')} options={[['own', 'Own brg from Guide'], ['guide', 'Guide brg from me']]} /></div>
-          <Grid><Field label={nowFrom === 'guide' ? "Guide's bearing from me" : 'Own bearing from the Guide'} unit="°T" {...c.bind('nb')} /><Field label="Distance" unit="yd" {...c.bind('nd')} /></Grid>
+          <Need on={nd('nb')}><Field label={nowFrom === 'guide' ? "Guide's bearing from me" : 'Own bearing from the Guide'} unit="°T" {...c.bind('nb')} /></Need><Need on={nd('nd')}><LengthField label="Distance" unit={uNow} onUnit={setUNow} {...c.bind('nd')} /></Need>
           <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Next station (from the Guide)</span>
           <div className="flex flex-wrap gap-1">{PRESETS.flatMap(([name, a]) => (a === 0 || a === 180 ? [['', a, 'Starboard'] as const] : [['P ', a, 'Port'] as const, ['S ', a, 'Starboard'] as const]).map(([pre, ang, side]) => (
             <button key={`${name}${side}`} type="button" disabled={common.guideCourse === null} onClick={() => setPreset(ang, side)} className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-600 disabled:opacity-40">{pre}{name}</button>)))}</div>
-          <Grid><Field label="True bearing from the Guide" unit="°T" {...c.bind('xb')} /><Field label="Distance" unit="yd" {...c.bind('xd')} /></Grid>
+          <Need on={nd('xb')}><Field label="True bearing from the Guide" unit="°T" {...c.bind('xb')} /></Need><Need on={nd('xd')}><LengthField label="Distance" unit={uNext} onUnit={setUNext} {...c.bind('xd')} /></Need>
+          <UnitPick label="Answers and range rings in" unit={uOut} onChange={setUOut} />
         </Sheet>
       )}
       {sheet === 'extra' && (
@@ -244,10 +273,11 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
           {problem === 'relvel' && <>
             <Seg value={rvMode} onChange={v => setRvMode(v as 'plots' | 'pass' | 'faster')} options={[['plots', 'Her course'], ['pass', 'Pass her'], ['faster', 'Close faster']]} />
             {rvMode === 'plots' && <>
-              <p className="text-[11px] text-slate-500 font-medium">Plots of the Guide from you: time (min), her true bearing and range (yd). Own course and speed from Ships & stations.</p>
-              {([['p1t', 'p1b', 'p1r'], ['p2t', 'p2b', 'p2r'], ['p3t', 'p3b', 'p3r']] as const).map(([t, b, r], i) => <div key={i} className="grid grid-cols-3 gap-1.5"><Field label={`Plot ${i + 1} min`} {...e.bind(t)} /><Field label="Bearing" unit="°T" {...e.bind(b)} /><Field label="Range" unit="yd" {...e.bind(r)} /></div>)}
+              <p className="text-[11px] text-slate-500 font-medium">Plots of the Guide from you: time (min), her true bearing and range. Own course and speed from Ships & stations.</p>
+              <UnitPick label="Plot ranges in" unit={uPlot} onChange={setUPlot} />
+              {([['p1t', 'p1b', 'p1r'], ['p2t', 'p2b', 'p2r'], ['p3t', 'p3b', 'p3r']] as const).map(([t, b, r], i) => <div key={i} className="grid grid-cols-3 gap-1.5"><Field label={`Plot ${i + 1} min`} {...e.bind(t)} /><Field label="Bearing" unit="°T" {...e.bind(b)} /><Field label="Range" unit={nav.LENGTH_UNITS[uPlot].short} {...e.bind(r)} /></div>)}
             </>}
-            {rvMode === 'pass' && <Field label="Pass her at" unit="yd" {...e.bind('pass')} />}
+            {rvMode === 'pass' && <LengthField label="Pass her at" unit={uPass} onUnit={setUPass} {...e.bind('pass')} />}
             {rvMode !== 'plots' && <p className="text-[11px] text-slate-500 font-medium">Your speed available is the stationing speed; she is the Guide.</p>}
           </>}
           {problem === 'rtc' && <>
@@ -257,7 +287,7 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
             </Grid>
             <Seg value={rtcSide} onChange={v => setRtcSide(v as 'Port' | 'Starboard')} options={[['Starboard', "Guide's starboard side"], ['Port', "Guide's port side"]]} />
             {rtcFrom === 'Abeam' && rtcTo === 'Abeam' && <Seg value={rtcSides} onChange={v => setRtcSides(v as 'same' | 'opposite')} options={[['opposite', 'To the other side'], ['same', 'Same side']]} />}
-            <Field label="Standard distance" unit="yd" hint="1000" {...e.bind('rtcd')} />
+            <LengthField label="Standard distance (1000 yd if blank)" unit={uRtc} onUnit={setURtc} {...e.bind('rtcd')} />
             {common.guideCourse !== null && <p className="text-[11px] text-slate-500 font-medium">From {Math.round(stationTrue(common.guideCourse, rtcFrom, rtcSide))}° to {Math.round(stationTrue(common.guideCourse, rtcTo, rtcSide))}° from the Guide. A fishtail is worked from the turning table chosen under Fishtail.</p>}
           </>}
           {problem === 'ras' && <>
@@ -267,7 +297,7 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
               {evo !== 'SKBDL' && rigs.length > 0 && <label className="block space-y-1 min-w-0"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rig</span><select value={rig?.name ?? ''} onChange={ev => { setRasRig(ev.target.value); const r = rigs.find(x => x.name === ev.target.value); if (r?.side === 'Port' || r?.side === 'Starboard') setRasSide(r.side === 'Starboard' ? 'Port' : 'Starboard'); }} className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="">Ship's data</option>{rigs.map(r => <option key={r.name} value={r.name}>{`${r.name}${r.stemDistance > 0 ? ` · ${r.stemDistance} m` : ' · not set'}`}</option>)}</select></label>}
             </div>
             <Seg value={rasSide} onChange={v => setRasSide(v as 'Port' | 'Starboard')} options={[['Port', 'Guide to my port'], ['Starboard', 'Guide to my stbd']]} />
-            <Grid><Field label="Surge" unit="yd/kn" hint={decelYd === null ? '' : String(Math.round(decelYd))} {...e.bind('spk')} /><Field label="Distance between ships" unit="m" hint="42" {...e.bind('sepm')} /><Field label="Stand-by astern" unit="yd" hint="500" {...e.bind('sb')} /></Grid>
+            <Grid><Field label="Surge" unit="yd/kn" hint={decelYd === null ? '' : String(Math.round(decelYd))} {...e.bind('spk')} /><Field label="Distance between ships" unit="m" hint="42" {...e.bind('sepm')} /></Grid><LengthField label="Stand-by astern (500 yd if blank)" unit={uSb} onUnit={setUSb} {...e.bind('sb')} />
             <p className="text-[11px] text-slate-500 font-medium">You approach in {ship?.name ?? 'My Ship'}: the approach speed is the stationing speed and the Guide's speed is hers. Positions come from the ships' particulars (the RAS Approach tool takes typed figures and draws the side view).</p>
           </>}
           {problem === 'fishtail' && <>
