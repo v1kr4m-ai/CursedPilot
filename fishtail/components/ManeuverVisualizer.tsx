@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import { Compass, ZoomIn, ZoomOut, Play, Pause, RotateCcw, BarChart2, Minimize2, Maximize2, Minus, Square, SlidersHorizontal } from 'lucide-react';
 import { CalculationResult } from '../types';
 
@@ -36,7 +36,8 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<'graph' | 'ppi'>('graph');
-  const [ppiNorthUp, setPpiNorthUp] = useState(false);   // radar picture: head-up (the Guide's head up, as the manoeuvre is worked) or north-up
+  const [ppiNorthUp, setPpiNorthUp] = useState(false);
+  const [ppiOwnCentre, setPpiOwnCentre] = useState(false);   // radar picture centred on the Guide (as the manoeuvre is worked) or on own ship (as on her radar)   // radar picture: head-up (the Guide's head up, as the manoeuvre is worked) or north-up
   const [guideTrue, setGuideTrue] = useState('000');      // the Guide's true course, which the north-up picture is turned by
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [showCompass, setShowCompass] = useState(false);
@@ -45,10 +46,21 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
 
   // States for absolute position of floating windows (if null, defaults to relative CSS positions first)
   const [hudPos, setHudPos] = useState<{ x: number; y: number } | null>(null);
-  const [hudMinimized, setHudMinimized] = useState(false);
+  const [hudMinimized, setHudMinimized] = useState(true);
 
   const [palettePos, setPalettePos] = useState<{ x: number; y: number } | null>(null);
-  const [paletteMinimized, setPaletteMinimized] = useState(false);
+  const [paletteMinimized, setPaletteMinimized] = useState(true);
+  // a tap anywhere outside the two floating cards folds them away again
+  useEffect(() => {
+    if (hudMinimized && paletteMinimized) return;
+    const away = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (t?.closest('#draggable-hud, #draggable-palette')) return;
+      setHudMinimized(true); setPaletteMinimized(true);
+    };
+    document.addEventListener('pointerdown', away, true);
+    return () => document.removeEventListener('pointerdown', away, true);
+  }, [hudMinimized, paletteMinimized]);
 
   // Universal handler for mouse and touch dragging of custom panels
   const handleDragStart = (
@@ -534,7 +546,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
   }, [result]);
 
   const animationNodes = useMemo(() => {
-    const nodes: Array<{ x: number; y: number; heading: number; time: number }> = [];
+    const nodes: Array<{ x: number; y: number; heading: number; time: number; /** the turn made coming to this node, degrees, + to starboard */ turn?: number }> = [];
     let cumTime = 0;
     
     // Node 0 starts at (0,0) and course 000 at time 0
@@ -577,7 +589,8 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         x: trPoint.x,
         y: trPoint.y,
         heading: trHeading,
-        time: cumTime + legTime
+        time: cumTime + legTime,
+        turn: tp.turnAngle,
       });
 
       cumTime += legTime;
@@ -636,11 +649,12 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         const x = p1.x + (p2.x - p1.x) * ratio;
         const y = p1.y + (p2.y - p1.y) * ratio;
         
-        let h1 = p1.heading;
-        let h2 = p2.heading;
-        let diff = h2 - h1;
+        // the ship swings the way she actually turns: a 180 degree turn to port must not be drawn going round to starboard
+        const h1 = p1.heading;
+        let diff = p2.heading - h1;
         while (diff < -180) diff += 360;
         while (diff > 180) diff -= 360;
+        if (p2.turn !== undefined && p2.turn !== 0) diff = p2.turn;
         const heading = (h1 + diff * ratio + 360) % 360;
 
         return { x, y, heading };
@@ -709,29 +723,34 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
   return (
     <div ref={containerRef} className="glass rounded-3xl border border-slate-800 bg-slate-950 overflow-hidden relative shadow-2xl animate-in fade-in duration-500 cursor-crosshair">
       {/* View Mode Tab Selector absolute-center at top */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-35 pointer-events-auto flex p-1 bg-slate-900/95 border border-slate-800/80 rounded-2xl shadow-2xl backdrop-blur-md">
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-35 pointer-events-auto flex p-0.5 bg-slate-900/95 border border-slate-800/80 rounded-xl shadow-lg">
         <button
           type="button"
           onClick={() => setViewMode('graph')}
-          className={`px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black tracking-widest uppercase transition-all flex items-center gap-1.5 select-none ${viewMode === 'graph' ? 'bg-blue-600 text-white shadow shadow-blue-500/20' : 'text-slate-400 hover:text-slate-200'}`}
+          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 select-none ${viewMode === 'graph' ? 'bg-blue-600 text-white shadow shadow-blue-500/20' : 'text-slate-400 hover:text-slate-200'}`}
         >
-          <BarChart2 className="w-3.5 h-3.5" /> Math Plot
+          <BarChart2 className="w-3 h-3" /> Plot
         </button>
         <button
           type="button"
           onClick={() => setViewMode('ppi')}
-          className={`px-4 py-2 rounded-xl text-[10px] sm:text-xs font-black tracking-widest uppercase transition-all flex items-center gap-1.5 select-none ${viewMode === 'ppi' ? 'bg-cyan-600 text-white shadow shadow-cyan-500/20' : 'text-slate-400 hover:text-slate-200'}`}
+          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 select-none ${viewMode === 'ppi' ? 'bg-cyan-600 text-white shadow shadow-cyan-500/20' : 'text-slate-400 hover:text-slate-200'}`}
         >
-          <Compass className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '6s' }} /> Radar PPI Simulator
+          <Compass className="w-3 h-3" /> Radar
         </button>
       </div>
 
       {/* Radar PPI orientation: H UP (head-up) or N UP (north-up, with the Guide's true course) */}
       {viewMode === 'ppi' && (
-        <div className="absolute top-[68px] left-1/2 -translate-x-1/2 z-35 pointer-events-auto flex items-center gap-1 p-1 bg-slate-900/95 border border-slate-800/80 rounded-2xl shadow-2xl backdrop-blur-md">
-          {([['head', 'H UP'], ['north', 'N UP']] as const).map(([k, label]) => (
+        <div className="absolute top-10 left-1/2 -translate-x-1/2 z-35 pointer-events-auto flex items-center gap-0.5 p-0.5 bg-slate-900/95 border border-slate-800/80 rounded-lg shadow-lg">
+          {([['head', 'H Up'], ['north', 'N Up']] as const).map(([k, label]) => (
             <button key={k} type="button" aria-pressed={(k === 'north') === ppiNorthUp} onClick={() => setPpiNorthUp(k === 'north')}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all select-none ${(k === 'north') === ppiNorthUp ? 'bg-cyan-600 text-white shadow shadow-cyan-500/20' : 'text-slate-400 hover:text-slate-200'}`}>{label}</button>
+              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all select-none ${(k === 'north') === ppiNorthUp ? 'bg-cyan-600 text-white shadow shadow-cyan-500/20' : 'text-slate-400 hover:text-slate-200'}`}>{label}</button>
+          ))}
+          <span className="w-px h-4 bg-slate-700 mx-0.5" />
+          {([['guide', 'Guide'], ['own', 'Own']] as const).map(([k, label]) => (
+            <button key={k} type="button" aria-pressed={(k === 'own') === ppiOwnCentre} onClick={() => setPpiOwnCentre(k === 'own')} title={k === 'own' ? 'Own ship at the centre' : 'Guide at the centre'}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all select-none ${(k === 'own') === ppiOwnCentre ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}>{label}</button>
           ))}
           {ppiNorthUp && (
             <label className="flex items-center gap-1 pl-2 pr-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -750,29 +769,26 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         onMouseDown={(e) => handleDragStart(e, setHudPos, hudPos, 'hud')}
         onTouchStart={(e) => handleDragStart(e, setHudPos, hudPos, 'hud')}
         style={hudPos ? { left: `${hudPos.x}px`, top: `${hudPos.y}px` } : undefined}
-        className={`absolute z-35 pointer-events-auto transition-all ${hudPos ? '' : 'left-6 top-[220px] sm:top-24'} animate-in slide-in-from-left-4 duration-300`}
+        className={`absolute z-35 pointer-events-auto transition-all ${hudPos ? '' : 'left-2 top-2'} animate-in slide-in-from-left-4 duration-300`}
       >
         {hudMinimized ? (
           <button
             type="button"
             onClick={() => setHudMinimized(false)}
-            className="w-12 h-12 rounded-full glass border border-slate-800 hover:border-cyan-500 text-cyan-400 shadow-2xl flex items-center justify-center transition-all cursor-pointer glow-cyan active:scale-95 group relative select-none bg-slate-950/95"
+            className="w-9 h-9 rounded-full glass border border-slate-800 hover:border-cyan-500 text-cyan-400 shadow-lg flex items-center justify-center transition-all cursor-pointer active:scale-95 group relative select-none bg-slate-950/95"
             title="Expand Maneuver Animator"
           >
-            <Play className="w-5 h-5 fill-cyan-400 group-hover:scale-110 transition-transform" />
+            <Play className="w-4 h-4 fill-cyan-400" />
             <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-[8px] font-black text-cyan-400 uppercase tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all">
               Animator
             </span>
           </button>
         ) : (
-          <div className="glass px-3 py-2.5 rounded-2xl border border-slate-800/80 bg-slate-955/95 shadow-2xl flex flex-col gap-2 select-none cursor-grab active:cursor-grabbing w-[190px]">
+          <div className="glass px-3 py-2.5 rounded-2xl border border-slate-800/80 bg-slate-955/95 shadow-2xl flex flex-col gap-1.5 select-none cursor-grab active:cursor-grabbing w-[150px]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800/50 pb-1.5">
               <div className="flex flex-col animate-in fade-in duration-300">
-                <h4 className="text-[9px] font-black text-cyan-400 tracking-widest uppercase truncate max-w-[105px]">Maneuver Animator</h4>
-                <p className="text-[7.5px] text-slate-500 font-bold uppercase">
-                  {stationSolver?.enabled ? 'Target Mode' : 'Direct Motion'}
-                </p>
+                <h4 className="text-[9px] font-black text-cyan-400 uppercase">Animate</h4>
               </div>
               
               {/* Minimize button */}
@@ -808,7 +824,6 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                 {/* Real-time sub-phase context tracking */}
                 <div className="flex flex-col border-t border-slate-800/50 pt-1 mt-1 text-[7.5px] font-black">
                   <span className="text-cyan-400 tracking-tight uppercase">{activePhase.label}</span>
-                  <span className="text-slate-300 font-medium leading-tight mt-0.5 font-sans normal-case">{activePhase.detail}</span>
                 </div>
               </div>
 
@@ -845,7 +860,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
 
               {/* Speed multiplier selector */}
               <div className="flex justify-between items-center bg-slate-900/65 border border-slate-800/40 p-1.5 rounded-xl gap-1">
-                <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest pl-1">WARP:</span>
+                <span className="text-[8px] font-black text-slate-500 pl-1">×</span>
                 <div className="flex gap-0.5">
                   {[1, 2, 5, 10].map(sp => (
                     <button
@@ -870,26 +885,26 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         onMouseDown={(e) => handleDragStart(e, setPalettePos, palettePos, 'palette')}
         onTouchStart={(e) => handleDragStart(e, setPalettePos, palettePos, 'palette')}
         style={palettePos ? { left: `${palettePos.x}px`, top: `${palettePos.y}px` } : undefined}
-        className={`absolute z-35 pointer-events-auto transition-all ${palettePos ? '' : 'right-6 top-[220px] sm:top-24'} animate-in slide-in-from-right-4 duration-300`}
+        className={`absolute z-35 pointer-events-auto transition-all ${palettePos ? '' : 'right-2 top-2'} animate-in slide-in-from-right-4 duration-300`}
       >
         {paletteMinimized ? (
           <button
             type="button"
             onClick={() => setPaletteMinimized(false)}
-            className="w-12 h-12 rounded-full glass border border-slate-800 hover:border-cyan-500 text-cyan-400 shadow-2xl flex items-center justify-center transition-all cursor-pointer glow-cyan active:scale-95 group relative select-none bg-slate-950/95"
+            className="w-9 h-9 rounded-full glass border border-slate-800 hover:border-cyan-500 text-cyan-400 shadow-lg flex items-center justify-center transition-all cursor-pointer active:scale-95 group relative select-none bg-slate-950/95"
             title="Expand Controls"
           >
-            <SlidersHorizontal className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <SlidersHorizontal className="w-4 h-4" />
             <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 border border-slate-800 rounded text-[8px] font-black text-cyan-400 uppercase tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all">
               Controls
             </span>
           </button>
         ) : (
-          <div className="glass px-3 py-2.5 rounded-2xl border border-slate-800/80 bg-slate-955/95 shadow-2xl flex flex-col gap-2 select-none cursor-grab active:cursor-grabbing w-[230px]">
+          <div className="glass px-3 py-2.5 rounded-2xl border border-slate-800/80 bg-slate-955/95 shadow-2xl flex flex-col gap-1.5 select-none cursor-grab active:cursor-grabbing w-[170px]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-800/50 pb-1.5 animate-in fade-in duration-300">
               <div className="flex flex-col">
-                <span className="text-[9px] font-black text-cyan-400 tracking-widest uppercase">Plot Controls</span>
+                <span className="text-[9px] font-black text-cyan-400 uppercase">View</span>
                 <span className="text-[8px] font-black text-blue-400 uppercase tracking-wider">
                   Scale: {yardScale} YDS
                 </span>
@@ -908,8 +923,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
             <div className="flex flex-col gap-2.5">
               {/* Scale Presets Grid */}
               <div className="flex flex-col gap-1">
-                <span className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider">Scale Presets</span>
-                <div className="flex gap-1">
+                                <div className="flex gap-1">
                   {[50, 100, 200, 500].map(s => (
                     <button 
                       key={s} 
@@ -925,8 +939,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
 
               {/* Zoom & View Controls Grid */}
               <div className="flex flex-col gap-1">
-                <span className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider">Zoom & View</span>
-                <div className="flex items-center gap-1">
+                                <div className="flex items-center gap-1">
                   <button 
                     type="button"
                     onClick={() => setZoomScale(prev => Math.min(6.0, prev * 1.3))}
@@ -963,8 +976,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
 
               {/* Compass Toggle & Recenter Box */}
               <div className="flex flex-col gap-1 border-t border-slate-900 pt-2">
-                <span className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider">Compass Overlay</span>
-                <div className="flex gap-1">
+                                <div className="flex gap-1">
                   <button 
                     type="button"
                     onClick={() => setShowCompass(prev => !prev)}
@@ -989,15 +1001,14 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                     onClick={() => setPanOffset({ x: 0, y: 0 })}
                     className="mt-1 w-full py-1 rounded-lg text-[8px] font-black tracking-tight transition-all uppercase bg-teal-600 hover:bg-teal-500 text-white font-bold animate-in zoom-in-95 duration-200 text-center"
                   >
-                    Recenter Map View
+                    Recenter
                   </button>
                 )}
               </div>
 
               {/* Save & Export Section */}
               <div className="flex flex-col gap-1 border-t border-slate-900 pt-2">
-                <span className="text-[7.5px] font-black text-slate-500 uppercase tracking-wider">Save & Export</span>
-                <div className="flex gap-1.5">
+                                <div className="flex gap-1.5">
                   {onExport && (
                     <>
                       <button 
@@ -1036,7 +1047,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
       {showCompass && (
         <div className="absolute bottom-6 left-6 z-30 bg-slate-950/90 hover:bg-slate-950 text-slate-400 px-3 py-1.5 rounded-xl border border-slate-800/80 text-[10px] uppercase font-bold tracking-wider animate-pulse flex items-center gap-1.5 pointer-events-none">
           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping"></div>
-          Click plot to reposition Compass Rose (Drag plot to pan)
+          Tap to move the rose
         </div>
       )}
 
@@ -1600,18 +1611,23 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
 
           const connectionMidX = (guideSvgX + ownShipSvgX) / 2;
           const connectionMidY = (guideSvgY + ownShipSvgY) / 2;
+          // own ship at the centre: everything moves by her offset, so the Guide and the stations move about her; the line she makes good
+          // relative to the Guide, seen from her, is the Guide's track turned through 180 degrees about the centre
+          const shiftX = ppiOwnCentre ? guideSvgX - ownShipSvgX : 0, shiftY = ppiOwnCentre ? guideSvgY - ownShipSvgY : 0;
 
           return (
             <g id="station-solver-animation-layer" transform={`rotate(${gc} ${guideSvgX} ${guideSvgY})`}>
               {/* Actual relative trajectory (fishtail trace relative to the Guide) */}
               <path 
                 d={relativeTrackPathD} 
+                transform={ppiOwnCentre ? `rotate(180 ${guideSvgX} ${guideSvgY})` : undefined}
                 fill="none" 
-                stroke="#6366f1" 
+                stroke={ppiOwnCentre ? '#eab308' : '#6366f1'} 
                 strokeWidth="2" 
                 strokeDasharray="4,4" 
                 opacity="0.8" 
               />
+              <g transform={`translate(${shiftX}, ${shiftY})`}>
 
               {/* 1. Relative connection vector line (glowing orange) */}
               <line 
@@ -1644,7 +1660,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                   textAnchor="middle" 
                   y="1.5"
                 >
-                  SEP: {Math.round(liveRange)}y | BRG: {trueBrg(liveBearing)}°
+                  SEP: {Math.round(liveRange)}y | BRG: {ppiOwnCentre ? `GUIDE ${trueBrg(liveBearing + 180)}` : trueBrg(liveBearing)}°
                 </text>
               </g>
 
@@ -1747,6 +1763,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
                     OWN T+{animationTime.toFixed(1)}s | {trueBrg(currentShip.heading)}°
                   </text>
                 </g>
+              </g>
               </g>
             </g>
           );
@@ -1866,7 +1883,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         {/* MANEOUVER CALCULATIONS BOX */}
         <g transform={`translate(20, ${height - 300})`}>
           <rect width={width - 40} height="160" fill="rgba(15, 23, 42, 0.98)" stroke="#334155" strokeWidth="2" rx="16" />
-          <text x="30" y="40" fill="#3b82f6" className="text-base font-black uppercase tracking-widest">MANEOUVER CALCULATIONS</text>
+          <text x="30" y="40" fill="#3b82f6" className="text-base font-black uppercase tracking-widest">{dynamicTitle}</text>
           
           <g transform="translate(30, 75)">
             <text x="0" y="0" fill="#94a3b8" className="text-[11px] font-bold uppercase tracking-widest">Evolution Time:</text>
@@ -1892,7 +1909,7 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
         {/* TURNING DATA INTERPOLATION TABLE */}
         <g transform={`translate(20, ${height - 130})`}>
           <rect width={width - 40} height="110" fill="rgba(15, 23, 42, 0.9)" stroke="#334155" strokeWidth="1" rx="16" />
-          <text x="20" y="25" fill="#94a3b8" className="text-[10px] font-black uppercase tracking-widest">TURNING DATA INTERPOLATION</text>
+          <text x="20" y="25" fill="#94a3b8" className="text-[10px] font-black uppercase tracking-widest">TURNING DATA</text>
           
           <g transform="translate(20, 45)">
             <text x="0" y="0" fill="#475569" className="text-[9px] font-black uppercase">Turn Angle</text>
@@ -1911,7 +1928,6 @@ const ManeuverVisualizer = forwardRef<ManeuverVisualizerHandle, ManeuverVisualiz
           ))}
         </g>
 
-        <text x={width / 2} y="50" textAnchor="middle" fill="white" className="text-3xl font-black uppercase tracking-tighter">{dynamicTitle}</text>
       </svg>
     </div>
   );

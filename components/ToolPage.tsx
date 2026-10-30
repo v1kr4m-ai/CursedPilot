@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Info } from 'lucide-react';
+import { ArrowLeft, Info, Pencil } from 'lucide-react';
+import { useToolNames } from '../tools/toolNames';
 import { Ship } from '../types';
 import { NAV_TOOLS } from '../tools/NavTools';
 import { ResultSlot } from '../tools/kit';
@@ -11,7 +12,8 @@ import ToolInfoCard from '../navyeo/ToolInfoCard';
  */
 const ToolPage: React.FC<{ name: string; ship?: Ship; fleet: Ship[]; onBack: () => void }> = ({ name, ship, fleet, onBack }) => {
   const [showInfo, setShowInfo] = useState(false);
-  const [slot, setSlot] = useState<HTMLElement | null>(null);   // where the tool's answers are shown, kept in view at the top
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const names = useToolNames();   // where the tool's answers are shown, kept in view at the top
   const tool = NAV_TOOLS.find(t => t.name === name);
   if (!tool) return null;
   return (
@@ -21,7 +23,7 @@ const ToolPage: React.FC<{ name: string; ship?: Ship; fleet: Ship[]; onBack: () 
           <button onClick={onBack} aria-label="Back" className="p-2 hover:bg-white rounded-full transition-colors shadow-sm"><ArrowLeft size={22} className="text-slate-700" /></button>
           <div className="p-2 bg-white rounded-xl border border-slate-100">{tool.icon}</div>
           <div className="min-w-0 flex-1" title={tool.desc}>
-            <h1 className="text-lg font-bold text-slate-800 leading-tight truncate">{tool.name}</h1>
+            <h1 className="text-lg font-bold text-slate-800 leading-tight truncate flex items-center gap-1.5">{names.title(tool)}<button onClick={() => names.rename(tool)} aria-label={`Rename ${names.title(tool)}`} title="Rename" className="p-0.5 text-slate-300 hover:text-blue-500 shrink-0"><Pencil size={14} /></button></h1>
             <p className="text-[10px] font-medium text-slate-400 leading-tight truncate">{ship ? <>Figures from <span className="font-bold text-emerald-600">{ship.name}</span> in green</> : 'No ship selected'}</p>
           </div>
           <button onClick={() => setShowInfo(v => !v)} aria-pressed={showInfo} aria-label={`How ${tool.name} works`} title="How it works"

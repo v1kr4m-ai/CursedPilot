@@ -3,7 +3,7 @@ import { Ship } from '../types';
 import * as nav from './navMath';
 import { Profile, Slowing, Solution, Vec, place, profile, slowing, solve, stationBearing } from './battenberg';
 import { PlayBar, mmss, usePlayer } from './PlayBar';
-import { Field, Grid, Panel, Result, Seg, SideToggle, UnitPick, Warn, bearing, useForm, useMemory, useUnit } from './kit';
+import { Field, Grid, LengthField, Mini, Panel, Result, Seg, SideToggle, Warn, bearing, useForm, useMemory, useUnit } from './kit';
 import { shipParams } from './shipParams';
 import { OwnFormula } from './OwnFormula';
 import { approach, courseOf, stationInTime, stationRun, vec } from './relvel';
@@ -25,45 +25,54 @@ const relName = (offBowTrue: number, guideCourse: number) => {
 const SIZE = 320, C = SIZE / 2, R = 128;
 const MARKS: [number, string][] = [[0, 'Ahead'], [45, 'Bow'], [90, 'Beam'], [135, 'Quarter'], [180, 'Astern']];
 
-const Diagram: React.FC<{ guideCourse: number | null; now: { x: number; y: number } | null; station: { x: number; y: number } | null; sol: Solution | null; slow: Slowing | null; maxNm: number; unitLabel: (nm: number) => string; onTap: (angleOffBow: number, nm: number) => void; play?: { pos: Vec; trail: Vec[] } | null }> = ({ guideCourse, now, station, sol, slow, maxNm, unitLabel, onTap, play }) => {
-  const k = R / maxNm, rot = guideCourse ?? 0;
-  const pt = (v: { x: number; y: number }) => { const a = (-rot * Math.PI) / 180, x = v.x * Math.cos(a) + v.y * Math.sin(a), y = -v.x * Math.sin(a) + v.y * Math.cos(a); return { x: C + x * k, y: C - y * k }; };
+const Diagram: React.FC<{ headUp: boolean; ownCentre: boolean; guideCourse: number | null; now: { x: number; y: number } | null; station: { x: number; y: number } | null; sol: Solution | null; slow: Slowing | null; maxNm: number; unitLabel: (nm: number) => string; onTap: (angleOffBow: number, nm: number) => void; play?: { pos: Vec; trail: Vec[] } | null }> = ({ guideCourse, now, station, sol, slow, maxNm, unitLabel, onTap, play, headUp, ownCentre }) => {
+  // Guide at the centre: the points are own ship about her. Own ship at the centre (as on her radar): the same points turned round, so
+  // they are where the Guide lies from you; head up is then your own course to steer.
+  const f = ownCentre ? -1 : 1, up = ownCentre ? sol?.course ?? guideCourse ?? 0 : guideCourse ?? 0;
+  const k = R / maxNm, rot = headUp ? up : 0, head = (guideCourse ?? 0) - rot;   // head: the Guide's head on the screen (0 when head up with the Guide at the centre)
+  const pt = (v: { x: number; y: number }) => { const a = (-rot * Math.PI) / 180, vx = f * v.x, vy = f * v.y, x = vx * Math.cos(a) + vy * Math.sin(a), y = -vx * Math.sin(a) + vy * Math.cos(a); return { x: C + x * k, y: C - y * k }; };
   const tap = (e: React.PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect(), s = SIZE / r.width;
     const x = (e.clientX - r.left) * s - C, y = C - (e.clientY - r.top) * s;
     const d = Math.hypot(x, y) / k;
-    if (d > 0.02) onTap(nav.norm360((Math.atan2(x, y) * 180) / Math.PI), d);
+    if (d > 0.02) onTap(nav.norm360((Math.atan2(x, y) * 180) / Math.PI - head + (ownCentre ? 180 : 0)), d);   // the angle off the Guide's bow (own centre: the Guide's place, so own is opposite)
   };
   const rings = [1, 2, 3, 4].map(i => (maxNm * i) / 4);
   const p1 = now && pt(now), p2 = station && pt(station), ps = slow && pt(slow.at);
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} onPointerDown={tap} role="img" aria-label="Battenberg diagram of the stations about the Guide" className="w-full max-w-sm mx-auto bg-slate-900 rounded-2xl touch-none select-none">
+    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} onPointerDown={tap} role="img" aria-label={ownCentre ? 'Battenberg diagram with own ship at the centre' : 'Battenberg diagram of the stations about the Guide'} className="w-full max-w-sm mx-auto bg-slate-900 rounded-2xl touch-none select-none">
       {rings.map(r => <circle key={r} cx={C} cy={C} r={r * k} fill="none" stroke="#16a34a" strokeOpacity={0.45} />)}
       {rings.map(r => <text key={`t${r}`} x={C + 3} y={C - r * k + 9} fontSize={8} fill="#4ade80">{unitLabel(r)}</text>)}
       {Array.from({ length: 24 }, (_, i) => i * 15).map(a => {
         const big = a % 45 === 0, x = C + Math.sin((a * Math.PI) / 180) * R, y = C - Math.cos((a * Math.PI) / 180) * R;
         return <line key={a} x1={C} y1={C} x2={x} y2={y} stroke={big ? '#4ade80' : '#166534'} strokeOpacity={big ? 0.7 : 0.5} strokeWidth={big ? 1 : 0.6} />;
       })}
-      {MARKS.flatMap(([a, label]) => (a === 0 || a === 180 ? [a] : [a, -a]).map(s => {
-        const th = (s * Math.PI) / 180, x = C + Math.sin(th) * (R + 12), y = C - Math.cos(th) * (R + 12);
+      {!headUp && <text x={10} y={16} fontSize={11} fontWeight={700} fill="#86efac">N↑</text>}
+      {!ownCentre && MARKS.flatMap(([a, label]) => (a === 0 || a === 180 ? [a] : [a, -a]).map(s => {
+        const th = ((s + head) * Math.PI) / 180, x = C + Math.sin(th) * (R + 12), y = C - Math.cos(th) * (R + 12);
         return <text key={`${label}${s}`} x={x} y={y + 3} fontSize={8} textAnchor="middle" fontWeight={700} fill={s < 0 ? '#f87171' : s > 0 ? '#4ade80' : '#e2e8f0'}>{label}</text>;
       }))}
       {p1 && p2 && <line x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#fbbf24" strokeWidth={1.6} strokeDasharray="5 3" />}
       {ps && <circle cx={ps.x} cy={ps.y} r={4} fill="none" stroke="#fb923c" strokeWidth={1.8} />}
-      <polygon points={`${C},${C - 9} ${C - 5},${C + 7} ${C + 5},${C + 7}`} fill="#fff" />
-      <text x={C + 8} y={C + 4} fontSize={8} fill="#e2e8f0">Guide</text>
-      {p2 && <><circle cx={p2.x} cy={p2.y} r={5} fill="#22c55e" /><text x={p2.x + 7} y={p2.y - 5} fontSize={9} fontWeight={700} fill="#86efac">Station</text></>}
+      {ownCentre
+        ? <><circle cx={C} cy={C} r={5} fill="#ef4444" stroke="#fff" strokeWidth={1.2} /><text x={C + 8} y={C + 4} fontSize={8} fill="#fca5a5">You</text></>
+        : <><polygon points={`${C},${C - 9} ${C - 5},${C + 7} ${C + 5},${C + 7}`} fill="#fff" transform={`rotate(${head} ${C} ${C})`} /><text x={C + 8} y={C + 4} fontSize={8} fill="#e2e8f0">Guide</text></>}
+      {p2 && <><circle cx={p2.x} cy={p2.y} r={5} fill="#22c55e" /><text x={p2.x + 7} y={p2.y - 5} fontSize={9} fontWeight={700} fill="#86efac">{ownCentre ? 'Guide on station' : 'Station'}</text></>}
       {play && play.trail.length > 1 && <polyline points={play.trail.map(v => { const q = pt(v); return `${q.x.toFixed(1)},${q.y.toFixed(1)}`; }).join(' ')} fill="none" stroke="#fbbf24" strokeWidth={2} />}
-      {p1 && <><circle cx={p1.x} cy={p1.y} r={play ? 3 : 5} fill={play ? 'none' : '#ef4444'} stroke="#ef4444" strokeWidth={1.5} />{!play && <text x={p1.x + 7} y={p1.y - 5} fontSize={9} fontWeight={700} fill="#fca5a5">Now</text>}</>}
-      {play && (() => { const q = pt(play.pos); return <><circle cx={q.x} cy={q.y} r={6} fill="#ef4444" stroke="#fff" strokeWidth={1.5} /><line x1={C} y1={C} x2={q.x} y2={q.y} stroke="#38bdf8" strokeOpacity={0.6} /></>; })()}
-      {sol && p2 && <text x={6} y={SIZE - 6} fontSize={8} fill="#86efac">Guide heading up · rings in {unitLabel(maxNm).replace(/[\d.]+\s*/, '')}</text>}
+      {p1 && (ownCentre
+        ? <><polygon points={`${p1.x},${p1.y - 8} ${p1.x - 5},${p1.y + 6} ${p1.x + 5},${p1.y + 6}`} fill={play ? 'none' : '#fff'} stroke="#fff" transform={`rotate(${head} ${p1.x} ${p1.y})`} />{!play && <text x={p1.x + 7} y={p1.y - 5} fontSize={9} fontWeight={700} fill="#e2e8f0">Guide now</text>}</>
+        : <><circle cx={p1.x} cy={p1.y} r={play ? 3 : 5} fill={play ? 'none' : '#ef4444'} stroke="#ef4444" strokeWidth={1.5} />{!play && <text x={p1.x + 7} y={p1.y - 5} fontSize={9} fontWeight={700} fill="#fca5a5">Now</text>}</>)}
+      {play && (() => { const q = pt(play.pos); return <>{ownCentre
+        ? <polygon points={`${q.x},${q.y - 9} ${q.x - 5},${q.y + 7} ${q.x + 5},${q.y + 7}`} fill="#fff" stroke="#0f172a" transform={`rotate(${head} ${q.x} ${q.y})`} />
+        : <circle cx={q.x} cy={q.y} r={6} fill="#ef4444" stroke="#fff" strokeWidth={1.5} />}<line x1={C} y1={C} x2={q.x} y2={q.y} stroke="#38bdf8" strokeOpacity={0.6} /></>; })()}
+      {sol && p2 && <text x={6} y={SIZE - 6} fontSize={8} fill="#86efac">{ownCentre ? 'You at the centre' : 'Guide at the centre'} · {headUp ? (ownCentre ? 'your course up' : 'Guide heading up') : 'North up'} · rings in {unitLabel(maxNm).replace(/[\d.]+\s*/, '')}</text>}
     </svg>
   );
 };
 
 /** True motion: the Guide and own ship each steaming across the screen, the Guide's course up, with their trails. */
-const TrueDiagram: React.FC<{ prob: { guideCourse: number; from: Vec }; pr: Profile; hours: number; unitLabel: (nm: number) => string }> = ({ prob, pr, hours, unitLabel }) => {
-  const a = (-prob.guideCourse * Math.PI) / 180, turn = (v: Vec) => ({ x: v.x * Math.cos(a) + v.y * Math.sin(a), y: -v.x * Math.sin(a) + v.y * Math.cos(a) });
+const TrueDiagram: React.FC<{ headUp: boolean; prob: { guideCourse: number; from: Vec }; pr: Profile; hours: number; unitLabel: (nm: number) => string }> = ({ headUp, prob, pr, hours, unitLabel }) => {
+  const a = (-(headUp ? prob.guideCourse : 0) * Math.PI) / 180, turn = (v: Vec) => ({ x: v.x * Math.cos(a) + v.y * Math.sin(a), y: -v.x * Math.sin(a) + v.y * Math.cos(a) });
   const ownAt = (h: number) => { const g = pr.guideAt(h), q = pr.at(h).pos; return { x: g.x + q.x, y: g.y + q.y }; };
   const steps = Array.from({ length: 61 }, (_, i) => (pr.totalHours * i) / 60);
   const pts = steps.flatMap(h => [turn(pr.guideAt(h)), turn(ownAt(h))]);
@@ -83,7 +92,7 @@ const TrueDiagram: React.FC<{ prob: { guideCourse: number; from: Vec }; pr: Prof
       <line x1={g.x} y1={g.y} x2={o.x} y2={o.y} stroke="#38bdf8" strokeOpacity={0.6} />
       <polygon points={`${g.x},${g.y - 8} ${g.x - 5},${g.y + 6} ${g.x + 5},${g.y + 6}`} fill="#fff" /><text x={g.x + 8} y={g.y + 3} fontSize={8} fill="#e2e8f0">Guide</text>
       <circle cx={o.x} cy={o.y} r={6} fill="#ef4444" stroke="#fff" strokeWidth={1.5} /><text x={o.x + 9} y={o.y + 3} fontSize={8} fontWeight={700} fill="#fca5a5">You</text>
-      <text x={6} y={SIZE - 6} fontSize={8} fill="#86efac">True motion · Guide's course up · {unitLabel(half).replace(/[\d.]+\s*/, '')} across</text>
+      <text x={6} y={SIZE - 6} fontSize={8} fill="#86efac">True motion · {headUp ? "Guide's course up" : 'North up'} · {unitLabel(half).replace(/[\d.]+\s*/, '')} across</text>
     </svg>
   );
 };
@@ -97,7 +106,12 @@ const Presets: React.FC<{ side: Side; onPick: (angle: number) => void }> = ({ si
 );
 
 export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
-  const [unit, setUnit] = useUnit('batt:unit', 'yards');
+  const [unit, setUnit] = useUnit('batt:unit', 'yards');          // the ordered station's distance, and the answers
+  const [unit1, setUnit1] = useUnit('batt:unit1', 'yards');        // own station's distance
+  const [unitV, setUnitV] = useUnit('batt:unitv', 'nm');           // the visibility
+  const [ownFrom, setOwnFrom] = useMemory<'own' | 'guide'>('batt:ownfrom', 'own');   // own station as your bearing from the Guide, or hers from you
+  const [headUp, setHeadUp] = useMemory('batt:headup', true);
+  const [ownCentre, setOwnCentre] = useMemory('batt:owncentre', false);
   const sp = shipParams(ship);
   const lossYd = sp.decelMetresPerKnot === undefined ? undefined : String(Math.round((sp.decelMetresPerKnot / 0.9144) * 10) / 10);
   const f = useForm('batt', FIELDS, { loss: lossYd });
@@ -109,12 +123,13 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
   const gc = f.n('gc'), gs = f.n('gs'), a1 = f.n('a1'), a2 = f.n('a2'), loss = f.n('loss'), oc = f.n('oc'), os = f.n('os');
   const ss = f.n('ss') ?? os;                       // the stationing speed: as typed, or own present speed when that is given
-  const toNm = (v: number | null) => (v === null ? null : nav.convertLength(v, unit, 'nm'));
-  const d1 = toNm(f.n('d1')), d2 = toNm(f.n('d2'));
+  const toNm = (v: number | null, u: nav.LengthUnit) => (v === null ? null : nav.convertLength(v, u, 'nm'));
+  const d1 = toNm(f.n('d1'), unit1), d2 = toNm(f.n('d2'), unit);
   const ang = (a: number | null, s: Side) => (a === null ? null : s === 'Starboard' ? a : -a);
   const o1 = ang(a1, side1), o2 = ang(a2, side2);
   const trueB = (a: number | null) => (a !== null && a >= 0 && a < 360 ? a : null);
-  const b1 = trueIn ? trueB(a1) : o1 !== null && gc !== null ? stationBearing(gc, o1) : null, b2 = trueIn ? trueB(a2) : o2 !== null && gc !== null ? stationBearing(gc, o2) : null;
+  const guideFromMe = ownFrom === 'guide' && trueB(a1) !== null ? nav.norm360(a1! + 180) : null;   // her bearing from you: you are on the reciprocal from her
+  const b1 = ownFrom === 'guide' ? guideFromMe : trueIn ? trueB(a1) : o1 !== null && gc !== null ? stationBearing(gc, o1) : null, b2 = trueIn ? trueB(a2) : o2 !== null && gc !== null ? stationBearing(gc, o2) : null;
   const ready = gc !== null && gs !== null && gs >= 0 && ss !== null && ss > 0 && b1 !== null && b2 !== null && d1 !== null && d1 >= 0 && d2 !== null && d2 >= 0;
   const now = ready ? place(b1!, d1!) : null, st = ready ? place(b2!, d2!) : null;
   const prob = ready ? { guideCourse: gc!, guideSpeed: gs!, stationingSpeed: ss!, from: now!, to: st! } : null;
@@ -124,13 +139,21 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const unitLabel = (nm: number) => nav.formatLength(nav.convertLength(nm, 'nm', unit), unit);
   const maxNm = Math.max(0.2, ...[d1, d2].filter((x): x is number => x !== null)) * 1.25;
 
+  // the ordered station on own present bearing from the Guide, to open or close on it
+  const copyBearing = () => {
+    if (ownFrom === 'own') { setSide2(side1); f.bind('a2').onChange(f.bind('a1').value); return; }
+    if (b1 === null) return;
+    if (trueIn) { f.bind('a2').onChange(String(Math.round(b1))); return; }
+    if (gc === null) return;
+    const rel = nav.norm360(b1 - gc);
+    setSide2(rel <= 180 ? 'Starboard' : 'Port'); f.bind('a2').onChange(String(Math.round(rel <= 180 ? rel : 360 - rel)));
+  };
   const onTap = (offBow: number, nm: number) => {
     const side: Side = offBow <= 180 ? 'Starboard' : 'Port', a = offBow <= 180 ? offBow : 360 - offBow;
-    const dist = nav.convertLength(nm, 'nm', unit), dp = unit === 'nm' || unit === 'km' ? 2 : dist < 100 ? 0 : 1;
-    const text = String(Math.round(dist * 10 ** dp) / 10 ** dp);
-    const tb = String(Math.round(nav.norm360((gc ?? 0) + offBow)));                // the same point as a true bearing from the Guide
-    if (placing === 'now') { setSide1(side); f.bind('a1').onChange(trueIn ? tb : String(Math.round(a))); f.bind('d1').onChange(text); }
-    else { setSide2(side); f.bind('a2').onChange(trueIn ? tb : String(Math.round(a))); f.bind('d2').onChange(text); }
+    const text = (u: nav.LengthUnit) => { const dist = nav.convertLength(nm, 'nm', u), dp = u === 'nm' || u === 'km' ? 2 : dist < 100 ? 0 : 1; return String(Math.round(dist * 10 ** dp) / 10 ** dp); };
+    const tb = nav.norm360((gc ?? 0) + offBow);                                        // the same point as a true bearing from the Guide
+    if (placing === 'now') { setSide1(side); f.bind('a1').onChange(ownFrom === 'guide' ? String(Math.round(nav.norm360(tb + 180))) : trueIn ? String(Math.round(tb)) : String(Math.round(a))); f.bind('d1').onChange(text(unit1)); }
+    else { setSide2(side); f.bind('a2').onChange(trueIn ? String(Math.round(tb)) : String(Math.round(a))); f.bind('d2').onChange(text(unit)); }
   };
 
   // the run played in time
@@ -148,6 +171,19 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   return (
     <div className="space-y-2">
       <Seg value={given} onChange={v => setGiven(v as 'relative' | 'true')} options={[['relative', 'Stations off the Guide\'s bow'], ['true', 'True bearings and courses']]} />
+      <Panel title="Battenberg diagram" note="Tap the diagram to place the station (or where you are now) instead of typing it.">
+        <Seg value={placing} onChange={v => setPlacing(v as 'now' | 'station')} options={[['station', 'Tap sets the station'], ['now', 'Tap sets where I am']]} />
+        <div className="flex justify-end gap-1.5">
+          {!(pr && pmode === 'true') && <Mini label="Centre" value={ownCentre ? 'own' : 'guide'} onChange={v => setOwnCentre(v === 'own')} options={[['guide', 'Guide'], ['own', 'Own']]} />}
+          {pr && <Mini label="Motion" value={pmode} onChange={v => setPmode(v as 'relative' | 'true')} options={[['relative', 'Rel'], ['true', 'True']]} />}
+          <Mini label="Picture orientation" value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H Up'], ['north', 'N Up']]} />
+        </div>
+        {pr && pmode === 'true' && prob
+          ? <TrueDiagram headUp={headUp} prob={prob} pr={pr} hours={hoursNow} unitLabel={unitLabel} />
+          : <Diagram headUp={headUp} ownCentre={ownCentre} guideCourse={gc} now={now} station={st} sol={best} slow={slow} maxNm={maxNm} unitLabel={unitLabel} onTap={onTap} play={pr && atNow ? { pos: atNow.pos, trail } : null} />}
+        {pr && <PlayBar player={player} totalMinutes={totalMin} />}
+        {pr && atNow && gBears !== null && <p className="text-[10px] text-slate-500 font-medium leading-snug">T+{mmss(player.t)}: the Guide bears {bearing(gBears)} ({relName(gBears, gc!)}) at {unitLabel(Math.hypot(atNow.pos.x, atNow.pos.y))}; closing at {atNow.relSpeed.toFixed(1)} kn relative. On station after {hms(pr.totalHours)}{slow && !slow.immediately ? `, slowing from T+${mmss((pr.totalHours - (2 * slow.backAlongTrack) / best!.relativeSpeed) * 60)}` : ''}.</p>}
+      </Panel>
       <Panel title="Guide and own speed" note={trueIn ? 'True course and speed of the Guide, and of your own ship now. The stationing speed is the speed you will use to close or change station (own speed now if left blank).' : 'True course and speed of the Guide, and the speed you will use to close or change station (the stationing speed).'}>
         <Grid>
           <Field label="Guide's course" unit="°T" {...f.bind('gc')} />
@@ -155,26 +191,23 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         </Grid>
         {trueIn && <Grid><Field label="Own course now" unit="°T" sensor="course" {...f.bind('oc')} /><Field label="Own speed now" unit="kn" sensor="speed" {...f.bind('os')} /></Grid>}
         <Field label="Stationing speed (own)" unit="kn" units {...f.bind('ss')} />
-        <UnitPick label="Distances in" unit={unit} onChange={setUnit} />
       </Panel>
 
-      <Panel title="Where you are now" note={trueIn ? 'Your position from the Guide: the true bearing of you from her, and the distance.' : 'Your position from the Guide: the angle off her bow, on her port or starboard side, and the distance.'}>
-        {!trueIn && <SideToggle label="On the Guide's" value={side1} onChange={setSide1} />}
-        {!trueIn && <Presets side={side1} onPick={a => f.bind('a1').onChange(String(a))} />}
-        <Grid>
-          {trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a1')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a1')} />}
-          <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d1')} />
-        </Grid>
+      <Panel title="Own Station" note={ownFrom === 'guide' ? "The Guide's true bearing from you (as on your radar) and her distance." : trueIn ? 'Your true bearing from the Guide, and the distance.' : 'Your position from the Guide: the angle off her bow, on her port or starboard side, and the distance.'}>
+        <Seg value={ownFrom} onChange={v => setOwnFrom(v as 'own' | 'guide')} options={[['own', trueIn ? 'Own bearing from Guide' : 'Off her bow'], ['guide', "Guide's bearing from me"]]} />
+        {!trueIn && ownFrom === 'own' && <SideToggle label="On the Guide's" value={side1} onChange={setSide1} />}
+        {!trueIn && ownFrom === 'own' && <Presets side={side1} onPick={a => f.bind('a1').onChange(String(a))} />}
+        {ownFrom === 'guide' ? <Field label="Guide's true bearing from me" unit="°T" {...f.bind('a1')} />
+          : trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a1')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a1')} />}
+        <LengthField label="Distance" unit={unit1} onUnit={setUnit1} {...f.bind('d1')} />
       </Panel>
 
       <Panel title="Ordered station" note={trueIn ? 'Where you are to take station: the true bearing of the station from the Guide, and the distance.' : "Where you are to take station, in the same way. Stations are measured from the Guide's head: 000 right ahead, 090 on the starboard beam, 180 astern."}>
         {!trueIn && <SideToggle label="On the Guide's" value={side2} onChange={setSide2} />}
         {!trueIn && <Presets side={side2} onPick={a => f.bind('a2').onChange(String(a))} />}
-        <button type="button" onClick={() => { setSide2(side1); f.bind('a2').onChange(f.bind('a1').value); }} className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600">Open or close on the steady bearing: use my bearing, change the distance</button>
-        <Grid>
-          {trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a2')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />}
-          <Field label="Distance" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('d2')} />
-        </Grid>
+        <button type="button" onClick={copyBearing} className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600">Open or close on the steady bearing: use my bearing, change the distance</button>
+        {trueIn ? <Field label="True bearing from the Guide" unit="°T" {...f.bind('a2')} /> : <Field label="Angle off her bow" unit="°" {...f.bind('a2')} />}
+        <LengthField label="Distance" unit={unit} onUnit={setUnit} {...f.bind('d2')} />
         <Field label="Loss of speed (yards per knot)" unit="yd/kn" {...f.bind('loss')} />
       </Panel>
 
@@ -190,15 +223,6 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
         }
         return <Result inline rows={rows} />;
       })()}
-      <Panel title="Battenberg diagram" note="Tap the diagram to place the station (or where you are now) instead of typing it.">
-        <Seg value={placing} onChange={v => setPlacing(v as 'now' | 'station')} options={[['station', 'Tap sets the station'], ['now', 'Tap sets where I am']]} />
-        {pr && <Seg value={pmode} onChange={v => setPmode(v as 'relative' | 'true')} options={[['relative', 'Relative to the Guide'], ['true', 'True motion']]} />}
-        {pr && pmode === 'true' && prob
-          ? <TrueDiagram prob={prob} pr={pr} hours={hoursNow} unitLabel={unitLabel} />
-          : <Diagram guideCourse={gc} now={now} station={st} sol={best} slow={slow} maxNm={maxNm} unitLabel={unitLabel} onTap={onTap} play={pr && atNow ? { pos: atNow.pos, trail } : null} />}
-        {pr && <PlayBar player={player} totalMinutes={totalMin} />}
-        {pr && atNow && gBears !== null && <p className="text-[10px] text-slate-500 font-medium leading-snug">T+{mmss(player.t)}: the Guide bears {bearing(gBears)} ({relName(gBears, gc!)}) at {unitLabel(Math.hypot(atNow.pos.x, atNow.pos.y))}; closing at {atNow.relSpeed.toFixed(1)} kn relative. On station after {hms(pr.totalHours)}{slow && !slow.immediately ? `, slowing from T+${mmss((pr.totalHours - (2 * slow.backAlongTrack) / best!.relativeSpeed) * 60)}` : ''}.</p>}
-      </Panel>
 
       {ready && sols.length === 0 && dist > 1e-6 && <Warn>That relative track cannot be made good at {ss} kn against a Guide at {gs} kn. A higher stationing speed, or a different station, is needed.</Warn>}
       {ready && dist <= 1e-6 && <p className="text-xs text-slate-500 font-medium">You are already on station.</p>}
@@ -215,10 +239,10 @@ export const BattenbergTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
       {best && prob && (() => {
         const tm = f.n('tm'), vis = f.n('vis');
         const inTime = tm !== null && tm > 0 ? stationInTime(gc!, gs!, now!, st!, tm / 60) : null;
-        const run = stationRun(now!, st!, best.relativeSpeed, vis !== null && vis > 0 ? nav.convertLength(vis, unit, 'nm') : undefined);
+        const run = stationRun(now!, st!, best.relativeSpeed, vis !== null && vis > 0 ? nav.convertLength(vis, unitV, 'nm') : undefined);
         return (
           <Panel title="More about the run" closed note="How close you come to the Guide, when she is sighted, and the course and speed to be on station in a set time.">
-            <Grid><Field label="Be on station in" unit="min" {...f.bind('tm')} /><Field label="Visibility" unit={nav.LENGTH_UNITS[unit].short} {...f.bind('vis')} /></Grid>
+            <Field label="Be on station in" unit="min" {...f.bind('tm')} /><LengthField label="Visibility" unit={unitV} onUnit={setUnitV} {...f.bind('vis')} />
             <Result inline rows={[
               ['Closest to the Guide', `${unitLabel(run.closest)}, bearing ${bearing(run.closestBearing)}`],
               ...(run.sight ? [['Sighted after', `${run.sight.minutes.toFixed(1)} min, bearing ${bearing(run.sight.bearing)}`] as [string, string]] : []),

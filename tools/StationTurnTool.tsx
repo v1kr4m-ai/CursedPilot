@@ -1,5 +1,5 @@
 import React from 'react';
-import { Field, Grid, Panel, Result, Seg, bearing, useForm, useMemory } from './kit';
+import { Field, Grid, Mini, Panel, Result, Seg, bearing, useForm, useMemory } from './kit';
 import { norm360 } from './navMath';
 import { OwnFormula } from './OwnFormula';
 import { radarPicture, solve } from './stationTurn';
@@ -51,7 +51,9 @@ export const StationFromBowsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
   const pts = s ? (['B', 'C', 'D', 'E', 'F', 'G'] as const).map(k => [k, s.points[k]] as const) : [];
   const reach = Math.max(200, ...pts.map(([, p]) => Math.hypot(p.x, p.y))) * 1.15, k = (C - 20) / reach;
-  const xy = (p: { x: number; y: number }) => ({ x: C + p.x * k, y: C - p.y * k });
+  const [calcUp, setCalcUp] = useMemory('stturn:calcheadup', false);
+  const rot = calcUp && gc !== null ? (-gc * Math.PI) / 180 : 0;   // head up: turn the plot so the Guide's course is up
+  const xy = (p: { x: number; y: number }) => { const x = p.x * Math.cos(rot) + p.y * Math.sin(rot), y = -p.x * Math.sin(rot) + p.y * Math.cos(rot); return { x: C + x * k, y: C - y * k }; };
 
   return (
     <div className="space-y-2">
@@ -92,24 +94,25 @@ export const StationFromBowsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
             ['Guide runs during the turn', `${Math.round(s.guideRun)} yd`],
             ['Speed variant', `${s.variant}${Math.abs(s.correction) >= 0.5 ? `: turn ${Math.round(Math.abs(s.correction))} yd ${s.correction > 0 ? 'later' : 'earlier'}` : ''}`],
           ]} />
-          <Panel title="Picture" note={view === 'calc' ? 'The working, with the Guide (A) at the centre, north up: own ship runs in along the approach course to G, the Wheel-Over Point.' : "Your radar, own ship at the centre. Set the EBL and VRM where shown: when the Guide's blip reaches them, wheel over. Her blips are shown each minute before, coming in along her relative track."}>
-            <Seg value={view} onChange={v => setView(v as 'calc' | 'radar')} options={[['radar', 'Radar (own ship centre)'], ['calc', 'Working (Guide centre)']]} />
+          <Panel title="Picture" note={view === 'calc' ? 'The working, with the Guide (A) at the centre: own ship runs in along the approach course to G, the Wheel-Over Point.' : "Your radar, own ship at the centre. Set the EBL and VRM where shown: when the Guide's blip reaches them, wheel over. Her blips are shown each minute before, coming in along her relative track."}>
+            <div className="flex justify-end"><Mini label="Picture" value={view} onChange={v => setView(v as 'calc' | 'radar')} options={[['radar', 'Radar'], ['calc', 'Working']]} /></div>
             {view === 'calc' && (
               <>
               <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label="Station from bows plot" className="w-full max-w-sm mx-auto bg-slate-900 rounded-2xl">
                 {[0.33, 0.66, 1].map(r => <circle key={r} cx={C} cy={C} r={(C - 20) * r} fill="none" stroke="#334155" strokeWidth={0.8} />)}
                 <line x1={C} y1={C} x2={C} y2={C - (C - 20)} stroke="#475569" strokeWidth={0.8} strokeDasharray="3 3" />
-                <text x={C} y={14} textAnchor="middle" fontSize={9} fill="#94a3b8">N · {Math.round(reach)} yd</text>
+                <text x={C} y={14} textAnchor="middle" fontSize={9} fill="#94a3b8">{calcUp ? `Guide's head ${bearing(gc!)}` : 'N'} · {Math.round(reach)} yd</text>
                 <polyline points={['G', 'F', 'E', 'D', 'C', 'B'].map(l => { const p = xy(s.points[l as 'B']); return `${p.x},${p.y}`; }).join(' ')} fill="none" stroke="#fbbf24" strokeWidth={1.8} />
                 <circle cx={C} cy={C} r={4} fill="#e2e8f0" /><text x={C + 7} y={C + 3} fontSize={10} fill="#e2e8f0" fontWeight={700}>A</text>
                 {pts.map(([l, p]) => { const q = xy(p); return <g key={l}><circle cx={q.x} cy={q.y} r={3.2} fill={l === 'G' ? '#22c55e' : '#f8fafc'} /><text x={q.x + 6} y={q.y - 4} fontSize={10} fill={l === 'G' ? '#22c55e' : '#f8fafc'} fontWeight={700}>{l}</text></g>; })}
                 <line x1={C} y1={C} x2={xy(s.points.G).x} y2={xy(s.points.G).y} stroke="#22c55e" strokeWidth={1} strokeDasharray="4 3" />
                 <text x={(C + xy(s.points.G).x) / 2 + 4} y={(C + xy(s.points.G).y) / 2 + 12} fontSize={9} fill="#22c55e" fontWeight={700}>{bearing(norm360(s.guideBearing + 180))} {Math.round(s.guideDistance)} yd</text>
               </svg>
+              <div className="flex justify-end"><Mini label="Picture orientation" value={calcUp ? 'head' : 'north'} onChange={v => setCalcUp(v === 'head')} options={[['head', 'H Up'], ['north', 'N Up']]} /></div>
               </>
             )}
             {view === 'radar' && radar && <RadarPpi radar={radar} approach={ac!} headUp={headUp} />}
-            {view === 'radar' && <Seg value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H UP'], ['north', 'N UP']]} />}
+            {view === 'radar' && <div className="flex justify-end"><Mini label="Picture orientation" value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H Up'], ['north', 'N Up']]} /></div>}
             {view === 'radar' && radar && (
               <table className="w-full text-[11px] font-bold text-slate-700 tabular-nums">
                 <thead><tr className="text-[9px] uppercase tracking-wider text-slate-400 text-right"><th className="text-left py-1">Guide at</th><th>Relative</th><th>True</th><th>Range</th></tr></thead>
@@ -161,9 +164,9 @@ const RadarPpi: React.FC<{ radar: Radar; approach: number; headUp: boolean }> = 
       <line x1={C} y1={C} x2={head.x} y2={head.y} stroke="#4ade80" strokeWidth={0.8} />
       <text x={head.x} y={head.y + (headUp ? 10 : 0)} textAnchor="middle" fontSize={8} fill="#4ade80">{headUp ? 'Head' : 'SHM'} {bearing(approach)}</text>
       {!headUp && <text x={C} y={12} textAnchor="middle" fontSize={8} fill="#86efac">N</text>}
-      <line x1={C} y1={C} x2={ebl.x} y2={ebl.y} stroke="#facc15" strokeWidth={1.4} strokeDasharray="6 3" />
+      {/* the EBL: a dashed line, green with the Guide to starboard, red to port */}
+      <line x1={C} y1={C} x2={ebl.x} y2={ebl.y} stroke={w.relativeBearing >= 0 ? '#22c55e' : '#ef4444'} strokeWidth={1.6} strokeDasharray="7 4" />
       <circle cx={C} cy={C} r={w.range * k} fill="none" stroke="#facc15" strokeWidth={1.2} strokeDasharray="3 3" />
-      <text x={ebl.x} y={ebl.y} dx={ebl.x > C ? -4 : 4} dy={ebl.y > C ? -4 : 10} textAnchor={ebl.x > C ? 'end' : 'start'} fontSize={9} fontWeight={700} fill="#facc15">EBL {relName(w.relativeBearing)} · {bearing(w.trueBearing)}T</text>
       <text x={C} y={C + w.range * k + 11} textAnchor="middle" fontSize={9} fontWeight={700} fill="#facc15">VRM {Math.round(w.range)} yd</text>
       <polyline points={track.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#38bdf8" strokeWidth={1} strokeDasharray="2 3" />
       {radar.blips.map((b, j) => { const p = track[j]; return <g key={b.minutes}><circle cx={p.x} cy={p.y} r={2.6} fill="#38bdf8" opacity={0.45 + (0.55 * (j + 1)) / radar.blips.length} /><text x={p.x + 5} y={p.y + 3} fontSize={8} fill="#7dd3fc">{b.minutes}′</text></g>; })}

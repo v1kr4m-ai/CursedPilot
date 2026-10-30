@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { ArrowLeft, BarChart3, Info, Settings, Target, Upload, CheckCircle2 } from 'lucide-react';
 import { ManeuverType, SideOfTurn, CalculationResult, STATION_PRESETS } from './types';
-import { interpolateData } from './utils/interpolation';
-import { calculateManeuverLocally } from './utils/maneuverEngine';
+import { computeFishtail } from './compute';
 import ManeuverForm from './components/ManeuverForm';
 import ManeuverVisualizer, { ManeuverVisualizerHandle } from './components/ManeuverVisualizer';
 import TargetMatchSolver from './components/TargetMatchSolver';
@@ -105,20 +104,7 @@ const FishtailScreen: React.FC<Props> = ({ ship, ships, onSelectShip, onBack, on
     setLastParams(params);
 
     try {
-      const legData = params.angles.map((angle, idx) => {
-        let lookupAngle = angle;
-        if (params.type === ManeuverType.DISTORTED) {
-          // Distorted fishtail: step 1 uses alpha, step 2 the sum alpha + beta, step 3 beta
-          const alpha = Math.abs(params.angles[0]);
-          const beta = Math.abs(params.angles[2]);
-          lookupAngle = idx === 1 ? alpha + beta : idx === 2 ? beta : alpha;
-        }
-        const interpolated = interpolateData(lookupAngle, tableSubset);
-        return params.offsets
-          ? { ...interpolated, advance: interpolated.advance + params.offsets.advance, transfer: interpolated.transfer + params.offsets.transfer }
-          : interpolated;
-      });
-      const calcResult = calculateManeuverLocally(params.angles, legData, params.guideSpeed);
+      const calcResult = computeFishtail(tableSubset, params.type, params.angles, params.guideSpeed, params.offsets);
 
       let stationSolverData = null;
       if (solverMode === 'station') {

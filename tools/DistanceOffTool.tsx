@@ -5,8 +5,9 @@ import { evaluate } from './expr';
 import { HORIZON_SETS, correctedAngle, correctedElevation, dippingRange, distanceBeyondHorizon, distanceByHeight, distanceByHorizon, distanceByWidth, dipMinutes, horizon } from './rangeFormulas';
 import { Card, Field, Grid, LengthField, Result, SELECT, Seg, UnitPick, Warn, fromNm, useForm, useMemory, useUnit } from './kit';
 import { shipParams } from './shipParams';
+import { TabBar } from './TabBar';
 
-// Distance Off & Horizon as two cards: VSA (range from a sextant angle, by the method of the book the user works from,
+// Distance Off & Horizon (shown as VSA) as tabs: VSA (range from a sextant angle, by the method of the book the user works from,
 // or their own formula) and Horizon and visibility. The BR 45(1)(1) formulae are in rangeFormulas.ts.
 
 type Method = 'height' | 'width' | 'beyond' | 'horizon' | 'own';
@@ -148,7 +149,7 @@ const InterpCard: React.FC = () => {
     if (find === 'range' && wantAngle !== null) { const v = nav.interpolate(a1, r1, a2, r2, wantAngle, imode); if (v !== null) found = nav.formatLength(v, u); }
   }
   return (
-    <Card title="Interpolate between two table readings" closed note="Two known pairs of range and angle from a table, and the value in between. Straight line is how a table is read; Inverse follows the radian rule (the angle falls as the range grows) and is better over a wide span.">
+    <Card title="Interpolate between two table readings" note="Two known pairs of range and angle from a table, and the value in between. Straight line is how a table is read; Inverse follows the radian rule (the angle falls as the range grows) and is better over a wide span.">
       <UnitPick label="Ranges in" unit={u} onChange={setU} />
       <Grid>
         <Field label="Range 1" unit={nav.LENGTH_UNITS[u].short} {...g.bind('r1')} />
@@ -178,7 +179,7 @@ const SightingCard: React.FC<{ ship?: Ship }> = ({ ship }) => {
   if (limit !== null) rows.push(['Sighted at', `${limit.toFixed(1)} nm${vis !== null && vis > 0 && geo !== null && vis < geo ? ' (limited by the visibility)' : ''}`]);
   if (limit !== null && rng !== null) rows.push([rng <= limit ? 'Now' : 'Not yet', rng <= limit ? 'she is within the range she can be sighted' : `${(rng - limit).toFixed(1)} nm to go before she can be sighted`]);
   return (
-    <Card title="Relative bearing and visibility" closed note="Her relative bearing from own course and her true bearing, and whether she can be seen: the horizon range from the heights of eye and object (BR 45 coefficient 2.08), cut down by the visibility when that is less.">
+    <Card title="Relative bearing and visibility" note="Her relative bearing from own course and her true bearing, and whether she can be seen: the horizon range from the heights of eye and object (BR 45 coefficient 2.08), cut down by the visibility when that is less.">
       <Grid>
         <Field label="Own course" unit="°T" {...f.bind('oc')} />
         <Field label="Her bearing" unit="°T" {...f.bind('brg')} />
@@ -192,11 +193,19 @@ const SightingCard: React.FC<{ ship?: Ship }> = ({ ship }) => {
   );
 };
 
-export const DistanceOffTool: React.FC<{ ship?: Ship }> = ({ ship }) => (
-  <div className="space-y-2">
-    <VsaCard ship={ship} />
-    <InterpCard />
-    <HorizonCard ship={ship} />
-    <SightingCard ship={ship} />
-  </div>
-);
+const DO_TABS = ['vsa', 'interp', 'horizon', 'sighting'] as const;
+const DO_LABELS: Record<(typeof DO_TABS)[number], string> = { vsa: 'VSA', interp: 'Interpolate', horizon: 'Horizon', sighting: 'Sighting' };
+
+export const DistanceOffTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
+  const [tabRaw, setTab] = useMemory<string>('do:tab', 'vsa');
+  const tab = (DO_TABS as readonly string[]).includes(tabRaw) ? tabRaw : 'vsa';
+  return (
+    <div className="space-y-2">
+      <TabBar id="distoff" tabs={DO_TABS} labels={DO_LABELS} value={tab} onChange={setTab} label="Distance off" />
+      {tab === 'vsa' && <VsaCard ship={ship} />}
+      {tab === 'interp' && <InterpCard />}
+      {tab === 'horizon' && <HorizonCard ship={ship} />}
+      {tab === 'sighting' && <SightingCard ship={ship} />}
+    </div>
+  );
+};

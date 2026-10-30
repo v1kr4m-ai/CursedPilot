@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Pin, PinOff, Send } from 'lucide-react';
+import { ArrowLeft, Bot, Eraser, Info, Mic, MicOff, Minimize2, Pencil, Pin, PinOff, Send } from 'lucide-react';
 import { Ship } from '../types';
 import { NAV_TOOLS, NavTool, TOOL_TABS } from '../tools/NavTools';
+import { useToolNames } from '../tools/toolNames';
 import { ASTRO_TABS } from '../tools/AstroTool';
 import { shipParams } from '../tools/shipParams';
 import ToolInfoCard from './ToolInfoCard';
@@ -34,6 +35,7 @@ const HOLD_MS = 450;
 const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
   const [tool, setTool] = useState<NavTool | null>(null);
+  const names = useToolNames();
   const [showInfo, setShowInfo] = useState(false);
   // tile order and pins: press and hold a tile for the Pin menu, then drag it to move it
   const [tiles, setTiles] = useState<TileOrder>(() => { try { return parseOrder(localStorage.getItem(ORDER_STORE)); } catch { return { order: [], pinned: [] }; } });
@@ -284,7 +286,7 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
                     <button onClick={() => { setTool(null); setShowInfo(false); }} aria-label="All tools" title="All tools" className="p-1.5 rounded-full bg-slate-50 border border-slate-200 text-blue-600 active:scale-95"><ArrowLeft size={16} /></button>
                     <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">{tool.icon}</div>
                     <div className="min-w-0 flex-1" title={tool.desc}>
-                      <p className="text-sm font-bold text-slate-800 leading-tight truncate">{tool.name}</p>
+                      <p className="text-sm font-bold text-slate-800 leading-tight truncate flex items-center gap-1">{names.title(tool)}<button onClick={() => names.rename(tool)} aria-label={`Rename ${names.title(tool)}`} title="Rename" className="p-0.5 text-slate-300 hover:text-blue-500 shrink-0"><Pencil size={11} /></button></p>
                       <p className="text-[9px] font-medium text-slate-400 leading-tight truncate">{ship ? <>Figures from <span className="font-bold text-emerald-600">{ship.name}</span> in green</> : 'No ship selected'}</p>
                     </div>
                     <button onClick={() => setShowInfo(v => !v)} aria-pressed={showInfo} aria-label={`How ${tool.name} works`} title="How it works"
@@ -304,6 +306,7 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
                           <div className="absolute z-10 -top-2 left-1/2 -translate-x-1/2 -translate-y-full flex flex-col gap-1 p-1 bg-white rounded-xl border border-slate-200 shadow-lg whitespace-nowrap">
                             <button onClick={() => { saveTiles(togglePin({ order: ordered.map(x => x.name), pinned: tiles.pinned }, t.name)); setHeld(null); }}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-blue-50">{tiles.pinned.includes(t.name) ? <><PinOff size={13} />Unpin</> : <><Pin size={13} />Pin to top</>}</button>
+                            <button onClick={() => { setHeld(null); names.rename(t); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-blue-50"><Pencil size={13} />Rename</button>
                             <button onClick={() => setHeld(null)} className="px-3 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:bg-slate-50">Drag to move · close</button>
                           </div>
                         )}
@@ -312,7 +315,7 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
                           onContextMenu={e => e.preventDefault()} style={{ touchAction: held ? 'none' : 'pan-y', userSelect: 'none' }}
                           className="w-full flex flex-col items-center gap-2 p-3 pt-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50 active:scale-95 transition-all">
                           <span className="p-2.5 bg-white rounded-xl shadow-sm">{t.icon}</span>
-                          <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">{t.short}</span>
+                          <span className="text-[11px] font-bold text-slate-700 text-center leading-tight">{names.short(t)}</span>
                         </button>
                         <button onClick={() => openInfoFor(t, true)} aria-label={`How ${t.name} works`} title="How it works"
                           className="absolute top-1 right-1 p-1.5 rounded-full text-blue-500 hover:bg-blue-100 transition-colors"><Info size={14} /></button>

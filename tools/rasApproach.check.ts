@@ -32,7 +32,7 @@ assert.ok(table[0].plan!.thetaDeg < table[1].plan!.thetaDeg && table[1].plan!.th
 // from own radar, 20 m from her stem: her stern at x + 20 along and 42 m across
 assert.equal(at18.radar, undefined);
 const withRadar = r.plan({ evolution: 'SKBDL', guide: sda, approach: { ...sny, radar: 20 }, guideSpeed: 12, approachSpeed: 18, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 })!;
-near(withRadar.radar!.rangeM, Math.hypot(35.76 + 20, 42), 1e-9); near(withRadar.radar!.thetaDeg, Math.atan2(55.76, 42) * 180 / Math.PI, 1e-9);
+near(withRadar.radar!.rangeM, 35.76 + 20, 1e-9);   // along the ship from the radar, not the slant across to her near(withRadar.radar!.thetaDeg, Math.atan2(55.76, 42) * 180 / Math.PI, 1e-9);
 
 // the final station and the run in
 near(at18.stemOffsetM, 32.4 - 32.8, 1e-9);                                                                     // bridges abreast: SNY's stem 0.4 m astern of SDA's

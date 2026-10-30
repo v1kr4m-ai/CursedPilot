@@ -2,6 +2,9 @@ import React from 'react';
 import { Field, Grid, Panel, Result, Seg, Warn, useForm, useMemory } from './kit';
 import { STATIONS, angleOut, distanceLost360, reverseOrder, roundTheClock } from './stationChanges';
 import type { Station } from './stationChanges';
+import { TabBar } from './TabBar';
+import { RtcFishtail } from './RtcFishtail';
+import type { Ship } from '../types';
 
 // Station Changes: the manoeuvres of BR 45(6) paras 0427 to 0429: the suggested solution for changing between the standard stations
 // (round the clock), reversing the order of ships in column, and losing distance by a 360 degree turn. The sums are in stationChanges.ts.
@@ -10,7 +13,7 @@ const TABS = [['clock', 'Round the clock'], ['reverse', 'Reverse the column'], [
 const KEYS = ['gs', 'ss', 'ships', 'sp', 'cs', 'os', 'pk', 'tm', 'ts', 'loss'] as const;
 const pick = 'w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700';
 
-export const StationChangesTool: React.FC = () => {
+export const StationChangesTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const f = useForm('stchg', KEYS);
   const [tab, setTab] = useMemory<string>('stchg:tab', 'clock');
   const [from, setFrom] = useMemory<Station>('stchg:from', 'Ahead');
@@ -28,9 +31,7 @@ export const StationChangesTool: React.FC = () => {
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Station change">
-        {TABS.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{label}</button>)}
-      </div>
+      <TabBar id="stnchg" tabs={TABS.map(([k]) => k)} labels={Object.fromEntries(TABS) as Record<(typeof TABS)[number][0], string>} value={tab} onChange={setTab} label="Station change" />
 
       {tab === 'clock' && (
         <>
@@ -47,6 +48,7 @@ export const StationChangesTool: React.FC = () => {
                 <p className="text-xs font-bold text-slate-700">{sol.speed} manoeuvre <span className="text-[10px] font-semibold text-blue-600">BR 45(6) para {sol.para}</span></p>
                 {sol.text.map((t, i) => <p key={i} className="text-xs text-slate-600 font-medium leading-snug">{t}</p>)}
               </div>
+              {sol.fishtail && <RtcFishtail ship={ship} fishtail={sol.fishtail} from={from} to={to} />}
               {sol.warning && <Warn>Serious risk of collision and danger to personnel if ships alter toward the Guide from standard distance on the beam, if initially ahead for bearing or inside for distance.</Warn>}
               {sol.speed === 'Stationing speed' && (from === 'Astern' && (to === 'Abeam' || to === 'Quarter')) && (
                 <Panel title="Angle to steer out" note={`Rule of thumb: ${per} degrees for each knot of relative speed${to === 'Quarter' ? ' (astern to quarter)' : ' (astern to abeam)'}.`}>

@@ -200,7 +200,7 @@ export const RasApproachTool: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
           ['Surge', `${Math.round(p.surgeYd)} yd = ${p.surgeM.toFixed(1)} m (${p.advantage.toFixed(1)} kn x ${dr} yd)`],
           ['x, her stern to your stem', p.xM >= 0 ? `${p.xM.toFixed(1)} m clear` : `${(-p.xM).toFixed(1)} m overlap`],
           ['Start slowing when her stern bears', `θ ${p.thetaDeg.toFixed(1)}° ${p.thetaDeg >= 0 ? 'forward of' : 'abaft'} your ${side.toLowerCase()} beam (${sternRel(p.thetaDeg)}) from the bridge`],
-          ...(p.radar ? [['On your radar, her stern', `${Math.round(p.radar.rangeM / 0.9144)} yd (${Math.round(p.radar.rangeM)} m), ${p.radar.thetaDeg.toFixed(1)}° forward of the beam (${sternRel(p.radar.thetaDeg)})`] as [string, string]] : []),
+          ...(p.radar ? [['From your radar, her stern', `${Math.round(Math.abs(p.radar.rangeM) / 0.9144)} yd (${Math.round(Math.abs(p.radar.rangeM))} m) ${p.radar.rangeM >= 0 ? 'ahead' : 'abaft'} along the ship, ${p.radar.thetaDeg.toFixed(1)}° forward of the beam (${sternRel(p.radar.thetaDeg)})`] as [string, string]] : []),
           ['Then, at the final station', `${point}s abreast; your stem ${Math.abs(p.stemOffsetM).toFixed(1)} m ${p.stemOffsetM >= 0 ? 'ahead of' : 'astern of'} hers`],
           ['From the stand-by station', p.atOnce ? 'slow at once: it is inside the surge' : `run ${Math.round(p.runYd)} yd (${p.runMinutes.toFixed(1)} min at the advantage), then slow`],
         ]} />
@@ -238,7 +238,7 @@ export const RasApproachTool: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
               <li><b style={{ color: CALC }}>Surge</b> = speed advantage x surge per knot = ({as} - {gs}) kn x {dr} yd = <b style={{ color: CALC }}>{Math.round(p.surgeYd)} yd</b>, the distance she gains on the Guide while coming down to her speed.</li>
               <li><b style={{ color: CALC }}>x</b> = surge - her {point} to her stern - your stem to your {point} = {p.surgeM.toFixed(1)} - {p.pointToStern.toFixed(1)} - {apprDims[EVOLUTIONS[evo].point]} = <b style={{ color: CALC }}>{p.xM.toFixed(1)} m</b> ({p.xM >= 0 ? 'clear of her stern' : 'your bow overlaps her quarter'}).</li>
               <li><b style={{ color: CALC }}>θ</b> = tan⁻¹((x + your stem to bridge) / distance between ships) = tan⁻¹(({p.xM.toFixed(1)} + {apprDims.bridge}) / {sepM}) = <b style={{ color: CALC }}>{p.thetaDeg.toFixed(1)}°</b>: start slowing when her stern bears that far forward of your beam.</li>
-{p.radar && <li><b style={{ color: CALC }}>Radar</b>: her stern is x + {apprDims.radar} m along and {sepM} m across from your radar: <b style={{ color: CALC }}>{Math.round(p.radar.rangeM / 0.9144)} yd</b> at {p.radar.thetaDeg.toFixed(1)}° forward of the beam. Set the VRM to it.</li>}
+{p.radar && <li><b style={{ color: CALC }}>Radar</b>: her stern is x + your stem to radar = {p.xM.toFixed(1)} + {apprDims.radar} = <b style={{ color: CALC }}>{Math.round(p.radar.rangeM / 0.9144)} yd</b> ahead of your radar along the ship, at {p.radar.thetaDeg.toFixed(1)}° forward of the beam.</li>}
               <li><b style={{ color: CALC }}>Stems</b>: the {point}s abreast puts your stem {Math.abs(p.stemOffsetM).toFixed(1)} m {p.stemOffsetM >= 0 ? 'ahead of' : 'astern of'} hers ({apprDims[EVOLUTIONS[evo].point]} m and {guideDims[EVOLUTIONS[evo].point]} m from the stems).</li>
             </ul>
           </div>

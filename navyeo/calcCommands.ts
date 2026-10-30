@@ -258,8 +258,8 @@ function horizonAnswer(t: string): CalcReply | null {
   const obj = val(t, `(?:object|target|light|lighthouse|ship)\\s*(?:height)?\\s*(?:of|is|=)?\\s*${NUM}`);
   if (eye === null) return ask('What is the height of eye (or antenna) in metres? For example "horizon eye 12 m target 30 m".');
   const radar = /radar/.test(t);
-  if (obj !== null) return open('Distance Off & Horizon', 'horizon', { eye: String(eye), obj: String(obj) }, `${radar ? 'Radar' : 'Visual'} range between height ${eye} m and ${obj} m: ${r1(radar ? radarRange(eye, obj) : visibleRange(eye, obj))} nm (standard coefficients).`);
-  return open('Distance Off & Horizon', 'horizon', { eye: String(eye) }, `Horizon from ${eye} m: visual ${r1(visibleRange(eye, 0))} nm, radar ${r1(radarRange(eye, 0))} nm (standard coefficients).`);
+  if (obj !== null) return open('Distance Off & Horizon', 'horizon', { eye: String(eye), obj: String(obj) }, `${radar ? 'Radar' : 'Visual'} range between height ${eye} m and ${obj} m: ${r1(radar ? radarRange(eye, obj) : visibleRange(eye, obj))} nm (standard coefficients).`, { 'do:tab': 'horizon' });
+  return open('Distance Off & Horizon', 'horizon', { eye: String(eye) }, `Horizon from ${eye} m: visual ${r1(visibleRange(eye, 0))} nm, radar ${r1(radarRange(eye, 0))} nm (standard coefficients).`, { 'do:tab': 'horizon' });
 }
 
 // ---- Radian rule: L = R x angle / 60, any one from the other two ---------------------------------------------------------

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import * as nav from './navMath';
-import { Seg, bearing } from './kit';
+import { Mini, bearing } from './kit';
 
 // A radar PPI that plays the manoeuvre: both ships keep course and speed and the picture runs forward in time. Own ship
 // is at the centre (relative motion: the target leaves a trail, its relative track) or moves across the screen (true
@@ -107,9 +107,9 @@ export const CpaPpi: React.FC<{ input: nav.CpaInput; headUp: boolean }> = ({ inp
         <input type="range" min={0} max={tMax} step={tMax / 240} value={t} onChange={e => { setPlaying(false); setT(Number(e.target.value)); }} aria-label="Time in the manoeuvre" className="flex-1 accent-blue-600" />
         <span className="shrink-0 w-12 text-right text-[11px] font-bold tabular-nums text-slate-600">{mmss(t)}</span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Seg value={mode} onChange={v => setMode(v as 'relative' | 'true')} options={[['relative', 'Relative'], ['true', 'True motion']]} />
-        <Seg value={rate} onChange={v => setRate(v as '1' | '3' | '10')} options={[['1', '1×'], ['3', '3×'], ['10', '10×']]} />
+      <div className="flex justify-end gap-1.5">
+        <Mini label="Motion" value={mode} onChange={v => setMode(v as 'relative' | 'true')} options={[['relative', 'Rel'], ['true', 'True']]} />
+        <Mini label="Playback speed" value={rate} onChange={v => setRate(v as '1' | '3' | '10')} options={[['1', '1×'], ['3', '3×'], ['10', '10×']]} />
       </div>
       <p className="text-[10px] text-slate-400 font-medium leading-snug">Now: bearing {bearing(brgNow)}, range {rngNow.toFixed(2)} nm{r.status === 'closing' && r.tcpaMinutes !== null ? `, CPA ${r.cpa.toFixed(2)} nm in ${Math.max(0, r.tcpaMinutes - t).toFixed(1)} min` : ''}. Both ships keep course and speed. 1× is one minute of the manoeuvre a second.</p>
     </div>

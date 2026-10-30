@@ -4,6 +4,7 @@ import { useMemory } from './kit';
 import { SunRunMerpassTool, SunRunSunTool } from './SunTools';
 import { FourStarTool } from './StarTools';
 import { PolarisTool, RiseSetTool } from './AstroExtras';
+import { TabBar } from './TabBar';
 
 // ASTRO: the astronomical tools in one place. NavYeo's typed commands still name the old tools; ASTRO_TABS says which tab each opens.
 
@@ -24,12 +25,7 @@ export const AstroTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const cur = TABS.find(t => t.key === tab) ?? TABS[0];
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Astro tools">
-        {TABS.map(t => (
-          <button key={t.key} role="tab" aria-selected={cur.key === t.key} onClick={() => setTab(t.key)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${cur.key === t.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{t.label}</button>
-        ))}
-      </div>
+      <TabBar id="astro" tabs={TABS.map(t => t.key)} labels={Object.fromEntries(TABS.map(t => [t.key, t.label]))} value={cur.key} onChange={setTab} label="Astro tools" />
       <cur.Component ship={ship} />
     </div>
   );

@@ -27,8 +27,10 @@ import { CorpenTool, RasApproachTool, RegainTrackTool } from './ManoeuvreTools';
 import { FlyingCorpenTool } from './FlyingCorpenTool';
 import { ReferenceTool } from './ReferenceTool';
 import { BearingCalcTool } from './BearingCalcTool';
+import { TabBar } from './TabBar';
+import { BattenbergBoard } from './BattenbergBoard';
 import { parseClock } from './sunSights';
-import { Field, Grid, LengthField, Panel, Result, SELECT, Seg, SideToggle, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
+import { Field, Grid, LengthField, Mini, Panel, Result, SELECT, Seg, SideToggle, UnitPick, Warn, bearing, fromNm, hhmm, toNum, useForm, useMemory, useUnit } from './kit';
 
 // ---- tools -------------------------------------------------------------------------------------
 
@@ -176,7 +178,7 @@ const CpaTool: React.FC = () => {
   return (
     <div className="space-y-2">
     <Panel title="CPA / TCPA" note="True courses, and speeds of the same kind for both ships (both over the ground, as a ground-stabilised radar, or both through the water, as sea-stabilised). Check the range unit. Assumes both vessels hold course and speed.">
-      <Seg value={brgKind} options={[['true', 'True bearing'], ['rel', 'Relative (head-up)']] as const} onChange={k => setBrgKind(k as 'true' | 'rel')} />
+      <div className="flex items-center justify-end gap-1.5"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bearing</span><Mini label="Target bearing" value={brgKind} options={[['true', 'True'], ['rel', 'Rel']] as const} onChange={k => setBrgKind(k as 'true' | 'rel')} /></div>
       <Grid>
         <Field label="Own course" unit="°T" sensor="course" {...f.bind('oc')} />
         <Field label="Own speed" unit="kn" sensor="speed" {...f.bind('os')} />
@@ -198,7 +200,7 @@ const CpaTool: React.FC = () => {
       )}
       {input && r && (
         <>
-          <Seg value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H UP'], ['north', 'N UP']]} />
+          <div className="flex justify-end"><Mini label="Picture orientation" value={headUp ? 'head' : 'north'} onChange={v => setHeadUp(v === 'head')} options={[['head', 'H Up'], ['north', 'N Up']]} /></div>
           <CpaPpi input={input} headUp={headUp} />
         </>
       )}
@@ -666,12 +668,7 @@ const BearingsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const tab = (BPU_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof BPU_TABS)[number] : 'bearings';
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Bearings and positions">
-        {BPU_TABS.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{BPU_LABELS[k]}</button>
-        ))}
-      </div>
+      <TabBar id="bpu" tabs={BPU_TABS} labels={BPU_LABELS} value={tab} onChange={setTab} label="Bearings and positions" />
       {tab === 'bearings' && <BearingTool />}
       {tab === 'compass' && <CompassTool ship={ship} />}
       {tab === 'units' && <UnitTool />}
@@ -683,22 +680,17 @@ const BearingsTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
 
 // ---- Battenberg & Stationing: taking and changing station, joining from ahead, and station changes, as tabs -----------------------------
 const STN_TABS = ['batt', 'bows', 'changes'] as const;
-const STN_LABELS: Record<(typeof STN_TABS)[number], string> = { batt: 'Battenberg', bows: 'From the bows', changes: 'Station changes' };
+const STN_LABELS: Record<(typeof STN_TABS)[number], string> = { batt: 'Battenberg', bows: 'From the bows', changes: 'RTC' };
 
 const StationingTool: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const [tabRaw, setTab] = useMemory<string>('stn:tab', 'batt');
   const tab = (STN_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof STN_TABS)[number] : 'batt';
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Battenberg and stationing">
-        {STN_TABS.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{STN_LABELS[k]}</button>
-        ))}
-      </div>
+      <TabBar id="stn" tabs={STN_TABS} labels={STN_LABELS} value={tab} onChange={setTab} label="Battenberg and stationing" />
       {tab === 'batt' && <BattenbergTool ship={ship} />}
       {tab === 'bows' && <StationFromBowsTool ship={ship} />}
-      {tab === 'changes' && <StationChangesTool />}
+      {tab === 'changes' && <StationChangesTool ship={ship} />}
     </div>
   );
 };
@@ -712,12 +704,7 @@ const WheelOverTabs: React.FC<{ ship?: Ship }> = ({ ship }) => {
   const tab = (WO_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof WO_TABS)[number] : 'wheel';
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Wheel-over and bearing calculator">
-        {WO_TABS.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{WO_LABELS[k]}</button>
-        ))}
-      </div>
+      <TabBar id="wo" tabs={WO_TABS} labels={WO_LABELS} value={tab} onChange={setTab} label="Wheel-over and bearing calculator" />
       {tab === 'wheel' && <WheelOverTool ship={ship} />}
       {tab === 'brg' && <BearingCalcTool />}
     </div>
@@ -733,12 +720,7 @@ const RadianTabs: React.FC = () => {
   const tab = (RR_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof RR_TABS)[number] : 'radian';
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Radian rule and time, speed, distance">
-        {RR_TABS.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{RR_LABELS[k]}</button>
-        ))}
-      </div>
+      <TabBar id="rr" tabs={RR_TABS} labels={RR_LABELS} value={tab} onChange={setTab} label="Radian rule and time, speed, distance" />
       {tab === 'radian' && <RadianTool />}
       {tab === 'tsd' && <TsdTool />}
     </div>
@@ -754,12 +736,7 @@ const CtsTabs: React.FC = () => {
   const tab = (CTS_TABS as readonly string[]).includes(tabRaw) ? tabRaw as (typeof CTS_TABS)[number] : 'cts';
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Course to steer and regain track">
-        {CTS_TABS.map(k => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{CTS_LABELS[k]}</button>
-        ))}
-      </div>
+      <TabBar id="cts" tabs={CTS_TABS} labels={CTS_LABELS} value={tab} onChange={setTab} label="Course to steer and regain track" />
       {tab === 'cts' && <CtsTool />}
       {tab === 'regain' && <RegainTrackTool />}
     </div>
@@ -781,14 +758,14 @@ export const RENAMED_TOOLS: Record<string, string> = {
 
 // ---- registry ----------------------------------------------------------------------------------
 
-export interface NavTool { name: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship; fleet?: Ship[] }> }
+export interface NavTool { name: string; /** the name shown in its header, when not its name */ title?: string; /** label under the icon in the NavYeo grid */ short: string; desc: string; icon: React.ReactNode; Component: React.FC<{ ship?: Ship; fleet?: Ship[] }> }
 
 export const NAV_TOOLS: NavTool[] = [
   { name: 'Bearings & Positions', short: 'Bearings', desc: 'Bearings, compass and gyro, units, latitude and longitude, and distance and bearing between positions', icon: <Navigation size={18} className="text-blue-500" />, Component: BearingsTool },
   { name: 'CPA / TCPA', short: 'CPA', desc: 'Closest approach to a contact', icon: <Radar size={18} className="text-red-500" />, Component: CpaTool },
   { name: 'Angle on the Bow (ATB)', short: 'ATB', desc: 'Target course from bearing and angle on the bow, or the reverse', icon: <ShipIcon size={18} className="text-sky-500" />, Component: AtbTool },
   { name: 'Course to Steer', short: 'Course to steer', desc: 'Allow for set and drift, and regaining track (time or throw-off by the radian rule)', icon: <Waves size={18} className="text-cyan-500" />, Component: CtsTabs },
-  { name: 'Distance Off & Horizon', short: 'Dist off', desc: 'Vertical sextant angle, visibility, radar range', icon: <Eye size={18} className="text-emerald-500" />, Component: DistanceOffTool },
+  { name: 'Distance Off & Horizon', title: 'VSA', short: 'VSA', desc: 'Distance off by vertical sextant angle, table interpolation, horizon and radar range, sighting range', icon: <Eye size={18} className="text-emerald-500" />, Component: DistanceOffTool },
   { name: 'Horizontal Sextant Angle (HSA)', short: 'HSA', desc: 'Position fix from two horizontal angles, and distance off', icon: <MapPin size={18} className="text-rose-500" />, Component: HsaTool },
   { name: 'Wheel-over Point', short: 'Wheel-over', desc: 'Where to put the wheel over for a turn, and the Bearing Calculator: bearing and range of an object along its track every 5 cables or 1 nm', icon: <RotateCw size={18} className="text-indigo-500" />, Component: WheelOverTabs },
   { name: 'Man Overboard Turn', short: 'MOB', desc: 'Williamson and Scharnow turns worked from the ship\'s turning data', icon: <LifeBuoy size={18} className="text-red-500" />, Component: MobTool },
@@ -796,6 +773,7 @@ export const NAV_TOOLS: NavTool[] = [
   { name: 'Tides', short: 'Tides', desc: 'Height of tide at a time, flood or ebb, springs or neaps', icon: <ArrowUpDown size={18} className="text-teal-500" />, Component: TidesTool },
   { name: 'Anchor', short: 'Anchor', desc: 'Cable to veer, safety, bridge and stern swinging circles, minimum swinging radius (BR 45)', icon: <Anchor size={18} className="text-slate-600" />, Component: AnchorTool },
   { name: 'Battenberg & Stationing', short: 'Battenberg', desc: 'Taking and changing station on a Guide: the course to steer (Battenberg), joining from ahead (station from bows) and station changes (BR 45(6))', icon: <Target size={18} className="text-rose-600" />, Component: StationingTool },
+  { name: 'BATTENBERG (v1)', title: 'BATTENBERG', short: 'BATTENBERG', desc: 'One radar picture for every station-keeping problem: station, in time, CPA, rel-vel, joining from ahead, fishtails, RTC and RAS, from one set of figures (version 1)', icon: <Radar size={18} className="text-cyan-600" />, Component: BattenbergBoard },
   { name: 'Corpen', short: 'Corpen', desc: 'When to alter course by Corpen: stopwatch and radian rule, in column or abreast (Corpen ’S’)', icon: <Shuffle size={18} className="text-violet-500" />, Component: CorpenTool },
   { name: 'RAS Approach', short: 'RAS approach', desc: 'Course to steer for the working distance and when to come down in speed when coming alongside', icon: <Ship2 size={18} className="text-sky-600" />, Component: RasApproachTool },
   { name: 'Relative Motion', short: 'Rel-vel', desc: 'Contact course from a plot, time at a range, pass at a distance, close a faster ship (REL-VEL docket)', icon: <Crosshair size={18} className="text-orange-600" />, Component: RelMotionTool },

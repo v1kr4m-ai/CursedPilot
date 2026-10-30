@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { TOOL_INFO } from './toolInfo.ts';
 
 const registry = readFileSync(new URL('./NavTools.tsx', import.meta.url), 'utf8');
-const toolNames = [...registry.matchAll(/\{ name: '([^']+)', short:/g)].map(m => m[1]);
+const toolNames = [...registry.matchAll(/\{ name: '([^']+)', (?:title: '[^']+', )?short:/g)].map(m => m[1]);
 assert.ok(toolNames.length >= 11, `found only ${toolNames.length} tools in NavTools.tsx`);
 
 for (const name of toolNames) assert.ok(TOOL_INFO[name], `no explanation for "${name}"`);

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Anchor, Plus, Ship as ShipIcon, X } from 'lucide-react';
 import { AppView } from '../types';
+import { useToolNames } from '../tools/toolNames';
 import { NAV_TOOLS } from '../tools/NavTools';
 
 /**
@@ -28,6 +29,7 @@ const BottomBar: React.FC<{
     const name = slots[i];
     if (name && NAV_TOOLS.some(t => t.name === name)) onLaunch(name); else setPicking(i);
   };
+  const names = useToolNames();
   const choose = (i: number, name: string | null) => { const next = [...slots]; next[i] = name; onSlots(next); setPicking(null); if (name) onLaunch(name); };
 
   const slot = (i: number) => {
@@ -39,7 +41,7 @@ const BottomBar: React.FC<{
         aria-current={tool && openTool === tool.name ? 'page' : undefined} className={`${side(!!tool && openTool === tool.name)} select-none`}>
         {tool ? <span className="h-[22px] flex items-center">{React.cloneElement(tool.icon as React.ReactElement<{ size?: number }>, { size: 22 })}</span>
           : <span className="w-[22px] h-[22px] rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center"><Plus size={13} /></span>}
-        <span className="max-w-[64px] truncate">{tool ? tool.short : 'Tool'}</span>
+        <span className="max-w-[64px] truncate">{tool ? names.short(tool) : 'Tool'}</span>
       </button>
     );
   };
@@ -68,7 +70,7 @@ const BottomBar: React.FC<{
             <div className="grid grid-cols-3 gap-2">
               {NAV_TOOLS.map(t => (
                 <button key={t.name} onClick={() => choose(picking, t.name)} className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border text-[10px] font-bold text-slate-600 active:scale-95 ${slots[picking] === t.name ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-slate-50'}`}>
-                  {React.cloneElement(t.icon as React.ReactElement<{ size?: number }>, { size: 20 })}<span className="text-center leading-tight">{t.short}</span>
+                  {React.cloneElement(t.icon as React.ReactElement<{ size?: number }>, { size: 20 })}<span className="text-center leading-tight">{names.short(t)}</span>
                 </button>
               ))}
             </div>

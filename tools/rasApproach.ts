@@ -7,7 +7,7 @@
 //   x = surge - (the Guide's matching point to her stern) - (own stem to own matching point): the gap from the Guide's stern to own stem when
 //       she starts slowing (negative: her bow overlaps the Guide's quarter)
 //   theta = atan((x + own stem to bridge) / distance between the ships): where the Guide's stern bears from own bridge, forward of the beam
-//   and from own radar (when its distance from the stem is known): the range and angle of her stern from the radar, for the radar's VRM
+//   and from own radar (when its distance from the stem is known): how far ahead of the radar her stern is, along the ship, and its angle from the beam
 // Positions on each ship are stem-to-point distances (metres). Pure; `node tools/rasApproach.check.ts`.
 
 import type { Ship } from '../types.ts';
@@ -48,7 +48,8 @@ export interface Plan {
   xM: number;
   /** where the Guide's stern bears from own bridge then, degrees forward of the beam (negative: abaft it) */
   thetaDeg: number;
-  /** from own radar, when its position is known: the range (m) and angle forward of the beam of her stern */
+  /** from own radar, when its position is known: her stern's distance ahead of the radar along the ship (m; negative: abaft it), not the slant
+   *  range across to her, and its angle forward of the beam */
   radar?: { rangeM: number; thetaDeg: number };
   stemOffsetM: number;           // at the final station the approach ship's stem is this far ahead of the Guide's stem (negative: astern)
   runYd: number;                 // from the stand-by station to the slowing point
@@ -67,7 +68,7 @@ export function plan(i: Input): Plan | null {
   const pointToStern = lg - pg;
   const xM = surgeM - pointToStern - pa;
   const thetaDeg = (Math.atan2(xM + ba, i.separationM) * 180) / Math.PI;
-  const ra = i.approach.radar, radar = ra === undefined ? undefined : { rangeM: Math.hypot(xM + ra, i.separationM), thetaDeg: (Math.atan2(xM + ra, i.separationM) * 180) / Math.PI };
+  const ra = i.approach.radar, radar = ra === undefined ? undefined : { rangeM: xM + ra, thetaDeg: (Math.atan2(xM + ra, i.separationM) * 180) / Math.PI };
   const runYd = i.standbyYd - surgeYd;
   return {
     advantage, surgeYd, surgeM, pointToStern, xM, thetaDeg, ...(radar ? { radar } : {}), stemOffsetM: pa - pg,

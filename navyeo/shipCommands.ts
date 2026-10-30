@@ -204,7 +204,7 @@ export function vsaCommand(t: string, ctx: ShipCtx): OpenReply | null {
   if (hM !== null) values.elev = String(Math.round(hM * 100) / 100);
   if (ang) values.angle = ang[2] !== undefined ? `${ang[1]} ${ang[2]}` : ang[1];
   if (ie) values.ie = String(ie);
-  const memory = { 'vsa:method': 'height', 'pref:vsa:height': 'metres', 'pref:vsa:dist': ctx.unit };
+  const memory = { 'do:tab': 'vsa', 'vsa:method': 'height', 'pref:vsa:height': 'metres', 'pref:vsa:dist': ctx.unit };
   let say = 'Opened VSA. Try "vsa height 40 m angle 0 46.2 ie 1.2".';
   if (hM !== null && hM > 0 && deg !== null) {
     const d = distanceByHeight(hM, deg + ie / 60);

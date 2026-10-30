@@ -69,6 +69,18 @@ export function Seg<T extends string>({ value, options, onChange }: { value: T; 
   );
 }
 
+/** A small switch for a view choice (Rel / True, H Up / N Up): a pill that takes little room. */
+export function Mini<T extends string>({ value, options, onChange, label }: { value: T; options: readonly (readonly [T, string])[]; onChange: (v: T) => void; label: string }) {
+  return (
+    <div role="group" aria-label={label} className="inline-flex shrink-0 rounded-lg border border-slate-200 bg-white p-0.5">
+      {options.map(([k, l]) => (
+        <button key={k} type="button" aria-pressed={value === k} onClick={() => onChange(k)}
+          className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${value === k ? 'bg-blue-600 text-white' : 'text-slate-500'}`}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
 /** A section of a tool. It folds up (and stays folded the way the user left it); `closed` starts it folded. */
 export const Panel: React.FC<{ title: string; note?: string; children: React.ReactNode; closed?: boolean }> = ({ title, note, children, closed }) => (
   <Card title={title} note={note} closed={closed}>{children}</Card>

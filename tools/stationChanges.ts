@@ -46,14 +46,16 @@ export const distanceLost360 = (i: Turn360Input): number => yardsRun(i.guideSpee
 // ---- 0429: round the clock ---------------------------------------------------------------------------------------------------------------------------------------
 export const STATIONS = ['Ahead', 'Bow (45)', 'Abeam', 'Quarter', 'Astern'] as const;
 export type Station = (typeof STATIONS)[number];
-export interface Solution { speed: 'Equal speed' | 'Stationing speed'; text: string[]; warning?: boolean; para: string }
+/** A fishtail the solution makes: half (out and back), full (out, back twice, out) or distorted (out a1, back a1 + a2, out a2); angles in degrees. */
+export interface Fishtail { kind: 'half' | 'full' | 'distorted'; angle: number; a2?: number }
+export interface Solution { speed: 'Equal speed' | 'Stationing speed'; text: string[]; warning?: boolean; para: string; fishtail?: Fishtail }
 
-const ahead_astern: Solution = { speed: 'Equal speed', para: '0429a', text: ['Make a 90 degree fishtail manoeuvre: turn 90 degrees away from the Guide, then back 180, then 90 to resume the Guide\'s course. It can be made to port or starboard.'] };
+const ahead_astern: Solution = { speed: 'Equal speed', para: '0429a', fishtail: { kind: 'full', angle: 90 }, text: ['Make a 90 degree fishtail manoeuvre: turn 90 degrees away from the Guide, then back 180, then 90 to resume the Guide\'s course. It can be made to port or starboard.'] };
 const SOLUTIONS: Partial<Record<`${Station}>${Station}`, Solution>> = {
   'Ahead>Astern': ahead_astern,
-  'Ahead>Abeam': { speed: 'Equal speed', para: '0429b', text: ['Turn out about 60 to 75 degrees, steady and immediately turn back to the Guide\'s course.'] },
-  'Bow (45)>Abeam': { speed: 'Equal speed', para: '0429c', text: ['Turn 50 degrees away from the Guide, steady and immediately alter 40 degrees back, before resuming the original course. This is an unbalanced fishtail.'] },
-  'Bow (45)>Quarter': { speed: 'Equal speed', para: '0429d', text: ['Make a 75 degree fishtail manoeuvre.'] },
+  'Ahead>Abeam': { speed: 'Equal speed', para: '0429b', fishtail: { kind: 'half', angle: 70 }, text: ['Turn out about 60 to 75 degrees, steady and immediately turn back to the Guide\'s course.'] },
+  'Bow (45)>Abeam': { speed: 'Equal speed', para: '0429c', fishtail: { kind: 'distorted', angle: 50, a2: 40 }, text: ['Turn 50 degrees away from the Guide, steady and immediately alter 40 degrees back, before resuming the original course. This is an unbalanced fishtail.'] },
+  'Bow (45)>Quarter': { speed: 'Equal speed', para: '0429d', fishtail: { kind: 'full', angle: 75 }, text: ['Make a 75 degree fishtail manoeuvre.'] },
   'Abeam>Astern': { speed: 'Equal speed', para: '0429e', warning: true, text: [
     'Method 1: alter course toward the Guide and steady pointing at her stern, then alter back to the original course to follow in her wake.',
     'Method 2: alter course 90 degrees toward the Guide and then immediately alter back to the original course.',

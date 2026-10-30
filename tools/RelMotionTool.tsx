@@ -2,6 +2,7 @@ import React from 'react';
 import { Field, Grid, Panel, Result, Seg, Warn, bearing, useForm, useMemory } from './kit';
 import { approach, closeFaster, contactFromPlots, passAt, pos, vec } from './relvel';
 import type { Obs } from './relvel';
+import { TabBar } from './TabBar';
 
 // Relative Motion: the REL-VEL docket's problems solved without a plot: the other ship's course and speed from her plotted track, when she
 // is a given range off, passing her at a distance, and getting as close as possible to a faster ship. The sums are in relvel.ts. Ranges in n miles.
@@ -39,9 +40,7 @@ export const RelMotionTool: React.FC = () => {
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Problem">
-        {MODES.map(([k, label]) => <button key={k} role="tab" aria-selected={mode === k} onClick={() => setMode(k)} className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border ${mode === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{label}</button>)}
-      </div>
+      <TabBar id="relvel" tabs={MODES.map(([k]) => k)} labels={Object.fromEntries(MODES) as Record<(typeof MODES)[number][0], string>} value={mode} onChange={setMode} label="Problem" />
       <Panel title="Own ship" note={mode === 'pass' || mode === 'faster' ? 'The speed you have available. Own course is the answer.' : 'Own true course and speed.'}>
         <Grid>{mode !== 'pass' && mode !== 'faster' && <Field label="Own course" unit="°T" sensor="course" {...f.bind('oc')} />}<Field label={mode === 'pass' || mode === 'faster' ? 'Available speed' : 'Own speed'} unit="kn" sensor="speed" {...f.bind('os')} /></Grid>
       </Panel>

@@ -18,4 +18,10 @@ assert.equal(s.roundTheClock('Quarter', 'Ahead'), null);
 assert.equal(s.roundTheClock('Abeam', 'Astern')!.warning, true); assert.equal(s.roundTheClock('Ahead', 'Abeam')!.speed, 'Equal speed'); assert.equal(s.roundTheClock('Astern', 'Abeam')!.speed, 'Stationing speed');
 // rule of thumb: Guide 12, stationing 20, relative speed 8 -> 2 x 8 = 16 degrees out (the book prints 20, an arithmetic slip); 4 degrees a knot for astern to quarter
 near(s.angleOut(12, 20), 16, 1e-9); near(s.angleOut(12, 20, 4), 32, 1e-9);
+// the fishtail solutions carry the fishtail itself, for the RTC plot from the ship's turning data
+assert.deepEqual(s.roundTheClock('Ahead', 'Astern')!.fishtail, { kind: 'full', angle: 90 });
+assert.deepEqual(s.roundTheClock('Ahead', 'Abeam')!.fishtail, { kind: 'half', angle: 70 });
+assert.deepEqual(s.roundTheClock('Bow (45)', 'Abeam')!.fishtail, { kind: 'distorted', angle: 50, a2: 40 });
+assert.deepEqual(s.roundTheClock('Bow (45)', 'Quarter')!.fishtail, { kind: 'full', angle: 75 });
+assert.equal(s.roundTheClock('Astern', 'Abeam')!.fishtail, undefined);
 console.log('stationChanges: all checks passed');

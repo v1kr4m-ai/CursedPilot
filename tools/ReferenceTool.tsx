@@ -6,6 +6,7 @@ import { groupedRules, ruleLabels, ruleName, ruleSearchText } from './colregsInf
 import type { RuleText } from './colregsText';
 import { LightPicture } from './LightPics';
 import { RorQuiz } from './RorQuiz';
+import { TabBar } from './TabBar';
 
 // The BR 45 explanations and examples are kept out of the public copy of the project: tools/private/colregsCommentary.json is
 // picked up when it is there, and the info buttons say so when it is not.
@@ -203,11 +204,7 @@ export const ReferenceTool: React.FC = () => {
   return (
     <div className="space-y-2">
       <Field label="Search" text hint="e.g. trawling, east cardinal, overtaking" value={q} onChange={setQ} />
-      <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Reference sections">
-        {TABS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold border ${tab === k ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-500 border-slate-200'}`}>{label}</button>
-        ))}
-      </div>
+      <TabBar id="ref" tabs={TABS.map(([k]) => k)} labels={Object.fromEntries(TABS) as Record<(typeof TABS)[number][0], string>} value={tab} onChange={setTab} label="Reference sections" />
 
       {tab === 'buoyage' && (
         <>
