@@ -35,6 +35,8 @@ const HOLD_MS = 450;
 const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
   const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed');
   const llm = useBrain();
+  const [thinking, setThinking] = useState(false);   // the model is working on an answer: the window glows
+  const lastAsk = useRef<string | null>(null);         // the last request answered, for "in cables?"
   useEffect(() => { if (phase === 'open') void brain.refresh().then(() => brain.warm()); }, [phase]);   // the model, when on, is made ready while the question is typed
   const [tool, setTool] = useState<NavTool | null>(null);
   const names = useToolNames();
@@ -200,8 +202,10 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
     });
     const unit = toolMemory.get<string>('pref:wheel:unit', 'cables');
     if (brain.get().state === 'none') await brain.refresh();   // a model added since the app started (typed questions do not open the voice screen that checks)
-    const { reply, pending: next, via, understoodAs, modelNote } = await smartInterpret(q, pendingAsk.current, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables', ship: shipParams(ship), turning: ship, fuel: ship?.fuelData }, brain.usable() ? brain.complete : undefined, onModel, meaning);
+    const { reply, pending: next, via, understoodAs, modelNote } = await smartInterpret(q, pendingAsk.current, { shipName: ship?.name, tables: [...tables.values()], unit: isLengthUnit(unit) ? unit : 'cables', ship: shipParams(ship), turning: ship, fuel: ship?.fuelData, last: lastAsk.current ?? undefined }, brain.usable() ? brain.complete : undefined, () => { setThinking(true); onModel?.(); }, meaning).finally(() => setThinking(false));
     pendingAsk.current = next;
+    const worked = reply.kind === 'open' ? !!reply.form : !reply.unknown && !reply.wait;
+    if (worked && !next) lastAsk.current = via === 'model' || understoodAs?.includes(' ') ? understoodAs ?? q : q;
     if (reply.kind === 'open') {
       const astroTab = ASTRO_TABS[reply.tool], tabOf = TOOL_TABS[reply.tool];
       const target = NAV_TOOLS.find(t => t.name === (astroTab ? 'ASTRO' : tabOf ? tabOf[0] : reply.tool));
@@ -224,7 +228,7 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
     if (!q) return;
     shownTool.current = null;
     setText('');
-    const { reply, modelNote } = await respond(q, true, () => setSaid('Working it out…'));
+    const { reply, modelNote } = await respond(q, true, () => setSaid('NavYeo is thinking…'));
     setSaid(modelNote ? `${reply.say}\n(${modelNote})` : reply.say);
   };
   /** The voice assistant's questions: the answer is worked out and the tool filled in, but the NavYeo window is left shut. */
@@ -264,19 +268,20 @@ const NavYeo: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ ship, fleet }) => {
           <div
             ref={panelRef} role="dialog" aria-label="NavYeo"
             onAnimationEnd={() => { if (phase === 'closing') setPhase('closed'); }}
-            className={`pointer-events-auto flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden ${phase === 'closing' ? 'navyeo-out' : 'navyeo-in'}`}
+            className={`relative pointer-events-auto flex flex-col bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden ${phase === 'closing' ? 'navyeo-out' : 'navyeo-in'}`}
             style={{ width: panel.width, maxHeight: panel.maxHeight }}
           >
+            {thinking && <div aria-hidden className="navyeo-think pointer-events-none absolute inset-0 z-30 rounded-3xl" />}
             <div className="flex items-center border-b border-slate-100 shrink-0">
               <div className="flex-1 flex items-center gap-3 pl-4 pr-2 py-3">
-                <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><Bot size={18} /></div>
+                <div className={`bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200 ${thinking ? 'animate-pulse' : ''}`}><Bot size={18} /></div>
                 <div className="min-w-0 flex-1">
                   <h3 className="font-bold text-slate-900 leading-tight">NavYeo</h3>
                   <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-green-500" /> <span className="truncate">{ship ? ship.name : "Navigator's assistant"}</span></div>
                 </div>
               </div>
-              {llm.state !== 'browser' && llm.state !== 'none' && (
-                <button onClick={() => brain.setOn(!llm.on)} role="switch" aria-checked={llm.on} title={llm.on ? 'LLM on: loose wording goes to the model' : 'LLM off: keyword rules only'}
+              {llm.state !== 'browser' && (
+                <button onClick={() => { if (llm.state === 'none') setSaid('No NavYeo model is installed yet: add it from the voice screen (the NavYeo chip).'); else brain.setOn(!llm.on); }} role="switch" aria-checked={llm.on} title={llm.on ? 'LLM on: loose wording goes to the model' : 'LLM off: keyword rules only'}
                   className={`my-2 mr-1 px-2.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-colors ${llm.on ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>LLM {llm.on ? 'on' : 'off'}</button>
               )}
               <button onClick={() => toolMemory.clear()} disabled={!hasEntries} aria-label="Clear all entries" title="Clear all entries"

@@ -124,6 +124,10 @@ export const VoiceAssistant: React.FC<Props> = ({ shipName, answer, showTool, on
               {b.state === 'loading' ? <Loader2 size={11} className="animate-spin" /> : <Cpu size={11} />}
               {!b.on && b.state !== 'browser' && b.state !== 'none' ? 'LLM off' : b.state === 'ready' ? 'NavYeo ready' : b.state === 'loading' ? 'Loading NavYeo' : b.state === 'installed' ? 'NavYeo idle' : b.state === 'error' ? 'NavYeo problem' : b.state === 'none' ? 'Add NavYeo model' : 'Basic'}
             </button>
+            {b.state !== 'browser' && b.state !== 'none' && (
+              <button onClick={() => brain.setOn(!b.on)} role="switch" aria-checked={b.on} aria-label="LLM on or off"
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider active:scale-95 ${b.on ? 'bg-sky-500 text-white' : 'bg-white/10 text-slate-400'}`}>LLM {b.on ? 'on' : 'off'}</button>
+            )}
           </div>
         </div>
         <button onClick={() => { stop(); onClose(); }} aria-label="Close the voice assistant" className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95"><X size={20} /></button>

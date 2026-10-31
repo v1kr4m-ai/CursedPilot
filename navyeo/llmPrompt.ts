@@ -15,7 +15,7 @@ export const GRAMMAR = [
 ].join('\n');
 
 /** Spoken-style requests and the request each should become: the model learns the shape from these. */
-const SHOTS: [string, string][] = [
+const SHOTS: [string, string, string?][] = [
   ['what is the angle of one degree at a mile', 'CMD: 1 degree at 1 nm'],
   ['i am making good zero nine zero at twelve knots and the current sets north east at two knots what do i steer', 'CMD: course to steer track 090 speed 12 set 045 drift 2'],
   ['how far can i go on eighty tonnes of fuel at fourteen knots', 'CMD: how far on 80 tonnes at 14 knots'],
@@ -28,6 +28,7 @@ const SHOTS: [string, string][] = [
   ['the contact bears zero four five and is steering two seven zero what is the angle on the bow', 'CMD: atb bearing 045 target course 270'],
   ['i am two cables off track and want to be back on track in twenty minutes at twelve knots', 'CMD: off track 2 cables regain in 20 minutes at 12 knots'],
   ['what is the radian rule', 'SAY: The radian rule is L = R × angle / 60: the length across, the range and the angle in degrees. Give me any two and I will work out the third.'],
+  ['give me that in cables', 'CMD: 1 degree at 1 nm in cables', 'Previous request: 1 degree at 1 nm'],
   ['hello', 'SAY: Hello. Ask me for a bearing, CPA, course to steer, radian rule, fuel, distance between positions or a conversion.'],
 ];
 
@@ -38,7 +39,7 @@ export const SYSTEM_PROMPT = [
   'A calculation: CMD: one request shaped like the examples, using only the user\'s numbers, bearings in three digits.',
   'Anything else: SAY: one or two sentences, from the reference when one is given.',
   '',
-  ...SHOTS.flatMap(([said, reply]) => [`User: ${normaliseSpoken(said)}`, `Reply: ${reply}`]),
+  ...SHOTS.flatMap(([said, reply, before]) => [...(before ? [before] : []), `User: ${normaliseSpoken(said)}`, `Reply: ${reply}`]),
 ].join('\n');
 
 const QUESTION = /^(?:what|why|which|who|explain|tell me|define|describe|is|are|does|do)\b|^how (?:does|do|is|are)\b|\bwhat is\b|\bwhat does\b|\bmeans?\b|\bformula\b/i;
@@ -94,11 +95,11 @@ export function reference(question: string): string {
 const STOP = new Set(['the', 'what', 'how', 'does', 'and', 'for', 'with', 'tell', 'about', 'explain', 'work', 'works', 'rule', 'mean', 'means', 'please', 'you', 'can', 'are', 'this', 'that', 'use', 'used']);
 
 /** The user's message for the model: what was said, the request still waiting for numbers, and a reference for questions. */
-export function userPrompt(said: string, pending?: string | null, ship?: string): string {
+export function userPrompt(said: string, pending?: string | null, ship?: string, last?: string): string {
   const ref = reference(said);
   return [
     ship ? `Ship: ${ship}` : '',
-    pending ? `An earlier request still needs details: ${pending}` : '',
+    pending ? `An earlier request still needs details: ${pending}` : last ? `Previous request: ${last}` : '',
     ref ? `Reference: ${ref}` : '',
     `User: ${said}`,
     'Reply:',

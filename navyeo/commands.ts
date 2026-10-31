@@ -11,7 +11,7 @@ import type { Ship } from '../types.ts';
 
 export interface TurnRow { turn: number; advance: number; transfer: number; time: number }   // yards, yards, seconds
 export interface TurnTable { speed: number; wheel: number; side: 'Port' | 'Starboard'; rows: TurnRow[] }
-export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit; /** the selected ship's figures, for the commands that use them */ ship?: ShipParams; /** her recorded turning data and fuel data, for Corpen and Fuel Planning */ turning?: Pick<Ship, 'turningDataSets'>; fuel?: Ship['fuelData'] }
+export interface Context { shipName?: string; tables: TurnTable[]; unit: LengthUnit; /** the selected ship's figures, for the commands that use them */ ship?: ShipParams; /** her recorded turning data and fuel data, for Corpen and Fuel Planning */ turning?: Pick<Ship, 'turningDataSets'>; fuel?: Ship['fuelData']; /** the last request answered, for a follow-up such as "in cables" */ last?: string }
 
 export type Reply =
   /** `wait`: the answer asks for something missing, so the next short reply is joined to this request; `unknown`: nothing was understood;
@@ -259,6 +259,15 @@ export function interpret(text: string, ctx: Context): Reply {
  * ("12 knots"), it is joined to that request, the new words first so they win over older ones. Returns the reply and the text to remember next.
  */
 const BARE = /^-?\d+(?:\.\d+)?\s*(?:°|degrees?|knots?|kn|kts|nm|nautical miles?|miles?|cables?|east(?:erly)?|west(?:erly)?|e|w)?$/i;
+const UNIT_WORDS = 'nautical miles?|nm|miles?|cables?|metres?|meters?|yards?|km|kilomet(?:re|er)s?|feet|fathoms?';
+/** "In cables?", "can the answer be given in metres": the last request again, its answer in that unit; null when the words are not that. */
+export function unitFollowUp(text: string, last: string | null): string | null {
+  const t = normaliseSpoken(text).replace(/[?.!,]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!last || /\d/.test(t) || t.split(' ').length > 12) return null;
+  const m = new RegExp(String.raw`\b(?:in|into|to|as)\s+(${UNIT_WORDS})\b`).exec(t);
+  return m ? `${last.replace(new RegExp(String.raw`\s+(?:in|into|as)\s+(?:${UNIT_WORDS})\s*$`), '')} in ${m[1]}` : null;
+}
+
 export function interpretWithPending(text: string, pending: string | null, ctx: Context): { reply: Reply; pending: string | null } {
   // a bare answer to the one thing asked for ("270", "8 knots", "2 west") is labelled with it
   if (pending && BARE.test(normaliseSpoken(text).trim())) { const asked = interpret(pending, ctx).next; if (asked) text = `${asked} ${normaliseSpoken(text).trim()}`; }

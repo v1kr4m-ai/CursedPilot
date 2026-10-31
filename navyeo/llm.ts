@@ -24,7 +24,7 @@ export interface BrainSnapshot { state: BrainState; sizeMb: number; error: strin
 
 const IDLE_MS = 10 * 60_000;   // the model stays in memory (about 600 MB) for ten idle minutes: reading its fixed instructions again takes a while
 const ANSWER_MS = 15_000;      // an answer once the fixed instructions are in memory: past this the keyword answer is better than waiting
-const FIRST_MS = 60_000;       // the first request reads the instructions (about 500 words of the model's) as well
+const FIRST_MS = 20_000;       // the first request reads the instructions (about 550 of the model's words) as well; that read goes on past this
 const ON_KEY = 'navyeo:llm';
 const savedOn = () => { try { return localStorage.getItem(ON_KEY) !== 'off'; } catch { return true; } };
 let snap: BrainSnapshot = { state: Capacitor.isNativePlatform() ? 'none' : 'browser', sizeMb: 0, error: '', progress: -1, on: savedOn() };
@@ -78,9 +78,14 @@ export const brain = {
       if (idleTimer) clearTimeout(idleTimer);
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
+        const call = Native.complete({ system, user, grammar, maxTokens: 80, temperature: 0 });
+        // the first read of the instructions is never stopped: once done it is kept (and saved on the phone), so every later answer is quick.
+        // Past the time limit the keyword answer is given meanwhile.
+        const wasPrimed = primed;
+        if (!wasPrimed) void call.then(() => { primed = true; }, () => undefined);
         const r = await Promise.race([
-          Native.complete({ system, user, grammar, maxTokens: 80, temperature: 0 }),
-          new Promise<never>((_, rej) => { timer = setTimeout(() => { void Native.stop(); rej(new Error('The NavYeo model took too long.')); }, primed ? ANSWER_MS : FIRST_MS); }),
+          call,
+          new Promise<never>((_, rej) => { timer = setTimeout(() => { if (wasPrimed) void Native.stop(); rej(new Error(wasPrimed ? 'The NavYeo model took too long.' : 'The NavYeo model is still reading its instructions (once only); ask again in a moment.')); }, wasPrimed ? ANSWER_MS : FIRST_MS); }),
         ]);
         primed = true;
         return r.text;
@@ -103,7 +108,7 @@ export const brain = {
   async warm(): Promise<void> {
     if (!brain.usable() || warmed) return;
     warmed = true;
-    try { await brain.complete(SYSTEM_PROMPT, userPrompt('ok'), GRAMMAR); } catch { warmed = false; }
+    try { await brain.complete(SYSTEM_PROMPT, userPrompt('ok'), GRAMMAR); } catch { if (snap.state !== 'ready') warmed = false; }   // past the time limit the read goes on
   },
 
   /** Opens the phone's file picker and copies the chosen GGUF into the app. */

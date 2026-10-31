@@ -137,4 +137,11 @@ assert.match(userPrompt('target course 270', 'cpa own course 090', undefined), /
   for (const q of ['compass', 'open cpa', 'regain track', 'tides']) { const r = await smartInterpret(q, null, ctx(), fake('SAY: no', seen)); assert.equal(r.via, 'rules', q); }
   assert.equal(seen.calls, 0);
 }
+// "in cables?" after an answer: the last request again, in that unit, by the rules (the model is not waited for)
+{
+  const seen = { calls: 0 };
+  const r = await smartInterpret('can the answer be given in cables', null, ctx({ last: '1 degree at 1 nm' }), fake('SAY: no', seen));
+  assert.equal(seen.calls, 0); assert.match((r.reply as { say: string }).say, /0\.17 cables across/);
+  assert.match(userPrompt('and in metres', null, undefined, '1 degree at 1 nm'), /^Previous request: 1 degree at 1 nm\nUser: and in metres/);
+}
 console.log('llm: all checks passed');

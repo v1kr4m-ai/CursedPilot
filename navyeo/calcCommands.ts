@@ -303,13 +303,16 @@ function radianAnswer(t: string, ctx: CalcCtx): CalcReply | null {
   const basis = 'radian rule: L = R × angle / 60';
   const nice = (v: number) => (v >= 100 ? String(Math.round(v)) : v >= 10 ? v.toFixed(1) : v.toFixed(2));
   // an answer for L is given in yards when the range is in miles or cables, in the range's own unit otherwise; an answer for R in miles and cables
-  const lUnit: LengthUnit = L ? uL : (uR === 'nm' || uR === 'cables' ? 'yards' : uR === 'km' ? 'metres' : uR);
+  // "... in cables": the answer in the unit asked for
+  const want = /\b(?:in|into|as)\s+(nautical miles?|nm|miles?|cables?|metres?|meters?|yards?|km|kilomet(?:re|er)s?|feet|fathoms?)\s*$/.exec(t);
+  const asked = want ? toUnit(want[1]) : null;
+  const lUnit: LengthUnit = asked ?? (L ? uL : (uR === 'nm' || uR === 'cables' ? 'yards' : uR === 'km' ? 'metres' : uR));
   const values: Record<string, string> = { ...(L ? { dist: String(L.value) } : {}), ...(R ? { range: String(R.value) } : {}), ...(angle !== null ? { ang: String(angle) } : {}) };
   const memory = { 'pref:radian:dist': lUnit, 'pref:radian:range': R ? uR : uR === 'yards' || uR === 'metres' ? 'nm' : uR };
   const angleText = `${r2(angle ?? 0).replace(/\.?0+$/, '')}°`;
   const say = sol.solved === 'angle' ? `Angle ${r2(sol.angle)}° (${dm(sol.angle)}): ${L!.value} ${LENGTH_UNITS[uL].short} across at a range of ${R!.value} ${LENGTH_UNITS[uR].short} (${basis}).`
     : sol.solved === 'length' ? `${angleText} at ${R!.value} ${LENGTH_UNITS[uR].short} is ${nice(conv(sol.length, 'metres', lUnit))} ${LENGTH_UNITS[lUnit].short} across${lUnit === 'yards' ? ` (${nice(conv(sol.length, 'metres', 'metres'))} m)` : ''} (${basis}).`
-      : `${L!.value} ${LENGTH_UNITS[uL].short} across subtends ${angleText} at a range of ${nice(conv(sol.range, 'metres', 'nm'))} nm (${nice(conv(sol.range, 'metres', 'cables'))} cables) (${basis}).`;
+      : `${L!.value} ${LENGTH_UNITS[uL].short} across subtends ${angleText} at a range of ${asked && asked !== 'nm' && asked !== 'cables' ? `${nice(conv(sol.range, 'metres', asked))} ${LENGTH_UNITS[asked].short} (${nice(conv(sol.range, 'metres', 'nm'))} nm, ${nice(conv(sol.range, 'metres', 'cables'))} cables)` : `${nice(conv(sol.range, 'metres', 'nm'))} nm (${nice(conv(sol.range, 'metres', 'cables'))} cables)`} (${basis}).`;
   return open('Radian Rule', 'radian', values, say, memory);
 }
 

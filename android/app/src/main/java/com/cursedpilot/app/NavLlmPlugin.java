@@ -40,6 +40,9 @@ public class NavLlmPlugin extends Plugin {
         return new File(dir, FILE);
     }
 
+    /** the model's read instructions, saved after the first answer; made again whenever the model or the instructions change */
+    private File stateFile() { return new File(modelFile().getPath() + ".state"); }
+
     private static long mb(long bytes) { return Math.round(bytes / 1048576.0); }
 
     @PluginMethod
@@ -99,6 +102,8 @@ public class NavLlmPlugin extends Plugin {
                 File dest = modelFile();
                 //noinspection ResultOfMethodCallIgnored
                 dest.delete();
+                //noinspection ResultOfMethodCallIgnored
+                stateFile().delete();
                 if (!part.renameTo(dest)) throw new RuntimeException("The model could not be saved.");
                 JSObject r = new JSObject();
                 r.put("sizeMb", mb(dest.length()));
@@ -119,7 +124,7 @@ public class NavLlmPlugin extends Plugin {
                     File f = modelFile();
                     if (!f.exists()) throw new RuntimeException("No model is installed yet.");
                     int threads = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
-                    handle = NavLlmNative.load(f.getPath(), threads, getContext().getApplicationInfo().nativeLibraryDir);
+                    handle = NavLlmNative.load(f.getPath(), threads, getContext().getApplicationInfo().nativeLibraryDir, stateFile().getPath());
                 }
                 JSObject r = new JSObject();
                 r.put("loaded", true);
@@ -167,6 +172,8 @@ public class NavLlmPlugin extends Plugin {
             unloadNow();
             //noinspection ResultOfMethodCallIgnored
             modelFile().delete();
+            //noinspection ResultOfMethodCallIgnored
+            stateFile().delete();
             call.resolve();
         });
     }

@@ -3,6 +3,7 @@
 // same answer. The fixed instructions at the front of every prompt are kept in the KV cache between calls: only the new words are read each time.
 #include <jni.h>
 #include <string>
+#include <cstdio>
 #include <vector>
 #include <mutex>
 #include <atomic>
@@ -25,6 +26,7 @@ struct Inst {
     std::atomic<bool> stop{false};
     std::mutex mu;
     int n_batch = 512;
+    std::string state_path;            // the read instructions saved to a file, so a later load need not read them again
 };
 
 static std::once_flag g_init;
@@ -62,7 +64,7 @@ static std::string format_chat(const Inst* inst, const std::string& system, cons
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_cursedpilot_app_NavLlmNative_load(JNIEnv* env, jclass, jstring path, jint threads, jstring lib_dir) {
+Java_com_cursedpilot_app_NavLlmNative_load(JNIEnv* env, jclass, jstring path, jint threads, jstring lib_dir, jstring state_path) {
     ensure_backend(to_std(env, lib_dir));
     const std::string p = to_std(env, path);
     auto* inst = new Inst();
@@ -80,6 +82,14 @@ Java_com_cursedpilot_app_NavLlmNative_load(JNIEnv* env, jclass, jstring path, ji
         cp.n_threads_batch = cp.n_threads;
         inst->ctx = llama_init_from_model(inst->model, cp);
         if (!inst->ctx) throw std::runtime_error("not enough memory for the model");
+        inst->state_path = to_std(env, state_path);
+        if (!inst->state_path.empty()) {   // the instructions as read last time: the first answer is then as quick as the others
+            std::vector<llama_token> saved(llama_n_ctx(inst->ctx));
+            size_t count = 0;
+            const long t0 = now_ms();
+            if (llama_state_load_file(inst->ctx, inst->state_path.c_str(), saved.data(), saved.size(), &count)) { saved.resize(count); inst->cached = saved; LOGI("instructions restored: %zu tokens in %ld ms", count, now_ms() - t0); }
+            else { llama_memory_clear(llama_get_memory(inst->ctx), true); remove(inst->state_path.c_str()); }
+        }
         LOGI("model ready: %.0f MB, n_ctx %u, threads %d", llama_model_size(inst->model) / 1048576.0, llama_n_ctx(inst->ctx), cp.n_threads);
     } catch (const std::exception& e) { error = e.what(); }
     if (!error.empty()) {
@@ -119,6 +129,8 @@ Java_com_cursedpilot_app_NavLlmNative_complete(JNIEnv* env, jclass, jlong handle
         if (common >= tokens.size()) common = tokens.size() - 1;   // at least one token is read, to have something to sample from
         if (!llama_memory_seq_rm(mem, 0, (llama_pos) common, -1)) { llama_memory_clear(mem, true); common = 0; }
         inst->cached.resize(common);
+        const size_t reused = common;
+        const long tr = now_ms();
         for (size_t pos = common; pos < tokens.size();) {
             if (inst->stop) throw std::runtime_error("stopped");   // a long prompt can be interrupted between its chunks
             const int32_t chunk = (int32_t) std::min<size_t>((size_t) inst->n_batch, tokens.size() - pos);
@@ -127,6 +139,11 @@ Java_com_cursedpilot_app_NavLlmNative_complete(JNIEnv* env, jclass, jlong handle
             for (int32_t i = 0; i < chunk; i++) inst->cached.push_back(tokens[pos + i]);
             pos += chunk;
         }
+
+        LOGI("read %zu new tokens in %ld ms (%zu kept)", tokens.size() - reused, now_ms() - tr, reused);
+        // a long new read means the instructions were read afresh: keep them for the next load
+        if (tokens.size() - reused > 200 && !inst->state_path.empty())
+            if (!llama_state_save_file(inst->ctx, inst->state_path.c_str(), inst->cached.data(), inst->cached.size())) remove(inst->state_path.c_str());
 
         llama_sampler_chain_params sp = llama_sampler_chain_default_params();
         smpl = llama_sampler_chain_init(sp);

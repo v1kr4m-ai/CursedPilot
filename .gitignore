@@ -27,3 +27,6 @@ tools/private/*
 
 # NavYeo sentence model: fetched by scripts/fetchModels.mjs before each build
 public/models/
+
+# NavYeo fine-tuning dataset: kept local until it is ready
+navyeo/dataset/

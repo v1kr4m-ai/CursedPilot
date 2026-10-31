@@ -1,7 +1,7 @@
 // NavYeo's answer to one thing said or typed: the keyword rules first (instant, and they cover most requests); only when they do not understand, the small
 // language model is asked to turn it into a request the rules do understand, or to give a short answer. The numbers are always worked out by the app's
 // own calculators, never by the model. Pure apart from the `complete` function given; `node navyeo/llm.check.ts`.
-import { interpretWithPending, normaliseSpoken } from './commands.ts';
+import { interpretWithPending, normaliseSpoken, unitFollowUp } from './commands.ts';
 import type { Context, Reply } from './commands.ts';
 import { GRAMMAR, SAY_GRAMMAR, SYSTEM_PROMPT, isQuestion, parseModelReply, userPrompt } from './llmPrompt.ts';
 import type { Meaning } from './meaning.ts';
@@ -30,6 +30,8 @@ export function madeUpNumbers(request: string, heard: string, pending: string | 
 }
 
 export async function smartInterpret(text: string, pending: string | null, ctx: Context, complete?: Complete, onModel?: () => void, meaning?: Meaning): Promise<Smart> {
+  const again = unitFollowUp(text, ctx.last ?? null);   // "in cables?": the last request, answered in that unit
+  if (again && !pending) { const r = interpretWithPending(again, null, ctx); if (!lostReply(r.reply)) return { ...r, via: 'rules', understoodAs: again }; }
   const first = interpretWithPending(text, pending, ctx);
   const heard = normaliseSpoken(text);
   const question = isQuestion(heard);
@@ -60,7 +62,7 @@ export async function smartInterpret(text: string, pending: string | null, ctx: 
 
   let raw: string;
   onModel?.();   // the model is about to be asked: the screen can say it is working
-  try { raw = await complete(SYSTEM_PROMPT, userPrompt(heard, pending, ctx.shipName), question ? SAY_GRAMMAR : GRAMMAR); }
+  try { raw = await complete(SYSTEM_PROMPT, userPrompt(heard, pending, ctx.shipName, ctx.last), question ? SAY_GRAMMAR : GRAMMAR); }
   catch (e) { return { ...first, via: 'rules', modelNote: String((e as Error)?.message ?? e) }; }
   const m = parseModelReply(raw);
   if (!m) return { ...first, via: 'rules', modelNote: 'The NavYeo model gave no usable answer.' };

@@ -9,7 +9,7 @@ final class NavLlmNative {
     private NavLlmNative() {}
 
     /** Loads a GGUF model; `libDir` is the app's native library folder, holding the CPU code for each processor family. Throws RuntimeException with a plain message when it cannot. */
-    static native long load(String path, int threads, String libDir);
+    static native long load(String path, int threads, String libDir, String statePath);
 
     /** One reply: `system` and `user` in the model's chat format, output held to `grammar` (GBNF, root rule "root") when it is not empty. UTF-8 bytes. */
     static native byte[] complete(long handle, String system, String user, String grammar, int maxTokens, float temperature);
