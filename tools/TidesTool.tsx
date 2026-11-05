@@ -6,6 +6,7 @@ import { DateField } from './SunTools';
 import { OwnFormula } from './OwnFormula';
 import { julianDay } from './sunEphemeris';
 import { parseClock, parseIsoDate, parseZone } from './sunSights';
+import { parseCoord } from './navMath';
 import { Method, Tide, heightAt, moonPhase, rateAt, timeAt } from './tides';
 import { DayTide, Port, SEED_PORTS, around, highWaters, nearestPort, nextTides, secondaryTides, timeline } from './tidePorts';
 
@@ -152,10 +153,11 @@ const PortEditor: React.FC<{ port: Port; stds: string[]; isUser: boolean; onSave
           <Grid>{input('dtHw', 'High water time', 'min')}{input('dtLw', 'Low water time', 'min')}{input('dhHw', 'High water height', 'm')}{input('dhLw', 'Low water height', 'm')}</Grid>
         </>
       )}
-      <Grid>{input('lat', 'Latitude, +N', '°')}{input('lon', 'Longitude, +E', '°')}</Grid>
-      <p className="text-[10px] text-slate-400 font-medium">Position is optional and only used to pick the nearest port from your GPS (decimal degrees, south and west negative).</p>
+      <Field label="Latitude" kind="lat" wide value={v.lat} onChange={s => setV({ ...v, lat: s })} />
+      <Field label="Longitude" kind="lon" wide value={v.lon} onChange={s => setV({ ...v, lon: s })} />
+      <p className="text-[10px] text-slate-400 font-medium">Position is optional and only used to pick the nearest port from your GPS.</p>
       <div className="flex gap-2">
-        <button type="button" onClick={() => onSave({ name: port.name, ...(secondary ? { ref, dtHw: num(v.dtHw), dtLw: num(v.dtLw), dhHw: num(v.dhHw), dhLw: num(v.dhLw) } : {}), lat: num(v.lat), lon: num(v.lon) })}
+        <button type="button" onClick={() => onSave({ name: port.name, ...(secondary ? { ref, dtHw: num(v.dtHw), dtLw: num(v.dtLw), dhHw: num(v.dhHw), dhLw: num(v.dhLw) } : {}), lat: parseCoord(v.lat, 'lat') ?? undefined, lon: parseCoord(v.lon, 'lon') ?? undefined })}
           className="flex-1 p-2.5 rounded-xl bg-blue-600 text-white text-xs font-bold active:scale-95">Save this port</button>
         {isUser && <button type="button" onClick={onRemove} className="p-2.5 rounded-xl border border-slate-200 text-xs font-bold text-red-500">Remove</button>}
       </div>

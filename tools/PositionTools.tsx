@@ -6,12 +6,11 @@ import { decimalDegrees, degMinSec, degMinutes, greatCircle, greatCircleDestinat
 // Two tabs of the Bearings & Positions tool: a latitude or longitude written three ways, and the distance and bearing between two positions
 // (great circle and rhumb line), or the position reached from one. The sums are in positions.ts.
 
-const COORD_HINT = 'e.g. 12 30.5 N, 12.508, 12°30\'30"N';
 const nm = (v: number) => `${v < 10 ? v.toFixed(2) : v.toFixed(1)} nm`;
 const withKm = (v: number) => `${nm(v)} (${(v * 1.852).toFixed(v * 1.852 < 100 ? 1 : 0)} km)`;
 const typedCoord = (s: string, kind: 'lat' | 'lon') => (s.trim() === '' ? null : parseCoord(s, kind));
 const bad = (s: string, kind: 'lat' | 'lon') => s.trim() !== '' && parseCoord(s, kind) === null;
-const BAD_NOTE = 'A latitude is up to 90° and a longitude up to 180°. Write degrees, minutes and seconds with spaces or symbols, and N, S, E or W (or a minus sign).';
+const BAD_NOTE = 'A latitude is up to 90° and a longitude up to 180°, with minutes and seconds under 60.';
 
 // ---- Latitude and longitude, three ways --------------------------------------------------------------------------
 export const LatLongTool: React.FC = () => {
@@ -20,9 +19,9 @@ export const LatLongTool: React.FC = () => {
   const rows = (v: number, kind: 'lat' | 'lon'): [string, string][] => [['Degrees', decimalDegrees(v, kind)], ['Degrees, minutes', degMinutes(v, kind)], ['Degrees, minutes, seconds', degMinSec(v, kind)]];
   return (
     <div className="space-y-2">
-      <Panel title="Latitude and longitude" note="Type a position any way you like; it is shown as decimal degrees, degrees and minutes, and degrees, minutes and seconds. Either box can be left empty.">
-        <Field label="Latitude" text hint={COORD_HINT} {...f.bind('lat')} invalid={bad(f.v.lat, 'lat')} />
-        <Field label="Longitude" text hint={COORD_HINT} {...f.bind('lon')} invalid={bad(f.v.lon, 'lon')} />
+      <Panel title="Latitude and longitude" note="Pick how you write it above the boxes (D.d°, D M.m′ or D M S″) and N/S, E/W beside them; the position is shown all three ways. Either box can be left empty.">
+        <Field label="Latitude" kind="lat" wide {...f.bind('lat')} invalid={bad(f.v.lat, 'lat')} />
+        <Field label="Longitude" kind="lon" wide {...f.bind('lon')} invalid={bad(f.v.lon, 'lon')} />
         {(bad(f.v.lat, 'lat') || bad(f.v.lon, 'lon')) && <Warn>{BAD_NOTE}</Warn>}
         {lat !== null && <Result rows={rows(lat, 'lat').map(([k, v]) => [`Lat · ${k}`, v] as [string, string])} />}
         {lon !== null && <Result rows={rows(lon, 'lon').map(([k, v]) => [`Long · ${k}`, v] as [string, string])} />}
@@ -54,10 +53,10 @@ const Between: React.FC = () => {
   return (
     <>
       <Panel title="From" note="Positions as on the chart; hemisphere letters or a minus sign.">
-        <Grid><Field label="Latitude" text hint={COORD_HINT} {...f.bind('alat')} invalid={bad(f.v.alat, 'lat')} /><Field label="Longitude" text hint={COORD_HINT} {...f.bind('alon')} invalid={bad(f.v.alon, 'lon')} /></Grid>
+        <Field label="Latitude" kind="lat" wide {...f.bind('alat')} invalid={bad(f.v.alat, 'lat')} /><Field label="Longitude" kind="lon" wide {...f.bind('alon')} invalid={bad(f.v.alon, 'lon')} />
       </Panel>
       <Panel title="To">
-        <Grid><Field label="Latitude" text hint={COORD_HINT} {...f.bind('blat')} invalid={bad(f.v.blat, 'lat')} /><Field label="Longitude" text hint={COORD_HINT} {...f.bind('blon')} invalid={bad(f.v.blon, 'lon')} /></Grid>
+        <Field label="Latitude" kind="lat" wide {...f.bind('blat')} invalid={bad(f.v.blat, 'lat')} /><Field label="Longitude" kind="lon" wide {...f.bind('blon')} invalid={bad(f.v.blon, 'lon')} />
         <Field label="Speed (optional, for the time)" unit="kn" {...f.bind('speed')} />
         {anyBad && <Warn>{BAD_NOTE}</Warn>}
       </Panel>
@@ -93,7 +92,7 @@ const From: React.FC = () => {
   return (
     <>
       <Panel title="Start" note="The position reached by steering a course for a distance.">
-        <Grid><Field label="Latitude" text hint={COORD_HINT} {...f.bind('lat')} invalid={bad(f.v.lat, 'lat')} /><Field label="Longitude" text hint={COORD_HINT} {...f.bind('lon')} invalid={bad(f.v.lon, 'lon')} /></Grid>
+        <Field label="Latitude" kind="lat" wide {...f.bind('lat')} invalid={bad(f.v.lat, 'lat')} /><Field label="Longitude" kind="lon" wide {...f.bind('lon')} invalid={bad(f.v.lon, 'lon')} />
         <Grid><Field label="Course" unit="°T" sensor="course" {...f.bind('crs')} /><Field label="Distance" unit="nm" {...f.bind('dist')} /></Grid>
         <Field label="Speed (optional, for the time)" unit="kn" {...f.bind('speed')} />
         <Seg value={method} onChange={v => setMethod(v as 'rhumb' | 'gc')} options={[['rhumb', 'Rhumb line (constant course)'], ['gc', 'Great circle (initial course)']]} />

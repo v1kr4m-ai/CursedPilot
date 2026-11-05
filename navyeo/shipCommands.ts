@@ -29,6 +29,7 @@ const strip = (t: string, re: RegExp) => t.replace(re, ' ');
 
 export function anchorCommand(t: string, ctx: ShipCtx): OpenReply | null {
   if (!/\b(?:anchor(?:ing|age)?|shackles?|swinging (?:circle|radius)|cable to veer|msr)\b/.test(t)) return null;
+  if (/\b(?:lights?|day ?shapes?|ball)\b/.test(t)) return null;   // "anchor lights" is a Rules & Buoyage question
   const sp = ctx.ship ?? {};
   const dm = new RegExp(`(?:depth|water|in)\\s*(?:of|is|=)?\\s*${NUM}\\s*(metres?|meters?|m|fathoms?|fm|feet|ft)?\\b`).exec(t) ?? new RegExp(`${NUM}\\s*(metres?|meters?|m|fathoms?|fm|feet|ft)\\b`).exec(t);
   let depth: number | null = null, depthUnit: 'metres' | 'fathoms' = 'metres';

@@ -60,7 +60,11 @@ assert.equal(open('course to steer').tool, 'Course to Steer');
 // spoken digits
 assert.equal(c.normaliseSpoken('Reciprocal of zero seven five'), 'reciprocal of 075'); assert.equal(c.normaliseSpoken('speed twelve point five knots'), 'speed 12.5 knots');   // spelt-out numbers are read as numbers tens are left alone
 assert.equal(c.normaliseSpoken('speed 12 point 5 knots'), 'speed 12.5 knots'); assert.equal(c.normaliseSpoken('bearing zero four five range six'), 'bearing 045 range 6');
-assert.equal(c.normaliseSpoken('range one cable'), 'range 1 cable'); assert.equal(c.normaliseSpoken('Wheel over'), 'wheel over');
+assert.equal(c.normaliseSpoken('range one cable'), 'range 1 cable');
+assert.equal(c.normaliseSpoken('a hundred yard ship at two miles'), '100 yard ship at 2 miles'); assert.equal(c.normaliseSpoken('oh four five'), '045');
+assert.equal(c.normaliseSpoken('nought nine zero'), '090'); assert.equal(c.normaliseSpoken('oh I see'), 'oh i see');
+assert.equal(c.normaliseSpoken('one and a half knots'), '1.5 knots'); assert.equal(c.normaliseSpoken('half a mile'), '0.5 mile');
+assert.equal(c.normaliseSpoken('two and a half miles'), '2.5 miles'); assert.equal(c.normaliseSpoken('three quarters of a mile'), '0.75 mile'); assert.equal(c.normaliseSpoken('Wheel over'), 'wheel over');
 assert.equal(say('reciprocal of two seven zero'), 'Reciprocal of 270 is 090.');
 r = open('cpa own course zero nine zero own speed one two bearing zero four five range six nm'); assert.deepEqual(r.form!.values, { oc: '90', os: '12', rng: '6', brg: '45' });
 

@@ -6,8 +6,11 @@
 //   surge (yd) = speed advantage (kn) x the ship's surge rate (yd per kn), turned into metres
 //   x = surge - (the Guide's matching point to her stern) - (own stem to own matching point): the gap from the Guide's stern to own stem when
 //       she starts slowing (negative: her bow overlaps the Guide's quarter)
-//   theta = atan((x + own stem to bridge) / distance between the ships): where the Guide's stern bears from own bridge, forward of the beam
-//   and from own radar (when its distance from the stem is known): how far ahead of the radar her stern is, along the ship, and its angle from the beam
+//   across = distance between the ships' sides (the rigs and RAS points are on the inner edges) + half of each ship's breadth, since own bridge
+//            and radar and the Guide's stern are on the centre lines
+//   theta = atan((x + own stem to bridge) / across): where the Guide's stern bears from own bridge, forward of the beam; it is used as the
+//           bearing from right ahead (90 - theta, toward her side), and as a true bearing from the Guide's course, which both ships steer
+//   and from own radar (when its distance from the stem is known): how far ahead of the radar her stern is, along the ship, and its bearing
 // Positions on each ship are stem-to-point distances (metres). Pure; `node tools/rasApproach.check.ts`.
 
 import type { Ship } from '../types.ts';
@@ -35,7 +38,7 @@ export interface Input {
   guide: Dims; approach: Dims;
   guideSpeed: number; approachSpeed: number;     // knots
   surgeYdPerKnot: number;                        // the approach ship's surge rate: yards gained per knot of speed advantage
-  separationM: number;                           // distance between the ships alongside, metres (the side of the triangle for theta)
+  separationM: number;                           // distance between the ships' sides alongside, metres (rig to rig)
   standbyYd: number;                             // the stand-by station: yards astern of the final station
 }
 export interface Plan {
@@ -46,11 +49,15 @@ export interface Plan {
   pointToStern: number;
   /** the Guide's stern to own stem when she starts slowing, metres; negative: overlapping */
   xM: number;
+  /** own bridge (centre line) to the Guide's centre line, metres: the distance between the sides and half of each breadth */
+  acrossM: number;
   /** where the Guide's stern bears from own bridge then, degrees forward of the beam (negative: abaft it) */
   thetaDeg: number;
+  /** the same from right ahead, toward the Guide's side: 90 - theta */
+  aheadDeg: number;
   /** from own radar, when its position is known: her stern's distance ahead of the radar along the ship (m; negative: abaft it), not the slant
    *  range across to her, and its angle forward of the beam */
-  radar?: { rangeM: number; thetaDeg: number };
+  radar?: { rangeM: number; thetaDeg: number; aheadDeg: number };
   stemOffsetM: number;           // at the final station the approach ship's stem is this far ahead of the Guide's stem (negative: astern)
   runYd: number;                 // from the stand-by station to the slowing point
   runMinutes: number;            // at the speed advantage
@@ -67,15 +74,20 @@ export function plan(i: Input): Plan | null {
   const surgeYd = advantage * i.surgeYdPerKnot, surgeM = surgeYd / YD_PER_M;
   const pointToStern = lg - pg;
   const xM = surgeM - pointToStern - pa;
-  const thetaDeg = (Math.atan2(xM + ba, i.separationM) * 180) / Math.PI;
-  const ra = i.approach.radar, radar = ra === undefined ? undefined : { rangeM: xM + ra, thetaDeg: (Math.atan2(xM + ra, i.separationM) * 180) / Math.PI };
+  const acrossM = i.separationM + (i.approach.breadth ?? 0) / 2 + (i.guide.breadth ?? 0) / 2;
+  const thetaDeg = (Math.atan2(xM + ba, acrossM) * 180) / Math.PI;
+  const ra = i.approach.radar, rt = ra === undefined ? 0 : (Math.atan2(xM + ra, acrossM) * 180) / Math.PI;
+  const radar = ra === undefined ? undefined : { rangeM: xM + ra, thetaDeg: rt, aheadDeg: 90 - rt };
   const runYd = i.standbyYd - surgeYd;
   return {
-    advantage, surgeYd, surgeM, pointToStern, xM, thetaDeg, ...(radar ? { radar } : {}), stemOffsetM: pa - pg,
+    advantage, surgeYd, surgeM, pointToStern, xM, acrossM, thetaDeg, aheadDeg: 90 - thetaDeg, ...(radar ? { radar } : {}), stemOffsetM: pa - pg,
     runYd: Math.max(0, runYd), runMinutes: Math.max(0, runYd) / (advantage * 2000 / 60), atOnce: runYd <= 0, missing,
   };
 }
-const blank = (): Plan => ({ advantage: 0, surgeYd: 0, surgeM: 0, pointToStern: 0, xM: 0, thetaDeg: 0, stemOffsetM: 0, runYd: 0, runMinutes: 0, atOnce: false, missing: [] });
+const blank = (): Plan => ({ advantage: 0, surgeYd: 0, surgeM: 0, pointToStern: 0, xM: 0, acrossM: 0, thetaDeg: 0, aheadDeg: 90, stemOffsetM: 0, runYd: 0, runMinutes: 0, atOnce: false, missing: [] });
+
+/** A bearing from right ahead (toward the Guide, who is on `side`) as a true bearing, both ships steering the Guide's course. */
+export const trueFromAhead = (aheadDeg: number, guideCourse: number, side: 'Port' | 'Starboard') => ((guideCourse + (side === 'Starboard' ? aheadDeg : -aheadDeg)) % 360 + 360) % 360;
 
 /** The same at other speed advantages (knots), as worked on the bridge for several approach speeds. */
 export const sweep = (i: Input, advantages: number[]) => advantages.map(a => ({ advantage: a, plan: plan({ ...i, approachSpeed: i.guideSpeed + a }) }));

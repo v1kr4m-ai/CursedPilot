@@ -193,6 +193,15 @@ Java_com_cursedpilot_app_NavLlmNative_stop(JNIEnv*, jclass, jlong handle) {
 }
 
 extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_cursedpilot_app_NavLlmNative_name(JNIEnv* env, jclass, jlong handle) {
+    auto* inst = reinterpret_cast<Inst*>(handle);
+    char buf[256] = {0};
+    if (!inst || !inst->model || llama_model_meta_val_str(inst->model, "general.name", buf, sizeof(buf)) < 0) buf[0] = 0;
+    return env->NewStringUTF(buf);
+}
+
+extern "C"
 JNIEXPORT void JNICALL
 Java_com_cursedpilot_app_NavLlmNative_release(JNIEnv*, jclass, jlong handle) {
     auto* inst = reinterpret_cast<Inst*>(handle);

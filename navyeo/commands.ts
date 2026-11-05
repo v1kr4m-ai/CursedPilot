@@ -220,12 +220,16 @@ function numberWords(words: string[]): string[] {
 
 /** What a speech recogniser may hand back: "zero four five" becomes "045" and "12 point 5" "12.5". Typed text passes through. */
 export function normaliseSpoken(text: string): string {
-  const words = numberWords(text.toLowerCase().split(/\s+/).filter(Boolean));
+  // "a hundred yards" is one hundred
+  const said = text.toLowerCase().replace(/\ba (hundred|thousand)\b/g, 'one $1');
+  const words = numberWords(said.split(/\s+/).filter(Boolean));
   const out: string[] = [];
   let joining = false;   // the last token is a number still being spelt out
   for (let i = 0; i < words.length; i++) {
     const w = words[i], next = words[i + 1] ?? '';
-    const digit = DIGIT_WORDS[w] ?? (joining && /^\d$/.test(w) ? w : undefined);
+    // "oh" and "nought" are a zero when another digit is spelt out next to them ("oh four five"); "oh, I see" is left alone
+    const zero = /^(?:oh|o|nought|naught)$/.test(w) && (next in DIGIT_WORDS || /^\d+$/.test(next) || joining) ? '0' : undefined;
+    const digit = DIGIT_WORDS[w] ?? zero ?? (joining && /^\d$/.test(w) ? w : undefined);
     if (w === 'point' && /^\d+$/.test(out[out.length - 1] ?? '') && (next in DIGIT_WORDS || /^\d+$/.test(next))) { out[out.length - 1] += '.'; joining = true; continue; }
     if (digit !== undefined) {
       if (joining) out[out.length - 1] += digit; else out.push(digit);
@@ -234,7 +238,14 @@ export function normaliseSpoken(text: string): string {
     }
     out.push(w); joining = false;
   }
-  return out.join(' ');
+  // halves and quarters: "2 and a half knots", "half a mile", "3 quarters of a mile"
+  return out.join(' ')
+    .replace(/\b(\d+) and a half\b/g, (_, n) => `${n}.5`)
+    .replace(/\b(\d+) and a quarter\b/g, (_, n) => `${n}.25`)
+    .replace(/\b(\d+) and 3 quarters\b/g, (_, n) => `${n}.75`)
+    .replace(/\b(?:a )?half an? (?=[a-z])/g, '0.5 ')
+    .replace(/\b3 quarters of an? (?=[a-z])/g, '0.75 ')
+    .replace(/\ba quarter of an? (?=[a-z])/g, '0.25 ');
 }
 
 export function interpret(text: string, ctx: Context): Reply {

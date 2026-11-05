@@ -43,6 +43,23 @@ public class NavLlmPlugin extends Plugin {
     /** the model's read instructions, saved after the first answer; made again whenever the model or the instructions change */
     private File stateFile() { return new File(modelFile().getPath() + ".state"); }
 
+    /** The phone's fast cores (those with the highest top speed), 2 to 4: the model runs on them alone, since a slow core holds the fast ones back
+     *  (e.g. a Dimensity 6400 has 2 fast A76 and 6 slow A55 cores). */
+    private static int fastCores() {
+        int n = Runtime.getRuntime().availableProcessors(), fast = 0;
+        long top = 0;
+        long[] max = new long[n];
+        for (int i = 0; i < n; i++) {
+            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq"))) {
+                max[i] = Long.parseLong(r.readLine().trim());
+            } catch (Exception e) { max[i] = 0; }
+            top = Math.max(top, max[i]);
+        }
+        for (long f : max) if (top > 0 && f >= top * 0.9) fast++;
+        if (fast == 0) fast = n / 2;
+        return Math.max(2, Math.min(4, fast));
+    }
+
     private static long mb(long bytes) { return Math.round(bytes / 1048576.0); }
 
     @PluginMethod
@@ -123,11 +140,12 @@ public class NavLlmPlugin extends Plugin {
                 if (handle == 0) {
                     File f = modelFile();
                     if (!f.exists()) throw new RuntimeException("No model is installed yet.");
-                    int threads = Math.max(2, Math.min(4, Runtime.getRuntime().availableProcessors() / 2));
+                    int threads = fastCores();
                     handle = NavLlmNative.load(f.getPath(), threads, getContext().getApplicationInfo().nativeLibraryDir, stateFile().getPath());
                 }
                 JSObject r = new JSObject();
                 r.put("loaded", true);
+                r.put("name", NavLlmNative.name(handle));
                 call.resolve(r);
             } catch (Throwable e) {
                 call.reject(e.getMessage() != null ? e.getMessage() : "The model could not be loaded.");

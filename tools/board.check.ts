@@ -82,11 +82,11 @@ assert.deepEqual(b.stationScene({ ...base, guideSpeed: null, nextYards: null }, 
 }
 // RAS: own bridge alongside the Guide's mark, on her starboard side with the Guide to your port; the run from stand-by to final
 {
-  const plan = { advantage: 4, surgeYd: 100, surgeM: 91.44, pointToStern: 69, xM: -10, thetaDeg: 30, stemOffsetM: 0, runYd: 400, runMinutes: 400 / (4 * NM / 60), atOnce: false, missing: [] };
+  const plan = { advantage: 4, surgeYd: 100, surgeM: 91.44, pointToStern: 69, xM: -10, acrossM: 50, thetaDeg: 30, aheadDeg: 60, stemOffsetM: 0, runYd: 400, runMinutes: 400 / (4 * NM / 60), atOnce: false, missing: [] };
   const r = b.rasScene({ ...base, guideCourse: 0 }, plan, { bridgeAheadOfMarkM: 0, lateralM: 50, guideTo: 'Port', standbyYd: 500 });
   const fin = r.marks.find(m => m.kind === 'station')!.pos, slow = r.marks.find(m => m.kind === 'slow')!.pos;
   near(fin.x * 1852, 50, 1e-6); near(fin.y, 0, 1e-12); near((fin.y - slow.y) * 1852, 91.44, 1e-6);   // the surge, between slowing and final
   const end = r.play!.at(r.play!.totalHours); near(end.y, 0, 1e-9);
-  assert.match(r.rows[2][1], /forward of your port beam/);
+  assert.match(r.rows[2][1], /^300\.0°T \(Red 60\.0° from right ahead\)/);   // Guide's course 000, her stern 60° on the port bow
 }
 console.log('board: all checks passed');

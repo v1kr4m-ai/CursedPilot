@@ -18,7 +18,7 @@ import ManeuverVisualizer from '../fishtail/components/ManeuverVisualizer';
 import '../fishtail/fishtail.css';
 import { STATIONS, roundTheClock } from './stationChanges';
 import type { Station } from './stationChanges';
-import { EVOLUTIONS, alongsideRigs, dimsOf, plan as rasPlan } from './rasApproach';
+import { EVOLUTIONS, alongsideRigs, dimsOf, plan as rasPlan, trueFromAhead } from './rasApproach';
 import type { Evolution } from './rasApproach';
 import { RasDiagram } from './RasDiagram';
 import { saveSvgAsPng } from '../services/savePicture';
@@ -232,7 +232,8 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
       {rasDiagram && rasP && !rasP.missing.length && (
         <Sheet title={`${evo}: the approach from above`} onClose={() => setRasDiagram(false)}>
           <div ref={rasBox}><RasDiagram pointName={EVOLUTIONS[evo].pointName} side={rasSide} guideName={rasGuide?.name ?? 'Guide'} approachName={ship?.name ?? 'Own ship'}
-            guide={gDims} approach={aDims} pointKey={EVOLUTIONS[evo].point} separationM={e.n('sepm') ?? 42} standbyYd={toYd(e.n('sb'), uSb) ?? 500} plan={rasP} /></div>
+            guide={gDims} approach={aDims} pointKey={EVOLUTIONS[evo].point} separationM={e.n('sepm') ?? 42} standbyYd={toYd(e.n('sb'), uSb) ?? 500} plan={rasP}
+            trueText={common.guideCourse === null ? null : `${trueFromAhead(rasP.aheadDeg, common.guideCourse, rasSide).toFixed(1).padStart(5, '0')}°T`} /></div>
           <button type="button" onClick={() => { const svg = rasBox.current?.querySelector('svg'); if (svg) void saveSvgAsPng(svg, `RAS ${evo} ${rasGuide?.name ?? ''} ${ship?.name ?? ''}`.trim()); }}
             className="w-full p-2.5 rounded-xl bg-white border border-blue-200 text-blue-600 text-xs font-bold">Save the diagram as a picture</button>
         </Sheet>
@@ -297,7 +298,7 @@ export const BattenbergBoard: React.FC<{ ship?: Ship; fleet?: Ship[] }> = ({ shi
               {evo !== 'SKBDL' && rigs.length > 0 && <label className="block space-y-1 min-w-0"><span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rig</span><select value={rig?.name ?? ''} onChange={ev => { setRasRig(ev.target.value); const r = rigs.find(x => x.name === ev.target.value); if (r?.side === 'Port' || r?.side === 'Starboard') setRasSide(r.side === 'Starboard' ? 'Port' : 'Starboard'); }} className="w-full p-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700"><option value="">Ship's data</option>{rigs.map(r => <option key={r.name} value={r.name}>{`${r.name}${r.stemDistance > 0 ? ` · ${r.stemDistance} m` : ' · not set'}`}</option>)}</select></label>}
             </div>
             <Seg value={rasSide} onChange={v => setRasSide(v as 'Port' | 'Starboard')} options={[['Port', 'Guide to my port'], ['Starboard', 'Guide to my stbd']]} />
-            <Grid><Field label="Surge" unit="yd/kn" hint={decelYd === null ? '' : String(Math.round(decelYd))} {...e.bind('spk')} /><Field label="Distance between ships" unit="m" hint="42" {...e.bind('sepm')} /></Grid><LengthField label="Stand-by astern (500 yd if blank)" unit={uSb} onUnit={setUSb} {...e.bind('sb')} />
+            <Grid><Field label="Surge" unit="yd/kn" hint={decelYd === null ? '' : String(Math.round(decelYd))} {...e.bind('spk')} /><Field label="Distance between the ships' sides" unit="m" hint="42" {...e.bind('sepm')} /></Grid><LengthField label="Stand-by astern (500 yd if blank)" unit={uSb} onUnit={setUSb} {...e.bind('sb')} />
             <p className="text-[11px] text-slate-500 font-medium">You approach in {ship?.name ?? 'My Ship'}: the approach speed is the stationing speed and the Guide's speed is hers. Positions come from the ships' particulars (the RAS Approach tool takes typed figures and draws the side view).</p>
           </>}
           {problem === 'fishtail' && <>

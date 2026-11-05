@@ -9,6 +9,7 @@ import { approach, closeFaster, contactFromPlots, courseOf, passAt, stationInTim
 import type { Obs } from './relvel.ts';
 import { roundTheClock } from './stationChanges.ts';
 import type { Station } from './stationChanges.ts';
+import { trueFromAhead } from './rasApproach.ts';
 import type { Plan } from './rasApproach.ts';
 import { radarPicture, solve as bowsSolve } from './stationTurn.ts';
 import type { CalculationResult } from '../fishtail/types.ts';
@@ -267,7 +268,7 @@ export function rasScene(c: Common, p: Plan | null, g: RasGeometry): Scene {
     rows: [
       ['Surge', `${Ly(c, P.surgeYd)} (${P.advantage.toFixed(1)} kn advantage)`],
       ['x, her stern to your stem', P.xM >= 0 ? `${P.xM.toFixed(1)} m clear` : `${(-P.xM).toFixed(1)} m overlap`],
-      ['Slow when her stern bears', `θ ${P.thetaDeg.toFixed(1)}° forward of your ${g.guideTo.toLowerCase()} beam`],
+      ['Slow when her stern bears', `${trueFromAhead(P.aheadDeg, c.guideCourse!, g.guideTo).toFixed(1).padStart(5, '0')}°T (${g.guideTo === 'Port' ? 'Red' : 'Green'} ${P.aheadDeg.toFixed(1)}° from right ahead)`],
       ...(P.radar ? [['From your radar, her stern', `${Ly(c, Math.abs(P.radar.rangeM) / 0.9144)} ${P.radar.rangeM >= 0 ? 'ahead' : 'abaft'}`] as [string, string]] : []),
       ['From the stand-by station', P.atOnce ? 'slow at once' : `run ${Ly(c, P.runYd)}, then slow`],
     ],

@@ -49,4 +49,12 @@ near(r.plan({ ...base, evolution: 'UNREP' })!.pointToStern, 60, 1e-9);
 // missing figures are named (the Guide's length is needed for her point to her stern); no speed advantage gives no plan
 assert.deepEqual(r.plan({ ...base, evolution: 'UNREP', guide: { bridge: 40 } })!.missing, ["the Guide's fuelling point", "the Guide's length"]);
 assert.equal(r.plan({ ...base, evolution: 'RASAP', approachSpeed: 10 }), null);
+// the bearing is taken from right ahead and given as a true bearing (both ships on the Guide's course): 90 - theta toward her side
+near(at18.aheadDeg, 90 - 58.34, 0.03);
+near(r.trueFromAhead(31.66, 0, 'Starboard'), 31.66, 1e-9); near(r.trueFromAhead(31.66, 0, 'Port'), 328.34, 1e-9); near(r.trueFromAhead(40, 350, 'Starboard'), 30, 1e-9);
+// own bridge and radar and the Guide's stern are on the centre lines, the rigs on the inner edges: across = the gap between the sides + half of each breadth
+const wide = r.plan({ evolution: 'SKBDL', guide: { ...sda, breadth: 12 }, approach: { ...sny, breadth: 14, radar: 20 }, guideSpeed: 12, approachSpeed: 18, surgeYdPerKnot: 25, separationM: 42, standbyYd: 500 })!;
+near(wide.acrossM, 42 + 7 + 6, 1e-9);
+near(wide.thetaDeg, Math.atan2(35.76 + 32.4, 55) * 180 / Math.PI, 1e-9); near(wide.radar!.aheadDeg, 90 - Math.atan2(55.76, 55) * 180 / Math.PI, 1e-9);
+near(at18.acrossM, 42, 1e-9);   // no breadths given: the gap alone, as the sheets work it
 console.log('rasApproach: all checks passed');

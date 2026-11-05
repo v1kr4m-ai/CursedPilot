@@ -42,6 +42,10 @@ export const SYSTEM_PROMPT = [
   ...SHOTS.flatMap(([said, reply, before]) => [...(before ? [before] : []), `User: ${normaliseSpoken(said)}`, `Reply: ${reply}`]),
 ].join('\n');
 
+/** For a model trained on NavYeo's own examples (its GGUF name contains "navyeo"): it knows the request formats, so the examples are left out
+ *  and the phone reads a few words instead of several hundred before each first answer. */
+export const SHORT_SYSTEM_PROMPT = 'You are NavYeo, a warship navigator\'s assistant. Reply with one line: CMD: <request> or SAY: <answer>.';
+
 const QUESTION = /^(?:what|why|which|who|explain|tell me|define|describe|is|are|does|do)\b|^how (?:does|do|is|are)\b|\bwhat is\b|\bwhat does\b|\bmeans?\b|\bformula\b/i;
 /** A question or a request to explain: it gets an answer, not a calculation. ("How far ..." and "how many ..." are calculations and are not questions.) */
 export const isQuestion = (text: string): boolean => {
@@ -61,8 +65,8 @@ export const GLOSSARY: [RegExp, string][] = [
   [/\bvariation\b|\btrue north\b|\bmagnetic north\b|\bmagnetic\b/, 'True north is toward the geographic pole; magnetic north is where a compass needle points before the ship\'s own error. The angle between them at a place is the variation, positive when easterly.'],
   [/\bdeviation\b/, 'Deviation is the error of the ship\'s compass caused by her own magnetism; it changes with her head. Easterly is positive.'],
   [/\bcpa\b|\btcpa\b|closest point/, 'CPA is the closest point of approach: the least distance a contact will pass if both ships hold course and speed. TCPA is the time until then.'],
-  [/\bangle on the bow\b|\batb\b/, 'The angle on the bow is the angle between a ship\'s head and the line of sight from her to you, measured to port or starboard.'],
-  [/\bradian rule\b/, 'The radian rule is L = (R × angle) / 60: the length across, the range and the angle in degrees. Any two give the third. One degree at one mile is about 33 yards.'],
+  [/\bangle on the bow\b|\batb\b|\baspect\b/, 'The angle on the bow is the angle between a ship\'s head and the line of sight from her to you, measured to port or starboard.'],
+  [/\bradian rule\b|\b1 in 60\b|\brule of 60\b/,'The radian rule is L = (R × angle) / 60: the length across, the range and the angle in degrees. Any two give the third. One degree at one mile is about 33 yards.'],
   [/\bcorpen\b/, 'Corpen is a signal to alter course together: every ship turns the same number of degrees. A ship in station astern turns early by the radian rule.'],
   [/\bbattenberg\b/, 'A Battenberg diagram gives the course and speed to take up station on a Guide, from the relative motion.'],
   [/\bset and drift\b|\bdrift\b|\bset\b/, 'Set is the direction a current flows toward and drift is its speed in knots. The course to steer allows for them to make good the track.'],

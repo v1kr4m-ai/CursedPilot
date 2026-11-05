@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import type { Complete } from './smart';
-import { GRAMMAR, SYSTEM_PROMPT, userPrompt } from './llmPrompt';
+import { GRAMMAR, SHORT_SYSTEM_PROMPT, SYSTEM_PROMPT, userPrompt } from './llmPrompt';
 
 // NavYeo's on-phone language model, from the app's side (the native side is android/.../NavLlmPlugin.java). The model file is chosen once from the phone's
 // storage; it is loaded when it is first needed and let go after a few idle minutes, since it takes some 600 MB of memory.
@@ -9,7 +9,7 @@ import { GRAMMAR, SYSTEM_PROMPT, userPrompt } from './llmPrompt';
 interface NavLlmPlugin {
   status(): Promise<{ installed: boolean; sizeMb: number; loaded: boolean }>;
   importModel(): Promise<{ sizeMb: number }>;
-  load(): Promise<{ loaded: boolean }>;
+  load(): Promise<{ loaded: boolean; name?: string }>;
   complete(o: { system: string; user: string; grammar?: string; maxTokens?: number; temperature?: number }): Promise<{ text: string }>;
   stop(): Promise<void>;
   unload(): Promise<void>;
@@ -33,6 +33,7 @@ const set = (p: Partial<BrainSnapshot>) => { snap = { ...snap, ...p }; subs.forE
 let idleTimer: ReturnType<typeof setTimeout> | undefined;
 let loading: Promise<void> | null = null;
 let warmed = false;
+let tuned = false;             // the model was trained on NavYeo's own examples: it gets the short instructions
 let primed = false;            // the fixed instructions are in the model's memory (a request has finished since it was loaded)
 // The phone answers one request at a time. Each waits for the one before it, and its time limit starts only when its own turn comes: a question asked
 // while the instructions are still being read waits for them (and is then quick) rather than timing out behind them.
@@ -67,7 +68,7 @@ export const brain = {
     if (snap.state !== 'installed' && snap.state !== 'loading' && snap.state !== 'error') return Promise.reject(new Error('No model is installed.'));
     if (loading) return loading;
     set({ state: 'loading', error: '' });
-    loading = Native.load().then(() => { set({ state: 'ready' }); }).catch(e => { set({ state: 'error', error: message(e) }); throw e; }).finally(() => { loading = null; });
+    loading = Native.load().then(r => { tuned = /navyeo/i.test(r.name ?? ''); set({ state: 'ready' }); }).catch(e => { set({ state: 'error', error: message(e) }); throw e; }).finally(() => { loading = null; });
     return loading;
   },
 
@@ -78,7 +79,7 @@ export const brain = {
       if (idleTimer) clearTimeout(idleTimer);
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {
-        const call = Native.complete({ system, user, grammar, maxTokens: 80, temperature: 0 });
+        const call = Native.complete({ system: tuned && system === SYSTEM_PROMPT ? SHORT_SYSTEM_PROMPT : system, user, grammar, maxTokens: 80, temperature: 0 });
         // the first read of the instructions is never stopped: once done it is kept (and saved on the phone), so every later answer is quick.
         // Past the time limit the keyword answer is given meanwhile.
         const wasPrimed = primed;
