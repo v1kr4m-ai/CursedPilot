@@ -144,4 +144,13 @@ assert.match(userPrompt('target course 270', 'cpa own course 090', undefined), /
   assert.equal(seen.calls, 0); assert.match((r.reply as { say: string }).say, /0\.17 cables across/);
   assert.match(userPrompt('and in metres', null, undefined, '1 degree at 1 nm'), /^Previous request: 1 degree at 1 nm\nUser: and in metres/);
 }
+// a follow-up that changes one figure of the last request: the model's request keeps the others, which were given then, so it is used
+{
+  const last = 'course to steer track 090 speed 12 set 045 drift 2';
+  assert.equal(isQuestion('what if the drift is 3 knots'), false); assert.equal(isQuestion('what about at 15 knots'), false); assert.equal(isQuestion('what is the radian rule'), true);
+  const r = await smartInterpret('what if the drift is 3 knots', null, ctx({ last }), fake('CMD: course to steer track 090 speed 12 set 045 drift 3'));
+  assert.equal(r.via, 'model'); assert.match((r.reply as { say: string }).say, /^Steer \d{3}°/);
+  const made = await smartInterpret('what if the drift is 3 knots', null, ctx({ last }), fake('CMD: course to steer track 090 speed 14 set 045 drift 3'));
+  assert.doesNotMatch((made.reply as { say: string }).say, /^Steer/); assert.match(made.modelNote ?? '', /14/);   // 14 was never given, now or before
+}
 console.log('llm: all checks passed');

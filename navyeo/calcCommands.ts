@@ -178,7 +178,7 @@ function corpenAnswer(t: string, ctx: CalcCtx): CalcReply | null {
   if (!/\bcorpen\b|alter course in station|alter (?:course )?by corpen/.test(t) || /flying/.test(t)) return null;
   const abreast = /\babreast\b|\bcorpen ['’]?s\b|\babeam\b/.test(t);
   const speed = knots(t, 'speed');
-  const d = dist(t, 'astern|abeam|distance|station|dist', 'cables');
+  const d = dist(t, 'astern|abeam|abreast|distance|station|dist', 'cables');
   const angle = val(t, `${NUM}\\s*(?:°|deg(?:rees?)?)\\s*(?:turn|alteration)?`) ?? val(t, `(?:turn|alter(?:ation)?|angle)\\s*(?:of|by|is|=)?\\s*${NUM}`) ?? 90;
   const side: 'Port' | 'Starboard' = /\b(?:port|red)\b/.test(t) ? 'Port' : 'Starboard';
   const missing = [speed === null && 'your speed', !d && (abreast ? 'the distance abeam' : 'the distance astern')].filter(Boolean);

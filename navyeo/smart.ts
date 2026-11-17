@@ -71,7 +71,8 @@ export async function smartInterpret(text: string, pending: string | null, ctx: 
     return { ...first, via: 'rules' };                                                           // an incomplete request keeps asking for its numbers
   }
 
-  const invented = madeUpNumbers(m.text, heard, pending);
+  // a follow-up such as "and at 15 knots" repeats the last request with one figure changed: its other figures were given then, so they count as given
+  const invented = madeUpNumbers(m.text, heard, [pending, ctx.last].filter(Boolean).join(' ') || null);
   const second = invented.length ? null : interpretWithPending(m.text, null, ctx);   // the model's request goes through the same rules and calculators
   const worse = !second || lostReply(second.reply) || (!lost && half(second.reply));
   if (worse) {

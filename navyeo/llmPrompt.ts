@@ -51,6 +51,8 @@ const QUESTION = /^(?:what|why|which|who|explain|tell me|define|describe|is|are|
 export const isQuestion = (text: string): boolean => {
   const t = text.trim();
   if (!QUESTION.test(t)) return false;
+  // "what if the drift is 3 knots", "what about at 15 knots": the last request again with a figure changed, a calculation and not a question
+  if (/^(?:what|how) (?:if|about)\b/i.test(t)) return false;
   // "what is my closest point of approach, he bears 045 at 6 miles ...": with two or more numbers given it is a calculation asked in the form of a question
   const numbers = (t.match(/\d+(?:\.\d+)?/g) ?? []).length;
   return numbers < 2 || /^(?:explain|define|describe|tell me)\b/i.test(t);

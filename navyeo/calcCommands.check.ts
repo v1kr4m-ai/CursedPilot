@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { interpret, interpretWithPending } from './commands.ts';
 import type { Context, Reply } from './commands.ts';
 import type { Ship } from '../types.ts';
+import { calcCommand } from './calcCommands.ts';
 
 const ctx = (extra: Partial<Context> = {}): Context => ({ tables: [], unit: 'nm', ...extra });
 const say = (text: string, c: Context = ctx()): Reply & { say: string } => interpret(text, c) as Reply & { say: string };
@@ -166,3 +167,10 @@ console.log('calcCommands: all checks passed');
   for (const [q, tab] of tabs) { const r = interpret(q, ctx()) as Extract<Reply, { kind: 'open' }>; assert.equal(r.kind, 'open', q); assert.equal(r.tool, 'Battenberg & Stationing', q); assert.equal(r.memory?.['stn:tab'], tab, q); }
 }
 console.log('stationing tabs: ok');
+
+// "abreast" names the distance as well as the mode, as the Corpen hint itself says it ("corpen abreast 4 cables speed 12 turn 90 to port")
+{
+  const r = calcCommand('corpen abreast 4 cables speed 12 turn 90 to port advance 450 transfer 250 time 70', { unit: 'nm' });
+  assert.ok(r && r.kind === 'open' && r.tool === 'Corpen' && /4 cables abeam/.test(r.say), r?.say);
+}
+console.log('calcCommands: abreast checks passed');
